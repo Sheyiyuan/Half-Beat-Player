@@ -6,6 +6,7 @@ import { Theme } from '../../types';
 interface UseThemeEditorProps {
     themes: Theme[];
     setThemes: (themes: Theme[]) => void;
+    defaultThemes: Theme[];
     currentThemeId: string | null;
     themeColorDraft: string;
     computedColorScheme: string;
@@ -26,13 +27,10 @@ interface UseThemeEditorProps {
     closeModal: (name: string) => void;
 }
 
-// Constants
-const DEFAULT_THEMES: Theme[] = []; // Will be provided from props
-const defaultThemes: Theme[] = [];
-
 export const useThemeEditor = ({
     themes,
     setThemes,
+    defaultThemes,
     currentThemeId,
     themeColorDraft,
     computedColorScheme,
@@ -77,7 +75,7 @@ export const useThemeEditor = ({
         const nextCustom = currentCustomThemes.filter((t: Theme) => t.id !== id);
         saveCachedCustomThemes(nextCustom);
         setThemes([...defaultThemes, ...nextCustom]);
-    }, [themes, setThemes, saveCachedCustomThemes, getCustomThemesFromState]);
+    }, [themes, setThemes, saveCachedCustomThemes, getCustomThemesFromState, defaultThemes]);
 
     const createThemeClick = useCallback(() => {
         setEditingThemeId(null);

@@ -11,8 +11,6 @@ interface UseSkipIntervalHandlerProps {
     intervalStart: number;
     intervalEnd: number;
     intervalLength: number;
-    setIntervalStart: (value: number) => void;
-    setIntervalEnd: (value: number) => void;
 }
 
 export const useSkipIntervalHandler = ({
@@ -24,8 +22,6 @@ export const useSkipIntervalHandler = ({
     intervalStart,
     intervalEnd,
     intervalLength,
-    setIntervalStart,
-    setIntervalEnd,
 }: UseSkipIntervalHandlerProps) => {
 
     const updateSongSkipTimes = useCallback((updates: Partial<Pick<Song, 'skipStartTime' | 'skipEndTime'>>, saveKey: string) => {
@@ -83,25 +79,24 @@ export const useSkipIntervalHandler = ({
             skipStartTime: start,
             skipEndTime: end,
         }, `interval_${currentSong.id}`);
-        setIntervalStart(start);
-        setIntervalEnd(end);
-    }, [currentSong, updateSongSkipTimes, setIntervalStart, setIntervalEnd]);
+        // 局部区间状态将由 currentSong 更新派生得到，无需额外 setter
+    }, [currentSong, updateSongSkipTimes]);
 
     const handleSkipStartChange = useCallback((value: number) => {
         if (!currentSong) return;
         updateSongSkipTimes({
             skipStartTime: value,
         }, `start_${currentSong.id}`);
-        setIntervalStart(value);
-    }, [currentSong, updateSongSkipTimes, setIntervalStart]);
+        // 局部区间状态将由 currentSong 更新派生得到，无需额外 setter
+    }, [currentSong, updateSongSkipTimes]);
 
     const handleSkipEndChange = useCallback((value: number) => {
         if (!currentSong) return;
         updateSongSkipTimes({
             skipEndTime: value,
         }, `end_${currentSong.id}`);
-        setIntervalEnd(value);
-    }, [currentSong, updateSongSkipTimes, setIntervalEnd]);
+        // 局部区间状态将由 currentSong 更新派生得到，无需额外 setter
+    }, [currentSong, updateSongSkipTimes]);
 
     return {
         handleIntervalChange,

@@ -5,3 +5,8 @@ export * from './useFavoriteActions';
 export * from './useThemeEditor';
 export * from './useSearchAndBV';
 export * from './useBVModal';
+export * from './useLyricManagement';
+export * from './useSongOperations';
+export * from './useLyricLoader';
+export * from './useGlobalSearch';
+export * from './useLoginHandlers';
