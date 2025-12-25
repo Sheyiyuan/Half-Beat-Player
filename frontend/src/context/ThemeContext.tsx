@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { Theme } from '../types';
-import { MantineColorScheme } from '@mantine/core';
+import { MantineColorScheme, useComputedColorScheme } from '@mantine/core';
 
 // ========== 类型定义 ==========
 export interface ThemeState {
@@ -24,7 +24,6 @@ export interface ThemeActions {
     setBackgroundImageUrl: (url: string) => void;
     setPanelColor: (color: string) => void;
     setPanelOpacity: (opacity: number) => void;
-    setComputedColorScheme: (scheme: MantineColorScheme) => void;
 
     // 工具方法
     applyTheme: (theme: Theme) => void;
@@ -41,16 +40,18 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 // ========== Provider 组件 ==========
 export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+    // 获取 Mantine 计算的颜色方案
+    const computedColorScheme = useComputedColorScheme('light');
+
     // ========== State ==========
     const [themes, setThemes] = useState<Theme[]>([]);
     const [currentThemeId, setCurrentThemeId] = useState<string | null>(null);
     const [themeColor, setThemeColor] = useState("#339af0");
-    const [backgroundColor, setBackgroundColor] = useState("#1a1b1e");
+    const [backgroundColor, setBackgroundColor] = useState(computedColorScheme === "dark" ? "#1a1b1e" : "#f8fafc");
     const [backgroundOpacity, setBackgroundOpacity] = useState(1.0);
     const [backgroundImageUrl, setBackgroundImageUrl] = useState("");
-    const [panelColor, setPanelColor] = useState("#25262b");
+    const [panelColor, setPanelColor] = useState(computedColorScheme === "dark" ? "#25262b" : "#ffffff");
     const [panelOpacity, setPanelOpacity] = useState(0.95);
-    const [computedColorScheme, setComputedColorScheme] = useState<MantineColorScheme>('dark');
 
     // ========== Actions ==========
 
@@ -133,7 +134,6 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             setBackgroundImageUrl,
             setPanelColor,
             setPanelOpacity,
-            setComputedColorScheme,
             applyTheme,
             setBackgroundImageUrlSafe,
         },
