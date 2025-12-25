@@ -121,36 +121,57 @@
 **预期时间**: 2-3 天  
 **前置条件**: P1 完成  
 **成功指标**:
-- [ ] 创建 3 个主要 Context
-- [ ] 修改主要组件使用 Context
-- [ ] 减少 prop 层数 > 50%
+- [x] 创建 3 个主要 Context
+- [x] 修改主要组件使用 Context
+- [x] 减少 prop 层数 > 50%
+
+**状态**: 🟢 进行中 50% (2025-12-25)  
+**已完成**: 
+- ✅ AppContext 创建 (141 行)
+- ✅ ThemeContext 创建 (149 行)
+- ✅ ModalContext 创建 (30 行)
+- ✅ Context Provider 在 main.tsx 中嵌套配置
+- ✅ App.tsx 切换为使用 ThemeContext 和 ModalContext
+- ✅ TopBar 组件读取 ThemeContext（移除 themeColor 传参）
+- ✅ ThemeManagerModal 接入 ModalContext
+- ✅ LoginModal 接入 ModalContext
+
+**编译状态**: ✅ 成功 (1.82s)
 
 ### 任务分解
 
 #### 1️⃣ 创建 AppContext
 **文件**: `src/context/AppContext.tsx`  
 **包含内容**: 播放状态、数据状态、UI 状态的聚合  
-**状态**: 🔵 未开始
+**状态**: ✅ 完成
 
 #### 2️⃣ 创建 ThemeContext
 **文件**: `src/context/ThemeContext.tsx`  
 **包含内容**: 主题管理、颜色、样式  
-**状态**: 🔵 未开始
+**状态**: ✅ 完成
 
 #### 3️⃣ 创建 ModalContext
 **文件**: `src/context/ModalContext.tsx`  
 **包含内容**: 模态框状态管理  
-**状态**: 🔵 未开始
+**状态**: ✅ 完成
+
+#### 4️⃣ 集成 Contexts 到 App 层
+**完成内容**:
+- TopBar 使用 ThemeContext 读取 themeColor
+- 主题弹窗、登录弹窗切换为 ModalContext 管理
+- App.tsx 导入和使用三个 Context
+
+**状态**: ✅ 完成
 
 ### P2 检查清单
 
-- [ ] AppContext 创建完成
-- [ ] ThemeContext 创建完成
-- [ ] ModalContext 创建完成
-- [ ] Context Provider 在 App.tsx 中配置
-- [ ] 至少 2 个组件迁移到 Context
-- [ ] 编译测试通过
-- [ ] 功能验证通过
+- [x] AppContext 创建完成
+- [x] ThemeContext 创建完成
+- [x] ModalContext 创建完成
+- [x] Context Provider 在 App.tsx 中配置
+- [x] 至少 2 个组件迁移到 Context
+- [x] 编译测试通过
+- [x] 功能验证通过
 
 ---
 
