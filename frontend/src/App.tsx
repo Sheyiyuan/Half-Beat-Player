@@ -20,7 +20,7 @@ import ControlsPanel from "./components/ControlsPanel";
 // Hooks
 import { useAudioPlayer, usePlaylist, useAudioInterval, usePlaylistActions } from "./hooks/player";
 import { useSongs, useFavorites, useSongCache } from "./hooks/data";
-import { useAuth, useBVResolver, useFavoriteActions, useThemeEditor } from "./hooks/features";
+import { useAuth, useBVResolver, useFavoriteActions, useThemeEditor, useSearchAndBV, useBVModal } from "./hooks/features";
 import { useHitokoto } from "./hooks/ui";
 // Contexts
 import { useThemeContext, useModalContext } from "./context";
@@ -144,6 +144,11 @@ const App: React.FC = () => {
     const [panelColorDraft, setPanelColorDraft] = useState<string>("#ffffff");
     const [savingTheme, setSavingTheme] = useState(false);
 
+    // ========== 提前定义的辅助函数 ==========
+    const setBackgroundImageUrlDraftSafe = useCallback((url: string) => {
+        setBackgroundImageUrlDraft(prev => (prev === url ? prev : url));
+    }, []);
+
     // ========== Hook 实例（依赖上述状态） ==========
     const favoriteActions = useFavoriteActions({
         favorites,
@@ -200,11 +205,34 @@ const App: React.FC = () => {
         closeModal,
     });
 
-    // ========== 派生值和辅助函数 ==========
-    const setBackgroundImageUrlDraftSafe = useCallback((url: string) => {
-        setBackgroundImageUrlDraft(prev => (prev === url ? prev : url));
-    }, []);
+    const bvModal = useBVModal({
+        bvPreview,
+        sliceStart,
+        sliceEnd,
+        isSlicePreviewing,
+        bvSongName,
+        bvSinger,
+        bvTargetFavId,
+        selectedFavId,
+        favorites,
+        songs,
+        currentSong,
+        themeColor,
+        sliceAudioRef,
+        setBvModalOpen,
+        setBvPreview,
+        setBvSongName,
+        setBvSinger,
+        setSliceStart,
+        setSliceEnd,
+        setIsSlicePreviewing,
+        setSlicePreviewPosition,
+        setSongs,
+        setFavorites,
+        setSelectedFavId,
+    });
 
+    // ========== 派生值和其他辅助函数 ==========
     // 播放区间相关派生值（从 useAudioInterval hook 获取）
     const maxSkipLimit = duration > 0 ? duration : 1;
 
@@ -1664,101 +1692,9 @@ const App: React.FC = () => {
         }
     };
 
-    const handleSlicePreviewPlay = async () => {
-        if (!sliceAudioRef.current || !bvPreview?.url) return;
-        const audio = sliceAudioRef.current;
-        const start = Math.max(0, sliceStart);
-        const end = Math.max(start, sliceEnd || start);
-        if (end <= start) {
-            notifications.show({ title: '切片区间无效', message: '结束时间需大于开始时间', color: 'orange' });
-            return;
-        }
-        if (isSlicePreviewing) {
-            audio.pause();
-            audio.currentTime = start;
-            setIsSlicePreviewing(false);
-            return;
-        }
-        audio.currentTime = start;
-        setSlicePreviewPosition(start);
-        try {
-            await audio.play();
-            setIsSlicePreviewing(true);
-        } catch (error) {
-            notifications.show({ title: '预览失败', message: String(error), color: 'red' });
-            setIsSlicePreviewing(false);
-        }
-        // 停止在 end 处，由 timeupdate 监听负责
-    };
-
-    const handleConfirmBVAdd = async () => {
-        if (!bvPreview) return;
-        const targetFavId = bvTargetFavId || favorites[0]?.id || null;
-        const start = Math.max(0, sliceStart);
-        // 如果用户设置了片段，使用片段的 end；否则使用歌曲总时长
-        const songDuration = bvPreview.duration || 0;
-        const end = sliceEnd > 0 ? Math.max(start, sliceEnd) : songDuration;
-
-        try {
-            const newSong = new SongClass({
-                id: '',
-                bvid: bvPreview.bvid,
-                name: bvSongName || bvPreview.title,
-                singer: bvSinger,
-                singerId: '',
-                cover: bvPreview.cover || '',
-                streamUrl: bvPreview.url,
-                streamUrlExpiresAt: bvPreview.expiresAt,
-                lyric: '',
-                lyricOffset: 0,
-                skipStartTime: start,
-                skipEndTime: end,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-            });
-
-            await Services.UpsertSongs([newSong as any]);
-            const refreshed = await Services.ListSongs();
-            setSongs(refreshed);
-
-            // 找到刚添加的歌曲用于加入歌单
-            const added = refreshed.find((s) => s.bvid === bvPreview.bvid && s.streamUrl === bvPreview.url) || refreshed[refreshed.length - 1];
-
-            if (added && targetFavId) {
-                const fav = favorites.find((f) => f.id === targetFavId);
-                if (fav) {
-                    const updatedFav = {
-                        ...fav,
-                        songIds: [...fav.songIds, { id: 0, songId: added.id, favoriteId: fav.id }],
-                    };
-                    await Services.SaveFavorite(updatedFav as any);
-                    const refreshedFavs = await Services.ListFavorites();
-                    setFavorites(refreshedFavs);
-                    setSelectedFavId(fav.id);
-                }
-            }
-
-            notifications.show({
-                title: '添加成功',
-                message: `${bvSongName || bvPreview.title} 已加入${targetFavId ? '' : '库'}${targetFavId ? '。' : ''}`,
-                color: 'teal',
-            });
-
-            setBvModalOpen(false);
-            setBvPreview(null);
-            setBvSongName('');
-            setBvSinger('');
-            setSliceStart(0);
-            setSliceEnd(0);
-            setIsSlicePreviewing(false);
-        } catch (err) {
-            notifications.show({
-                title: '保存失败',
-                message: err instanceof Error ? err.message : '未知错误',
-                color: 'red',
-            });
-        }
-    };
+    // ========== BV 模态框相关函数（来自 useBVModal Hook）==========
+    const handleSlicePreviewPlay = bvModal.handleSlicePreviewPlay;
+    const handleConfirmBVAdd = bvModal.handleConfirmBVAdd;
 
     useEffect(() => {
         if (!bvPreview) return;
