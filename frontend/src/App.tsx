@@ -20,7 +20,7 @@ import ControlsPanel from "./components/ControlsPanel";
 // Hooks
 import { useAudioPlayer, usePlaylist, useAudioInterval } from "./hooks/player";
 import { useSongs, useFavorites, useSongCache } from "./hooks/data";
-import { useAuth, useBVResolver } from "./hooks/features";
+import { useAuth, useBVResolver, useFavoriteActions } from "./hooks/features";
 import { useHitokoto } from "./hooks/ui";
 // Contexts
 import { useThemeContext, useModalContext } from "./context";
@@ -102,14 +102,14 @@ const App: React.FC = () => {
     const [setting, setSetting] = useState<PlayerSetting | null>(null);
     const [lyric, setLyric] = useState<LyricMapping | null>(null);
     const [status, setStatus] = useState<string>("加载中...");
-
+    
     // 搜索相关
     const [searchQuery, setSearchQuery] = useState("");
     const [globalSearchTerm, setGlobalSearchTerm] = useState("");
     const [selectedFavId, setSelectedFavId] = useState<string | null>(null);
     const [remoteResults, setRemoteResults] = useState<Song[]>([]);
     const [remoteLoading, setRemoteLoading] = useState(false);
-
+    
     // 设置相关
     const [cacheSize, setCacheSize] = useState(0);
 
@@ -143,6 +143,21 @@ const App: React.FC = () => {
     const [panelOpacityDraft, setPanelOpacityDraft] = useState<number>(0.92);
     const [panelColorDraft, setPanelColorDraft] = useState<string>("#ffffff");
     const [savingTheme, setSavingTheme] = useState(false);
+
+    // ========== Hook 实例（依赖上述状态） ==========
+    const favoriteActions = useFavoriteActions({
+        favorites,
+        setFavorites,
+        songs,
+        setSongs,
+        selectedFavId,
+        setSelectedFavId,
+        setStatus,
+        isLoggedIn,
+        themeColor,
+        openModal,
+        closeModal,
+    });
 
     // ========== 派生值和辅助函数 ==========
     const setBackgroundImageUrlDraftSafe = useCallback((url: string) => {
@@ -1069,211 +1084,19 @@ const App: React.FC = () => {
         openModal("createFavModal");
     };
 
-    const handleDeleteFavorite = async (id: string) => {
-        try {
-            await Services.DeleteFavorite(id);
-            const refreshed = await Services.ListFavorites();
-            setFavorites(refreshed);
-            if (selectedFavId === id) {
-                setSelectedFavId(null);
-            }
-            setConfirmDeleteFavId(null);
-            notifications.show({ title: "已删除歌单", color: "green" });
-        } catch (error) {
-            notifications.show({ title: "删除失败", message: String(error), color: "red" });
-        }
-    };
+    const handleDeleteFavorite = (id: string) => favoriteActions.deleteFavorite(id, setConfirmDeleteFavId);
 
-    const handleEditFavorite = (fav: Favorite) => {
-        setEditingFavId(fav.id);
-        setEditingFavName(fav.title);
-        openModal("editFavModal");
-    };
+    const handleEditFavorite = (fav: Favorite) => favoriteActions.editFavorite(fav, setEditingFavId, setEditingFavName);
 
-    const handleSaveEditFavorite = async () => {
-        if (!editingFavId) return;
-        const name = editingFavName.trim() || "未命名歌单";
-        try {
-            const target = favorites.find((f) => f.id === editingFavId);
-            if (!target) {
-                notifications.show({ title: "未找到歌单", color: "red" });
-                return;
-            }
-            const updated = { ...target, title: name };
-            await Services.SaveFavorite(updated as any);
-            const refreshed = await Services.ListFavorites();
-            setFavorites(refreshed);
-            closeModal("editFavModal");
-            notifications.show({ title: "已保存", color: "green" });
-        } catch (error) {
-            notifications.show({ title: "保存失败", message: String(error), color: "red" });
-        }
-    };
+    const handleSaveEditFavorite = () => favoriteActions.saveEditFavorite(editingFavId, editingFavName);
 
-    const handleSubmitCreateFavorite = async () => {
-        const name = (createFavName || "").trim() || "新歌单";
-        try {
-            if (createFavMode === "blank") {
-                await Services.SaveFavorite({ id: "", title: name, songIds: [] } as any);
-            } else if (createFavMode === "duplicate") {
-                if (!duplicateSourceId) {
-                    notifications.show({ title: "请选择要复制的歌单", color: "orange" });
-                    return;
-                }
-                const source = favorites.find((f) => f.id === duplicateSourceId);
-                if (!source) {
-                    notifications.show({ title: "未找到源歌单", color: "red" });
-                    return;
-                }
-                const cloned = {
-                    id: "",
-                    title: name,
-                    songIds: source.songIds.map((ref) => ({ id: 0, songId: ref.songId, favoriteId: "" })),
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                };
-                await Services.SaveFavorite(cloned as any);
-            } else if (createFavMode === "importMine" || createFavMode === "importFid") {
-                let collectionId: number | null = null;
-
-                if (createFavMode === "importMine") {
-                    if (!isLoggedIn) {
-                        notifications.show({ title: "需要登录", color: "blue" });
-                        openModal("loginModal");
-                        return;
-                    }
-                    if (!selectedMyFavId) {
-                        notifications.show({ title: "请选择收藏夹", color: "orange" });
-                        return;
-                    }
-                    collectionId = selectedMyFavId;
-                } else {
-                    if (!importFid.trim()) {
-                        notifications.show({ title: "请输入 fid", color: "orange" });
-                        return;
-                    }
-                    const parsed = Number(importFid.trim());
-                    if (!Number.isFinite(parsed) || parsed <= 0) {
-                        notifications.show({ title: "fid 格式不正确", color: "red" });
-                        return;
-                    }
-                    collectionId = parsed;
-                }
-
-                const toastId = notifications.show({
-                    title: "正在导入...",
-                    color: themeColor,
-                    loading: true,
-                    autoClose: false,
-                });
-
-                try {
-                    setStatus("正在导入收藏夹...");
-                    const bvids = await Services.GetFavoriteCollectionBVIDs(collectionId!);
-
-                    if (!bvids || bvids.length === 0) {
-                        notifications.update({
-                            id: toastId,
-                            title: "收藏夹为空",
-                            color: "yellow",
-                            loading: false,
-                            autoClose: 2000,
-                        });
-                        return;
-                    }
-
-                    // 准备新增歌曲
-                    const newSongs: Song[] = [];
-                    for (const info of bvids) {
-                        const existing = songs.find((s) => s.bvid === info.bvid);
-                        if (!existing) {
-                            newSongs.push({
-                                id: info.bvid,
-                                bvid: info.bvid,
-                                name: info.title || info.bvid,
-                                singer: "",
-                                singerId: "",
-                                cover: info.cover,
-                                streamUrl: "",
-                                streamUrlExpiresAt: new Date().toISOString(),
-                                lyric: "",
-                                lyricOffset: 0,
-                                skipStartTime: 0,
-                                skipEndTime: 0, // 将在首次播放时自动更新为实际时长
-                                createdAt: new Date().toISOString(),
-                                updatedAt: new Date().toISOString(),
-                            } as any);
-                        }
-                    }
-
-                    if (newSongs.length > 0) {
-                        await Services.UpsertSongs(newSongs);
-                    }
-
-                    const refreshedSongs = await Services.ListSongs();
-                    setSongs(refreshedSongs);
-
-                    // 组装歌单 songIds
-                    const allSongIds = bvids.map((info) => {
-                        const found = refreshedSongs.find((s) => s.bvid === info.bvid);
-                        return found ? found.id : info.bvid;
-                    });
-
-                    const newFav = {
-                        id: "",
-                        title: name,
-                        songIds: allSongIds.map((songId) => ({ id: 0, songId, favoriteId: "" })),
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                    };
-
-                    await Services.SaveFavorite(newFav as any);
-
-                    const refreshedFavs = await Services.ListFavorites();
-                    setFavorites(refreshedFavs);
-
-                    const created = refreshedFavs.find((f) => f.title === name) || refreshedFavs[refreshedFavs.length - 1];
-                    if (created) {
-                        setSelectedFavId(created.id);
-                    }
-
-                    notifications.update({
-                        id: toastId,
-                        title: `导入完成 (${bvids.length} 首)`,
-                        color: "green",
-                        loading: false,
-                        autoClose: 2000,
-                    });
-                    closeModal("createFavModal");
-                } catch (e: any) {
-                    console.error("[App] 导入收藏夹失败:", e);
-                    const errorMsg = e?.message || String(e);
-                    const simpleMsg = errorMsg.length > 30 ? errorMsg.substring(0, 30) + "..." : errorMsg;
-                    notifications.update({
-                        id: toastId,
-                        title: `导入失败: ${simpleMsg}`,
-                        color: "red",
-                        loading: false,
-                        autoClose: 4000,
-                    });
-                } finally {
-                    setStatus("");
-                }
-
-                return;
-            }
-
-            const refreshedFavs = await Services.ListFavorites();
-            setFavorites(refreshedFavs);
-            const created = refreshedFavs.find((f) => f.title === name) || refreshedFavs[refreshedFavs.length - 1];
-            if (created) {
-                setSelectedFavId(created.id);
-            }
-            closeModal("createFavModal");
-        } catch (error) {
-            notifications.show({ title: "创建失败", message: String(error), color: "red" });
-        }
-    };
+    const handleSubmitCreateFavorite = () => favoriteActions.createFavorite({
+        name: createFavName,
+        mode: createFavMode,
+        duplicateSourceId,
+        importFid,
+        selectedMyFavId: null, // TODO: 需要添加这个状态
+    });
 
     const addCurrentToFavorite = async (favId: string) => {
         if (!currentSong) return;
