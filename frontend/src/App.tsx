@@ -27,7 +27,7 @@ import { useThemeContext, useModalContext } from "./context";
 
 // Utils
 import { formatTime, formatTimeLabel, parseTimeLabel } from "./utils/time";
-import { APP_VERSION, PLACEHOLDER_COVER } from "./utils/constants";
+import { APP_VERSION, PLACEHOLDER_COVER, DEFAULT_THEMES } from "./utils/constants";
 
 // Declare window.go for Wails runtime
 declare global {

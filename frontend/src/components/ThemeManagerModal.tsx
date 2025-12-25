@@ -6,7 +6,7 @@ export type ThemeManagerModalProps = {
     opened: boolean;
     onClose: () => void;
     themes: Theme[];
-    currentThemeId: string;
+    currentThemeId: string | null;
     onSelectTheme: (theme: Theme) => void;
     onEditTheme: (theme: Theme) => void;
     onDeleteTheme: (id: string) => void | Promise<void>;
