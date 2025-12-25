@@ -15,6 +15,7 @@ import PlaylistModal from "./components/PlaylistModal";
 import LoginModal from "./components/LoginModal";
 import { TopBar } from "./components/TopBar";
 import MainLayout from "./components/MainLayout";
+import ControlsPanel from "./components/ControlsPanel";
 
 // Hooks
 import { useAudioPlayer, usePlaylist, useAudioInterval } from "./hooks/player";
@@ -2821,41 +2822,32 @@ const App: React.FC = () => {
                     confirmDeleteFavId={confirmDeleteFavId}
                 />
 
-                <Paper
-                    shadow="sm"
-                    radius="md"
-                    p="md"
-                    withBorder
-                    pos="sticky"
-                    bottom={0}
-                    style={{ zIndex: 5, backgroundColor: panelBackground }}
-                >
-                    <PlayerBar
-                        themeColor={themeColor}
-                        computedColorScheme={computedColorScheme}
-                        currentSong={currentSong}
-                        cover={currentSong?.cover}
-                        progressInInterval={progressInInterval}
-                        intervalStart={intervalStart}
-                        intervalLength={intervalLength}
-                        duration={duration}
-                        formatTime={formatTime}
-                        seek={seek}
-                        playPrev={playPrev}
-                        togglePlay={togglePlay}
-                        playNext={playNext}
-                        isPlaying={isPlaying}
-                        playMode={playMode}
-                        onTogglePlayMode={handlePlayModeToggle}
-                        onAddToFavorite={() => setShowFavoriteModal(true)}
-                        onShowPlaylist={() => setShowPlaylistModal(true)}
-                        onDownload={handleDownload}
-                        isDownloaded={isDownloaded}
-                        volume={volume}
-                        changeVolume={changeVolume}
-                        songsCount={songs.length}
-                    />
-                </Paper>
+                <ControlsPanel
+                    themeColor={themeColor}
+                    computedColorScheme={computedColorScheme}
+                    currentSong={currentSong}
+                    cover={currentSong?.cover}
+                    progressInInterval={progressInInterval}
+                    intervalStart={intervalStart}
+                    intervalLength={intervalLength}
+                    duration={duration}
+                    formatTime={formatTime}
+                    seek={seek}
+                    playPrev={playPrev}
+                    togglePlay={togglePlay}
+                    playNext={playNext}
+                    isPlaying={isPlaying}
+                    playMode={playMode}
+                    onTogglePlayMode={handlePlayModeToggle}
+                    onAddToFavorite={() => setShowFavoriteModal(true)}
+                    onShowPlaylist={() => setShowPlaylistModal(true)}
+                    onDownload={handleDownload}
+                    isDownloaded={isDownloaded}
+                    volume={volume}
+                    changeVolume={changeVolume}
+                    songsCount={songs.length}
+                    panelBackground={panelBackground}
+                />
             </Flex>
         </Box>
     );
