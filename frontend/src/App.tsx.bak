@@ -1,0 +1,1975 @@
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Palette, Search, Settings as SettingsIcon } from "lucide-react";
+import { ActionIcon, AspectRatio, Badge, Box, Button, Flex, Group, Image, Modal, NumberInput, Paper, RangeSlider, ScrollArea, Select, Slider, Stack, Text, TextInput, useComputedColorScheme, useMantineColorScheme } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
+import * as Services from "../wailsjs/go/services/Service";
+import { Favorite, LyricMapping, PlayerSetting, Song, Theme, SongClass } from "./types";
+import ThemeManagerModal from "./components/ThemeManagerModal";
+import ThemeEditorModal from "./components/ThemeEditorModal";
+import SongDetailCard from "./components/SongDetailCard";
+import CurrentPlaylistCard from "./components/CurrentPlaylistCard";
+import FavoriteListCard from "./components/FavoriteListCard";
+import PlayerBar from "./components/PlayerBar";
+import AddToFavoriteModal from "./components/AddToFavoriteModal";
+import PlaylistModal from "./components/PlaylistModal";
+import LoginModal from "./components/LoginModal";
+
+// Declare window.go for Wails runtime
+declare global {
+    interface Window {
+        go?: any;
+    }
+}
+
+// 添加滚动文本动画样式
+const formatTime = (seconds: number): string => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    return `${h > 0 ? h + ":" : ""}${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+};
+
+const formatTimeLabel = (value: number | string): string => {
+    const n = Number(value) || 0;
+    return formatTime(n);
+};
+
+const parseTimeLabel = (value: string): number => {
+    if (!value) return 0;
+    const parts = value.split(":").map((p) => Number(p) || 0);
+    if (parts.length === 1) return parts[0];
+    if (parts.length === 2) return parts[0] * 60 + parts[1];
+    return parts[0] * 3600 + parts[1] * 60 + parts[2];
+};
+
+const App: React.FC = () => {
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    const [songs, setSongs] = useState<Song[]>([]);
+    const [favorites, setFavorites] = useState<Favorite[]>([]);
+    const [queue, setQueue] = useState<Song[]>([]);
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [currentSong, setCurrentSong] = useState<Song | null>(null);
+    const [setting, setSetting] = useState<PlayerSetting | null>(null);
+    const [lyric, setLyric] = useState<LyricMapping | null>(null);
+    const [status, setStatus] = useState<string>("加载中...");
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [duration, setDuration] = useState(0);
+    const [volume, setVolume] = useState(0.5);
+    const [playMode, setPlayMode] = useState<"order" | "random" | "single">("order");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
+    const [globalSearchTerm, setGlobalSearchTerm] = useState("");
+    const [resolvingBV, setResolvingBV] = useState(false);
+    const [selectedFavId, setSelectedFavId] = useState<string | null>(null);
+    const [remoteResults, setRemoteResults] = useState<Song[]>([]);
+    const [remoteLoading, setRemoteLoading] = useState(false);
+    const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+    const [showFavoriteModal, setShowFavoriteModal] = useState(false);
+    const [loginModalOpened, setLoginModalOpened] = useState(false);
+    const [userInfo, setUserInfo] = useState<any>(null);
+    const [bvPreview, setBvPreview] = useState<{ bvid: string; title: string; cover: string; url: string; expiresAt: string; duration: number } | null>(null);
+    const [bvModalOpen, setBvModalOpen] = useState(false);
+    const [bvSongName, setBvSongName] = useState("");
+    const [bvSinger, setBvSinger] = useState("");
+    const [bvTargetFavId, setBvTargetFavId] = useState<string | null>(null);
+    const [settingsOpen, setSettingsOpen] = useState(false);
+    const [newFavName, setNewFavName] = useState("");
+    const [sliceStart, setSliceStart] = useState(0);
+    const [sliceEnd, setSliceEnd] = useState(0);
+    const [isSlicePreviewing, setIsSlicePreviewing] = useState(false);
+    const [slicePreviewPosition, setSlicePreviewPosition] = useState(0);
+    const sliceAudioRef = useRef<HTMLAudioElement | null>(null);
+    const APP_VERSION = "0.1.0";
+    const { setColorScheme } = useMantineColorScheme();
+    const computedColorScheme = useComputedColorScheme("light");
+
+    const [themeColor, setThemeColor] = useState<string>("#228be6");
+    const [backgroundColor, setBackgroundColor] = useState<string>(computedColorScheme === "dark" ? "#0b1021" : "#f8fafc");
+    const [backgroundOpacity, setBackgroundOpacity] = useState<number>(1);
+    const [backgroundImageUrl, setBackgroundImageUrl] = useState<string>("");
+    const [panelColor, setPanelColor] = useState<string>(computedColorScheme === "dark" ? "#1f2937" : "#ffffff");
+    const [panelOpacity, setPanelOpacity] = useState<number>(0.92);
+
+    const CUSTOM_THEME_CACHE_KEY = "tomorin.customThemes";
+
+    const loadCachedCustomThemes = (): Theme[] | null => {
+        if (typeof window === "undefined") return null;
+        try {
+            const raw = localStorage.getItem(CUSTOM_THEME_CACHE_KEY);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) return parsed as Theme[];
+            return null;
+        } catch (err) {
+            console.warn("读取主题缓存失败", err);
+            return null;
+        }
+    };
+
+    const saveCachedCustomThemes = (themesToCache: Theme[]) => {
+        if (typeof window === "undefined") return;
+        try {
+            localStorage.setItem(CUSTOM_THEME_CACHE_KEY, JSON.stringify(themesToCache));
+        } catch (err) {
+            console.warn("写入主题缓存失败", err);
+        }
+    };
+
+    const getCustomThemesFromState = (allThemes: Theme[]) => allThemes.filter((t) => !t.isDefault && !t.isReadOnly);
+
+    // 前端定义的默认主题（只读）
+    const defaultThemes: Theme[] = React.useMemo(() => [
+        {
+            id: "light",
+            name: "亮色",
+            colorScheme: "light",
+            themeColor: "#228be6",
+            backgroundColor: "#f8fafc",
+            backgroundOpacity: 1,
+            backgroundImage: "",
+            panelColor: "#ffffff",
+            panelOpacity: 0.92,
+            isDefault: true,
+            isReadOnly: true,
+        },
+        {
+            id: "dark",
+            name: "暗色",
+            colorScheme: "dark",
+            themeColor: "#228be6",
+            backgroundColor: "#0b1021",
+            backgroundOpacity: 1,
+            backgroundImage: "",
+            panelColor: "#1f2937",
+            panelOpacity: 0.92,
+            isDefault: true,
+            isReadOnly: true,
+        },
+    ], []);
+
+    // 新增：主题管理状态
+    const [themes, setThemes] = useState<Theme[]>(defaultThemes);
+    const [currentThemeId, setCurrentThemeId] = useState<string>("light");
+    const [showThemeModal, setShowThemeModal] = useState(false);
+    const [showNewThemeModal, setShowNewThemeModal] = useState(false);
+    const [editingThemeId, setEditingThemeId] = useState<string | null>(null);
+    const [newThemeName, setNewThemeName] = useState<string>("");
+
+    const [colorSchemeDraft, setColorSchemeDraft] = useState<"light" | "dark">("light");
+    const [themeColorDraft, setThemeColorDraft] = useState<string>("#228be6");
+    const [backgroundColorDraft, setBackgroundColorDraft] = useState<string>(computedColorScheme === "dark" ? "#0b1021" : "#f8fafc");
+    const [backgroundOpacityDraft, setBackgroundOpacityDraft] = useState<number>(1);
+    const [backgroundImageUrlDraft, setBackgroundImageUrlDraft] = useState<string>("");
+    const [panelOpacityDraft, setPanelOpacityDraft] = useState<number>(0.92);
+    const [panelColorDraft, setPanelColorDraft] = useState<string>("#ffffff");
+    const [savingTheme, setSavingTheme] = useState(false);
+
+    // Skip disk persistence when we know state changes are already persisted via theme APIs
+    const skipPersistRef = useRef(false);
+
+    // Avoid redundant background updates when URL hasn't changed
+    const setBackgroundImageUrlSafe = useCallback((url: string) => {
+        setBackgroundImageUrl(prev => (prev === url ? prev : url));
+    }, []);
+    const setBackgroundImageUrlDraftSafe = useCallback((url: string) => {
+        setBackgroundImageUrlDraft(prev => (prev === url ? prev : url));
+    }, []);
+    const fileDraftInputRef = useRef<HTMLInputElement | null>(null);
+    const settingsLoadedRef = useRef(false);
+
+    const placeholderCover = React.useMemo(
+        () =>
+            `data:image/svg+xml;utf8,${encodeURIComponent(
+                '<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240" fill="none"><rect width="240" height="240" rx="16" fill="%23e5e7eb"/><path d="M64 168L104 120L136 152L176 104" stroke="%239ca3af" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/><circle cx="86" cy="90" r="14" fill="%239ca3af"/></svg>'
+            )}`,
+        []
+    );
+
+    // 本地测试用的假时长（秒）
+    const testDurations: Record<string, number> = {
+        "test-1": 123,
+        "test-2": 256,
+        "test-3": 407,
+    };
+
+    // 播放区间相关派生值，提前声明避免后续 Hook 中的 TDZ 问题
+    const maxSkipLimit = duration > 0 ? duration : 1;
+    const rawIntervalStart = currentSong?.skipStartTime ?? 0;
+    const rawIntervalEnd = currentSong?.skipEndTime ?? duration;
+    const intervalStart = Math.max(0, rawIntervalStart);
+    const intervalEnd = Math.max(intervalStart, rawIntervalEnd || duration || 0);
+    const intervalLength = Math.max(0, intervalEnd - intervalStart);
+    const progressInInterval = Math.max(0, Math.min(intervalLength || duration, progress - intervalStart));
+
+    type GlobalSearchResult = { kind: "song"; song: Song } | { kind: "favorite"; favorite: Favorite };
+
+    const normalizeText = (value?: string | null) => (value || "").toLowerCase();
+
+    const toRgba = (color: string, alpha: number) => {
+        const a = Math.min(1, Math.max(0, alpha));
+        if (color.startsWith("#")) {
+            const hex = color.replace("#", "");
+            const normalized = hex.length === 3 ? hex.split("").map((c) => c + c).join("") : hex;
+            if (normalized.length === 6) {
+                const r = parseInt(normalized.slice(0, 2), 16);
+                const g = parseInt(normalized.slice(2, 4), 16);
+                const b = parseInt(normalized.slice(4, 6), 16);
+                if (![r, g, b].some((v) => Number.isNaN(v))) {
+                    return `rgba(${r}, ${g}, ${b}, ${a})`;
+                }
+            }
+        }
+        return color;
+    };
+
+    const backgroundWithOpacity = useMemo(
+        () => toRgba(backgroundColor, backgroundOpacity),
+        [backgroundColor, backgroundOpacity]
+    );
+
+    const panelBackground = useMemo(() => toRgba(panelColor, panelOpacity), [panelColor, panelOpacity]);
+
+    const lightenHex = (hex: string, percent: number) => {
+        const num = parseInt(hex.replace("#", ""), 16);
+        const r = Math.min(255, Math.floor((num >> 16) + (255 - (num >> 16)) * (percent / 100)));
+        const g = Math.min(255, Math.floor(((num >> 8) & 0x00FF) + (255 - ((num >> 8) & 0x00FF)) * (percent / 100)));
+        const b = Math.min(255, Math.floor((num & 0x0000FF) + (255 - (num & 0x0000FF)) * (percent / 100)));
+        return `rgb(${r}, ${g}, ${b})`;
+    };
+    const themeColorLight = useMemo(() => lightenHex(themeColor, 40), [themeColor]);
+
+    const persistSettings = async (partial: Partial<PlayerSetting>) => {
+        const next = {
+            id: setting?.id ?? 1,
+            playMode,
+            defaultVolume: volume,
+            themes: setting?.themes ?? "",
+            currentThemeId: currentThemeId,
+            themeColor,
+            backgroundColor,
+            backgroundOpacity,
+            backgroundImage: backgroundImageUrl,
+            panelOpacity,
+            updatedAt: new Date().toISOString(),
+            ...partial,
+        } as PlayerSetting;
+        setSetting(next);
+        try {
+            await Services.SavePlayerSetting(next as any);
+        } catch (err) {
+            console.error("保存设置失败", err);
+        }
+    };
+
+    useEffect(() => {
+        if (!settingsLoadedRef.current) return;
+        if (skipPersistRef.current) {
+            skipPersistRef.current = false;
+            return;
+        }
+        // 使用 setTimeout 防抖，避免频繁保存
+        const timeoutId = setTimeout(() => {
+            persistSettings({});
+        }, 500); // 500ms 防抖延迟
+        return () => clearTimeout(timeoutId);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [themeColor, backgroundColor, backgroundOpacity, backgroundImageUrl, panelOpacity]);
+
+    // 关闭软件时：同步设置到后端并清理前端缓存
+    useEffect(() => {
+        const handleBeforeUnload = async () => {
+            try {
+                await persistSettings({});
+            } catch { }
+            try {
+                localStorage.removeItem("tomorin.userInfo");
+                localStorage.removeItem("tomorin.customThemes");
+            } catch { }
+        };
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    useEffect(() => {
+        if (!window.go?.services?.Service?.GetPlayerSetting) {
+            console.warn("Wails runtime not ready, skipping settings load");
+            settingsLoadedRef.current = true;
+            return;
+        }
+
+        // 尝试从 localStorage 恢复用户信息
+        try {
+            const cachedUserInfo = localStorage.getItem("tomorin.userInfo");
+            if (cachedUserInfo) {
+                setUserInfo(JSON.parse(cachedUserInfo));
+            }
+        } catch (e) {
+            console.warn("恢复用户信息失败:", e);
+        }
+
+        // 检查登录状态并尝试恢复
+        Services.IsLoggedIn().then(isLoggedIn => {
+            if (isLoggedIn && !userInfo) {
+                // 已登录但没有加载用户信息，尝试获取
+                Services.GetUserInfo()
+                    .then(info => {
+                        setUserInfo(info);
+                        localStorage.setItem("tomorin.userInfo", JSON.stringify(info));
+                    })
+                    .catch(err => console.warn("自动获取用户信息失败:", err));
+            }
+        }).catch(err => console.warn("检查登录状态失败:", err));
+
+        // 启动时始终从后端读取配置（不再优先本地缓存）
+        const themesPromise = Services.GetThemes();
+
+        Promise.all([Services.GetPlayerSetting(), themesPromise])
+            .then(([s, customThemesList]) => {
+                const customThemes = customThemesList || [];
+                // 可选择：同步到本地缓存以便前端快速显示，但不作为数据源
+                saveCachedCustomThemes(customThemes);
+                setSetting(s as any);
+                setVolume(s.defaultVolume ?? 0.5);
+                setPlayMode((s.playMode as any) ?? "order");
+
+                // 合并默认主题和自定义主题
+                const allThemes = [...defaultThemes, ...customThemes];
+                setThemes(allThemes);
+                setCurrentThemeId(s.currentThemeId || "light");
+
+                // 从当前主题加载颜色设置
+                const currentTheme = allThemes.find((t: Theme) => t.id === (s.currentThemeId || "light"));
+                if (currentTheme) {
+                    setThemeColor(currentTheme.themeColor);
+                    setBackgroundColor(currentTheme.backgroundColor);
+                    setBackgroundOpacity(currentTheme.backgroundOpacity);
+                    setBackgroundImageUrlSafe(currentTheme.backgroundImage);
+                    setPanelColor(currentTheme.panelColor);
+                    setPanelOpacity(currentTheme.panelOpacity);
+                }
+                settingsLoadedRef.current = true;
+            })
+            .catch((e) => {
+                console.warn("加载设置失败", e);
+                settingsLoadedRef.current = true;
+            });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    useEffect(() => {
+        (async () => {
+            try {
+                setStatus("正在加载...");
+                console.log("初始化测试数据...");
+
+                // 检查登录状态
+                const loggedIn = await Services.IsLoggedIn();
+                if (!loggedIn) {
+                    console.log("未登录，提示用户登录");
+                    setLoginModalOpened(true);
+                } else {
+                    // 已登录，获取用户信息
+                    try {
+                        const info = await Services.GetUserInfo();
+                        setUserInfo(info);
+                        console.log("用户信息:", info);
+                        // 保存到 localStorage
+                        localStorage.setItem("tomorin.userInfo", JSON.stringify(info));
+                    } catch (e) {
+                        console.warn("获取用户信息失败:", e);
+                    }
+                }
+
+                // 总是使用测试数据
+                const testData = [
+                    {
+                        id: "test-1",
+                        name: "测试歌曲1",
+                        singer: "测试艺术家1",
+                        cover: "",
+                        streamUrl: "https://example.com/test1.mp3",
+                        skipStartTime: 0,
+                        skipEndTime: 0,
+                    },
+                    {
+                        id: "test-2",
+                        name: "测试歌曲2",
+                        singer: "测试艺术家2",
+                        cover: "",
+                        streamUrl: "https://example.com/test2.mp3",
+                        skipStartTime: 0,
+                        skipEndTime: 0,
+                    },
+                    {
+                        id: "test-3",
+                        name: "测试歌曲3",
+                        singer: "测试艺术家3",
+                        cover: "",
+                        streamUrl: "https://example.com/test3.mp3",
+                        skipStartTime: 0,
+                        skipEndTime: 0,
+                    },
+                ];
+                const finalSongs = testData.map(d => new SongClass(d));
+
+                const testFavorites = [
+                    {
+                        id: "fav-1",
+                        title: "收藏的弹幕音乐",
+                        songIds: [
+                            { songId: "test-1" },
+                            { songId: "test-2" },
+                        ],
+                    } as any,
+                    {
+                        id: "fav-2",
+                        title: "夜间歌单",
+                        songIds: [
+                            { songId: "test-2" },
+                        ],
+                    } as any,
+                    {
+                        id: "fav-3",
+                        title: "周末精选",
+                        songIds: [
+                            { songId: "test-1" },
+                            { songId: "test-3" },
+                        ],
+                    } as any,
+                    {
+                        id: "fav-4",
+                        title: "运动歌单",
+                        songIds: [
+                            { songId: "test-3" },
+                        ],
+                    } as any,
+                ];
+
+                console.log("设置歌曲", finalSongs);
+                console.log("设置歌单", testFavorites);
+                setSongs(finalSongs);
+                setFavorites(testFavorites);
+                if (!setting) {
+                    setSetting({ defaultVolume: 0.5 } as any);
+                    setVolume(0.5);
+                }
+                if (finalSongs.length) {
+                    setQueue(finalSongs);
+                    setCurrentIndex(0);
+                    setCurrentSong(finalSongs[0]);
+                    const mockDur = testDurations[finalSongs[0].id];
+                    if (mockDur) {
+                        setDuration(mockDur);
+                    }
+                    console.log("设置当前歌曲", finalSongs[0]);
+                }
+                setStatus("就绪");
+            } catch (e: any) {
+                console.error(e);
+                setStatus(`错误: ${e?.message ?? String(e)}`);
+            }
+        })();
+    }, [setting]);
+
+    useEffect(() => {
+        if (!currentSong) return;
+        try {
+            Services.GetLyricMapping(currentSong.id)
+                .then(setLyric)
+                .catch(() => setLyric(null));
+        } catch (e) {
+            console.warn("获取歌词失败", e);
+            setLyric(null);
+        }
+    }, [currentSong]);
+
+    // 如果是测试歌曲，使用本地假时长
+    useEffect(() => {
+        if (!currentSong) return;
+        const mockDur = testDurations[currentSong.id];
+        if (mockDur) {
+            setDuration(mockDur);
+            setProgress(0);
+        }
+    }, [currentSong]);
+
+    useEffect(() => {
+        const audio = (audioRef.current ||= new Audio());
+        audio.volume = volume;
+
+        const onTime = () => {
+            const t = audio.currentTime;
+            if (t < intervalStart) {
+                audio.currentTime = intervalStart;
+                setProgress(intervalStart);
+                return;
+            }
+            if (t > intervalEnd) {
+                audio.pause();
+                setIsPlaying(false);
+                audio.currentTime = intervalStart;
+                setProgress(intervalEnd);
+                return;
+            }
+            setProgress(t);
+        };
+        const onLoaded = () => setDuration(audio.duration || 0);
+        const onEnded = () => {
+            // 如果在区间内播放完，直接停；否则按队列跳下一首
+            if (audio.currentTime >= intervalEnd) {
+                audio.pause();
+                setIsPlaying(false);
+                audio.currentTime = intervalStart;
+                setProgress(intervalStart);
+                return;
+            }
+            if (queue.length > 0 && currentIndex < queue.length - 1) {
+                const nextIndex = currentIndex + 1;
+                setCurrentIndex(nextIndex);
+                setCurrentSong(queue[nextIndex]);
+            } else {
+                setIsPlaying(false);
+            }
+        };
+        audio.addEventListener("timeupdate", onTime);
+        audio.addEventListener("loadedmetadata", onLoaded);
+        audio.addEventListener("ended", onEnded);
+        return () => {
+            audio.removeEventListener("timeupdate", onTime);
+            audio.removeEventListener("loadedmetadata", onLoaded);
+            audio.removeEventListener("ended", onEnded);
+        };
+    }, [queue, currentIndex, volume, intervalStart, intervalEnd]);
+
+    // 当加载到时长后，如果尚未设置播放区间，默认填满整个曲目
+    useEffect(() => {
+        if (!currentSong) return;
+        if (!duration || duration <= 0) return;
+        if ((currentSong.skipStartTime ?? 0) === 0 && (currentSong.skipEndTime ?? 0) === 0) {
+            setCurrentSong({
+                ...currentSong,
+                skipStartTime: 0,
+                skipEndTime: duration,
+            } as any);
+        }
+    }, [currentSong, duration]);
+
+    // 如果时长变化，确保区间不超过时长
+    useEffect(() => {
+        if (!currentSong) return;
+        if (!duration || duration <= 0) return;
+        const start = Math.min(currentSong.skipStartTime ?? 0, duration);
+        const rawEnd = currentSong.skipEndTime ?? duration;
+        const end = Math.min(Math.max(rawEnd, start), duration);
+        if (start !== currentSong.skipStartTime || end !== currentSong.skipEndTime) {
+            setCurrentSong({
+                ...currentSong,
+                skipStartTime: start,
+                skipEndTime: end,
+            } as any);
+        }
+    }, [currentSong, duration]);
+
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio || !currentSong) return;
+        if (!currentSong.streamUrl) {
+            setStatus("当前歌曲缺少播放地址 streamUrl");
+            setIsPlaying(false);
+            audio.pause();
+            return;
+        }
+        audio.src = currentSong.streamUrl;
+        audio.currentTime = 0;
+        if (isPlaying) {
+            audio.play().catch((e) => setStatus(`无法播放: ${e}`));
+        }
+    }, [currentSong, isPlaying]);
+
+    const playSong = async (song: Song, list?: Song[]) => {
+        const targetList = list ?? queue;
+        const idx = targetList.findIndex((s) => s.id === song.id);
+        setQueue(targetList);
+        setCurrentIndex(idx >= 0 ? idx : 0);
+
+        let toPlay = song;
+        const exp: any = (song as any).streamUrlExpiresAt;
+        const expired = !song.streamUrl || (exp && new Date(exp).getTime() <= Date.now() + 30_000);
+        if (expired && song.bvid) {
+            try {
+                // 尝试使用新的 GetPlayURL 方法（需要登录）
+                try {
+                    const playInfo = await Services.GetPlayURL(song.bvid, 0);
+                    if (playInfo && playInfo.proxyUrl) {
+                        toPlay = {
+                            ...song,
+                            streamUrl: playInfo.proxyUrl,
+                            streamUrlExpiresAt: playInfo.expiresAt,
+                            updatedAt: new Date().toISOString()
+                        } as any;
+                    } else {
+                        // 降级到旧方法
+                        const info = await Services.ResolveBiliAudio(song.bvid);
+                        toPlay = { ...song, streamUrl: info.url, streamUrlExpiresAt: info.expiresAt, updatedAt: new Date().toISOString() } as any;
+                    }
+                } catch (e) {
+                    // 如果 GetPlayURL 失败，尝试旧方法
+                    console.log("GetPlayURL 失败，尝试 ResolveBiliAudio", e);
+                    const info = await Services.ResolveBiliAudio(song.bvid);
+                    toPlay = { ...song, streamUrl: info.url, streamUrlExpiresAt: info.expiresAt, updatedAt: new Date().toISOString() } as any;
+                }
+                await Services.UpsertSongs([toPlay as any]);
+                const refreshed = await Services.ListSongs();
+                setSongs(refreshed);
+            } catch (e) {
+                notifications.show({ title: '解析失败', message: e instanceof Error ? e.message : '未知错误', color: 'red' });
+            }
+        }
+
+        setCurrentSong(toPlay);
+        setIsPlaying(true);
+    };
+
+    const playNext = () => {
+        if (playMode === "single") {
+            const audio = audioRef.current;
+            if (audio) audio.currentTime = 0;
+        } else if (queue.length > 0) {
+            let nextIdx = currentIndex + 1;
+            if (playMode === "random") {
+                nextIdx = Math.floor(Math.random() * queue.length);
+            } else if (nextIdx >= queue.length) {
+                nextIdx = 0;
+            }
+            setCurrentIndex(nextIdx);
+            setCurrentSong(queue[nextIdx]);
+        }
+    };
+
+    const playPrev = () => {
+        if (queue.length > 0) {
+            let prevIdx = currentIndex - 1;
+            if (prevIdx < 0) prevIdx = queue.length - 1;
+            setCurrentIndex(prevIdx);
+            setCurrentSong(queue[prevIdx]);
+        }
+    };
+
+    const togglePlay = async () => {
+        const audio = audioRef.current;
+        if (!audio || !currentSong?.streamUrl) return;
+        const target = Math.max(intervalStart, Math.min(audio.currentTime || 0, intervalEnd));
+        audio.currentTime = target;
+        if (audio.paused) {
+            await audio.play();
+            setIsPlaying(true);
+        } else {
+            audio.pause();
+            setIsPlaying(false);
+        }
+    };
+
+    const seek = (value: number) => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        const clamped = Math.min(intervalEnd, Math.max(intervalStart, value));
+        audio.currentTime = clamped;
+        setProgress(clamped);
+    };
+
+    const changeVolume = (v: number) => {
+        const audio = audioRef.current;
+        const clamped = Math.min(1, Math.max(0, v));
+        setVolume(clamped);
+        if (audio) audio.volume = clamped;
+    };
+
+    const compressImageToWebp = async (
+        file: File,
+        maxWidth = 1920,
+        maxHeight = 1080,
+        quality = 0.7
+    ): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+            img.onload = () => {
+                const { width, height } = img;
+                let targetW = width;
+                let targetH = height;
+                if (width > maxWidth || height > maxHeight) {
+                    const ratio = Math.min(maxWidth / width, maxHeight / height);
+                    targetW = Math.round(width * ratio);
+                    targetH = Math.round(height * ratio);
+                }
+                const canvas = document.createElement("canvas");
+                canvas.width = targetW;
+                canvas.height = targetH;
+                const ctx = canvas.getContext("2d");
+                if (!ctx) {
+                    URL.revokeObjectURL(url);
+                    reject(new Error("无法创建画布上下文"));
+                    return;
+                }
+                ctx.drawImage(img, 0, 0, targetW, targetH);
+                canvas.toBlob(
+                    (blob) => {
+                        URL.revokeObjectURL(url);
+                        if (!blob) {
+                            reject(new Error("导出 WebP 失败"));
+                            return;
+                        }
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result as string);
+                        reader.onerror = () => reject(new Error("读取压缩图片失败"));
+                        reader.readAsDataURL(blob);
+                    },
+                    "image/webp",
+                    quality
+                );
+            };
+            img.onerror = () => {
+                URL.revokeObjectURL(url);
+                reject(new Error("图片加载失败"));
+            };
+            img.src = url;
+        });
+    };
+
+    const loadBackgroundFile = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+        setter: (value: string) => void
+    ) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+            const compressed = await compressImageToWebp(file);
+            setter(compressed);
+        } catch (err) {
+            console.error("压缩图片失败", err);
+        } finally {
+            e.target.value = "";
+        }
+    };
+
+    const handleBackgroundFileDraft = (e: React.ChangeEvent<HTMLInputElement>) => {
+        void loadBackgroundFile(e, setBackgroundImageUrlDraftSafe);
+    };
+
+    const addSong = async () => {
+        const name = prompt("歌曲名") || "新歌曲";
+        const streamUrl = prompt("音频地址 (可选)") || "";
+        const newSong = {
+            id: "",
+            bvid: "",
+            name,
+            singer: "",
+            singerId: "",
+            cover: "",
+            streamUrl,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
+        await Services.UpsertSongs([newSong as any]);
+        const refreshed = await Services.ListSongs();
+        setSongs(refreshed);
+        if (!currentSong && refreshed.length) {
+            playSong(refreshed[0], refreshed);
+        }
+    };
+
+    const saveLyric = async (value: string) => {
+        if (!currentSong) return;
+        const next = {
+            id: currentSong.id,
+            lyric: value,
+            offsetMs: lyric?.offsetMs ?? 0,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
+        await Services.SaveLyricMapping(next as any);
+        setLyric(next as any);
+    };
+
+    const saveLyricOffset = async (offset: number) => {
+        if (!currentSong) return;
+        const next = {
+            id: currentSong.id,
+            lyric: lyric?.lyric ?? "",
+            offsetMs: offset,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
+        await Services.SaveLyricMapping(next as any);
+        setLyric(next as any);
+    };
+
+    const updateStreamUrl = async (url: string) => {
+        if (!currentSong) return;
+        const updated = { ...currentSong, streamUrl: url };
+        await Services.UpsertSongs([updated as any]);
+        const refreshed = await Services.ListSongs();
+        setSongs(refreshed);
+        setCurrentSong(updated as any);
+    };
+
+    const createFavorite = async () => {
+        const title = prompt("歌单名") || "我的歌单";
+        const fav = { id: "", title, songIds: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+        await Services.SaveFavorite(fav as any);
+        setFavorites(await Services.ListFavorites());
+    };
+
+    const addCurrentToFavorite = async (favId: string) => {
+        if (!currentSong) return;
+        const target = favorites.find((f) => f.id === favId);
+        if (!target) return;
+        const next = {
+            ...target,
+            songIds: [...target.songIds, { id: 0, songId: currentSong.id, favoriteId: favId }],
+        };
+        await Services.SaveFavorite(next as any);
+        setFavorites(await Services.ListFavorites());
+    };
+
+    const playFavorite = (fav: Favorite) => {
+        const idSet = new Set(fav.songIds.map((s) => s.songId));
+        const list = songs.filter((s) => idSet.has(s.id));
+        if (list.length === 0) return;
+        playSong(list[0], list);
+    };
+
+    const filteredSongs = songs.filter((s) =>
+        searchQuery === "" || s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.singer.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const currentFav = selectedFavId ? (favorites.find((f) => f.id === selectedFavId) ?? null) : null;
+    const currentFavSongs = currentFav
+        ? songs.filter((s) => currentFav.songIds.some((ref) => ref.songId === s.id))
+        : [];
+
+    const globalSearchResults: GlobalSearchResult[] = useMemo(() => {
+        const term = globalSearchTerm.trim().toLowerCase();
+        if (!term) return [];
+        const songMatches = songs
+            .filter((s) => {
+                const name = normalizeText(s.name);
+                const singer = normalizeText(s.singer);
+                const bvid = normalizeText(s.bvid);
+                const singerId = normalizeText(s.singerId);
+                return name.includes(term) || singer.includes(term) || bvid.includes(term) || singerId.includes(term);
+            })
+            .map((song) => ({ kind: "song" as const, song }));
+        const favoriteMatches = favorites
+            .filter((f) => {
+                const fid = normalizeText(f.id);
+                const title = normalizeText(f.title);
+                return fid.includes(term) || title.includes(term);
+            })
+            .map((favorite) => ({ kind: "favorite" as const, favorite }));
+        return [...songMatches, ...favoriteMatches];
+    }, [globalSearchTerm, songs, favorites]);
+
+    const backgroundStyle = useMemo(() => ({
+        overflow: "hidden",
+        backgroundColor: backgroundWithOpacity,
+        backgroundImage: backgroundImageUrl ? `url(${backgroundImageUrl})` : undefined,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+    }), [backgroundWithOpacity, backgroundImageUrl]);
+    const applyThemeToUi = (theme: Theme) => {
+        setCurrentThemeId(theme.id);
+        if (theme.colorScheme) {
+            setColorScheme(theme.colorScheme as "light" | "dark");
+        }
+        skipPersistRef.current = true;
+        setThemeColor(theme.themeColor);
+        setBackgroundColor(theme.backgroundColor);
+        setBackgroundOpacity(theme.backgroundOpacity);
+        setBackgroundImageUrlSafe(theme.backgroundImage);
+        setPanelColor(theme.panelColor);
+        setPanelOpacity(theme.panelOpacity);
+    };
+
+    const handleSelectTheme = (theme: Theme) => {
+        applyThemeToUi(theme);
+        Services.SetCurrentTheme(theme.id).catch(err => console.error("SetCurrentTheme failed", err));
+    };
+
+    const handleEditTheme = (theme: Theme) => {
+        setEditingThemeId(theme.id);
+        setNewThemeName(theme.name);
+        setColorSchemeDraft((theme.colorScheme as "light" | "dark") || "light");
+        setThemeColorDraft(theme.themeColor);
+        setBackgroundColorDraft(theme.backgroundColor);
+        setBackgroundOpacityDraft(theme.backgroundOpacity);
+        setBackgroundImageUrlDraftSafe(theme.backgroundImage);
+        setPanelColorDraft(theme.panelColor);
+        setPanelOpacityDraft(theme.panelOpacity);
+        setShowNewThemeModal(true);
+    };
+
+    const handleDeleteTheme = async (id: string) => {
+        await Services.DeleteTheme(id);
+        const currentCustomThemes = getCustomThemesFromState(themes);
+        const nextCustom = currentCustomThemes.filter((t) => t.id !== id);
+        saveCachedCustomThemes(nextCustom);
+        setThemes([...defaultThemes, ...nextCustom]);
+    };
+
+    const handleCreateThemeClick = () => {
+        setEditingThemeId(null);
+        setNewThemeName("");
+        setColorSchemeDraft(computedColorScheme);
+        setThemeColorDraft("#228be6");
+        setBackgroundColorDraft(computedColorScheme === "dark" ? "#0b1021" : "#f8fafc");
+        setBackgroundOpacityDraft(1);
+        setBackgroundImageUrlDraftSafe("");
+        setPanelColorDraft(computedColorScheme === "dark" ? "#1f2937" : "#ffffff");
+        setPanelOpacityDraft(0.92);
+        setShowNewThemeModal(true);
+    };
+
+    const handleSubmitTheme = async () => {
+        setSavingTheme(true);
+        const toastId = notifications.show({
+            title: editingThemeId ? "正在保存主题" : "正在创建主题",
+            message: "请稍候...",
+            color: themeColorDraft,
+            loading: true,
+            autoClose: false,
+        });
+        try {
+            if (editingThemeId) {
+                const editingTheme = themes.find(t => t.id === editingThemeId);
+                const updatedTheme: Theme = {
+                    id: editingThemeId,
+                    name: newThemeName || "未命名主题",
+                    colorScheme: colorSchemeDraft,
+                    themeColor: themeColorDraft,
+                    backgroundColor: backgroundColorDraft,
+                    backgroundOpacity: backgroundOpacityDraft,
+                    backgroundImage: backgroundImageUrlDraft,
+                    panelColor: panelColorDraft,
+                    panelOpacity: panelOpacityDraft,
+                    isDefault: editingTheme?.isDefault || false,
+                    isReadOnly: false,
+                };
+                await Services.UpdateTheme(updatedTheme);
+                const currentCustomThemes = getCustomThemesFromState(themes);
+                const nextCustom = currentCustomThemes.map((t) => (t.id === editingThemeId ? updatedTheme : t));
+                saveCachedCustomThemes(nextCustom);
+                setThemes([...defaultThemes, ...nextCustom]);
+                if (currentThemeId === editingThemeId) {
+                    applyThemeToUi(updatedTheme);
+                }
+                notifications.update({
+                    id: toastId,
+                    title: "主题已保存",
+                    message: updatedTheme.name,
+                    color: "teal",
+                    loading: false,
+                    autoClose: 1500,
+                });
+            } else {
+                const newTheme: Theme = {
+                    id: "",
+                    name: newThemeName || "未命名主题",
+                    colorScheme: colorSchemeDraft,
+                    themeColor: themeColorDraft,
+                    backgroundColor: backgroundColorDraft,
+                    backgroundOpacity: backgroundOpacityDraft,
+                    backgroundImage: backgroundImageUrlDraft,
+                    panelColor: panelColorDraft,
+                    panelOpacity: panelOpacityDraft,
+                    isDefault: false,
+                    isReadOnly: false,
+                };
+                const createdTheme = await Services.CreateTheme(newTheme);
+                const currentCustomThemes = getCustomThemesFromState(themes);
+                const nextCustom = [...currentCustomThemes, createdTheme];
+                saveCachedCustomThemes(nextCustom);
+                setThemes([...defaultThemes, ...nextCustom]);
+                notifications.update({
+                    id: toastId,
+                    title: "主题已创建",
+                    message: createdTheme.name,
+                    color: "teal",
+                    loading: false,
+                    autoClose: 1500,
+                });
+            }
+            setShowNewThemeModal(false);
+            setEditingThemeId(null);
+            setNewThemeName("");
+        } catch (err) {
+            notifications.update({
+                id: toastId,
+                title: editingThemeId ? "保存失败" : "创建失败",
+                message: `${err}`,
+                color: "red",
+                loading: false,
+                autoClose: 3000,
+            });
+        } finally {
+            setSavingTheme(false);
+        }
+    };
+
+    const handleCloseThemeEditor = () => {
+        setShowNewThemeModal(false);
+        setEditingThemeId(null);
+        setNewThemeName("");
+        // 清空草稿状态
+        setBackgroundImageUrlDraft("");
+    };
+
+    const handleClearBackgroundImageDraft = () => {
+        console.log('handleClearBackgroundImageDraft 被调用，URL长度:', backgroundImageUrlDraft?.length || 0);
+        // 移除 window.confirm，在 Wails 中可能不工作
+        // TODO: 之后可改用 Mantine Modal 确认
+        console.log('开始清除背景图');
+        setBackgroundImageUrlDraft("");
+        console.log('背景图已设置为空字符串');
+    };
+
+    const handleIntervalChange = (start: number, end: number) => {
+        if (!currentSong) return;
+        setCurrentSong({
+            ...currentSong,
+            skipStartTime: start,
+            skipEndTime: end,
+        } as any);
+    };
+
+    const handleSkipStartChange = (value: number) => {
+        if (!currentSong) return;
+        setCurrentSong({
+            ...currentSong,
+            skipStartTime: value,
+        } as any);
+    };
+
+    const handleSkipEndChange = (value: number) => {
+        if (!currentSong) return;
+        setCurrentSong({
+            ...currentSong,
+            skipEndTime: value,
+        } as any);
+    };
+
+    const handleStreamUrlChange = (value: string) => {
+        updateStreamUrl(value);
+    };
+
+    const handlePlayModeToggle = () => setPlayMode(playMode === "order" ? "random" : playMode === "random" ? "single" : "order");
+
+    const handleDownload = () => {
+        if (currentSong?.streamUrl) {
+            setStatus(`正在下载: ${currentSong.name}`);
+        } else {
+            setStatus("当前歌曲无下载链接");
+        }
+    };
+
+    const handleAddToFavoriteFromModal = (fav: Favorite) => {
+        setStatus(`已添加到歌单: ${fav.title}`);
+        setShowFavoriteModal(false);
+    };
+
+    const handlePlaylistSelect = (song: Song, index: number) => {
+        setCurrentIndex(index);
+        setCurrentSong(song);
+        setShowPlaylistModal(false);
+    };
+
+    const handleSearchResultClick = (result: GlobalSearchResult) => {
+        if (result.kind === "song") {
+            playSong(result.song, songs);
+        } else {
+            setSelectedFavId(result.favorite.id);
+            playFavorite(result.favorite);
+        }
+        setGlobalSearchOpen(false);
+    };
+
+    const handleRemoteSearch = async () => {
+        const term = globalSearchTerm.trim();
+        if (!term) return;
+        // Skip if it's a BV or URL -> 走解析
+        const bvPattern = /BV[0-9A-Za-z]{10}/;
+        if (bvPattern.test(term) || term.includes('bilibili.com')) {
+            await handleResolveBVAndAdd();
+            return;
+        }
+        setRemoteLoading(true);
+        try {
+            const list = await Services.SearchBiliVideos(term, 1, 10);
+            setRemoteResults(list);
+        } catch (e) {
+            notifications.show({ title: '搜索失败', message: e instanceof Error ? e.message : '未知错误', color: 'red' });
+        } finally {
+            setRemoteLoading(false);
+        }
+    };
+
+    const handleAddFromRemote = async (item: Song) => {
+        setGlobalSearchTerm(item.bvid || item.name || '');
+        await handleResolveBVAndAdd();
+    };
+
+    const handleResolveBVAndAdd = async () => {
+        const term = globalSearchTerm.trim();
+        if (!term) return;
+
+        // Check if input looks like a BV ID or URL
+        const bvPattern = /BV[0-9A-Za-z]{10}/;
+        if (!bvPattern.test(term) && !term.includes('bilibili.com')) {
+            notifications.show({
+                title: '输入格式错误',
+                message: '请输入有效的 BV 号或 B站链接',
+                color: 'orange',
+            });
+            return;
+        }
+
+        setResolvingBV(true);
+        const toastId = notifications.show({
+            title: '正在解析视频',
+            message: '请稍候...',
+            color: themeColor,
+            loading: true,
+            autoClose: false,
+        });
+
+        try {
+            // Check if logged in
+            const isLoggedIn = await Services.IsLoggedIn();
+            if (!isLoggedIn) {
+                notifications.update({
+                    id: toastId,
+                    title: '需要登录',
+                    message: '请先通过扫码登录',
+                    color: 'blue',
+                    loading: false,
+                    autoClose: 3000,
+                });
+                setLoginModalOpened(true);
+                setGlobalSearchTerm('');
+                return;
+            }
+
+            const audioInfo = await Services.ResolveBiliAudio(term);
+            const bvid = term.match(bvPattern)?.[0] || '';
+
+            setBvPreview({
+                bvid,
+                title: audioInfo.title || '未命名视频',
+                cover: audioInfo.cover || '',
+                url: audioInfo.url,
+                expiresAt: audioInfo.expiresAt as any,
+                duration: (audioInfo as any).duration || 0,
+            });
+            setBvSongName(audioInfo.title || '未命名视频');
+            setBvSinger(((audioInfo as any).author || '').replace(/\s+/g, ' ').trim());
+            setBvTargetFavId(selectedFavId || favorites[0]?.id || null);
+            setBvModalOpen(true);
+
+            notifications.update({
+                id: toastId,
+                title: '已解析',
+                message: '请选择歌单并编辑歌曲信息后确认',
+                color: 'teal',
+                loading: false,
+                autoClose: 3000,
+            });
+
+            setGlobalSearchOpen(false);
+        } catch (err) {
+            notifications.update({
+                id: toastId,
+                title: '解析失败',
+                message: err instanceof Error ? err.message : '未知错误',
+                color: 'red',
+                loading: false,
+                autoClose: 3000,
+            });
+        } finally {
+            setResolvingBV(false);
+        }
+    };
+
+    const handleSlicePreviewPlay = async () => {
+        if (!sliceAudioRef.current || !bvPreview?.url) return;
+        const audio = sliceAudioRef.current;
+        const start = Math.max(0, sliceStart);
+        const end = Math.max(start, sliceEnd || start);
+        if (end <= start) {
+            notifications.show({ title: '切片区间无效', message: '结束时间需大于开始时间', color: 'orange' });
+            return;
+        }
+        if (isSlicePreviewing) {
+            audio.pause();
+            audio.currentTime = start;
+            setIsSlicePreviewing(false);
+            return;
+        }
+        audio.currentTime = start;
+        setSlicePreviewPosition(start);
+        try {
+            await audio.play();
+            setIsSlicePreviewing(true);
+        } catch (error) {
+            notifications.show({ title: '预览失败', message: String(error), color: 'red' });
+            setIsSlicePreviewing(false);
+        }
+        // 停止在 end 处，由 timeupdate 监听负责
+    };
+
+    const handleConfirmBVAdd = async () => {
+        if (!bvPreview) return;
+        const targetFavId = bvTargetFavId || favorites[0]?.id || null;
+        const start = Math.max(0, sliceStart);
+        const end = Math.max(start, sliceEnd || start);
+
+        try {
+            const newSong = new SongClass({
+                id: '',
+                bvid: bvPreview.bvid,
+                name: bvSongName || bvPreview.title,
+                singer: bvSinger,
+                singerId: '',
+                cover: bvPreview.cover || '',
+                streamUrl: bvPreview.url,
+                streamUrlExpiresAt: bvPreview.expiresAt,
+                lyric: '',
+                lyricOffset: 0,
+                skipStartTime: start,
+                skipEndTime: end,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+            });
+
+            await Services.UpsertSongs([newSong as any]);
+            const refreshed = await Services.ListSongs();
+            setSongs(refreshed);
+
+            // 找到刚添加的歌曲用于加入歌单
+            const added = refreshed.find((s) => s.bvid === bvPreview.bvid && s.streamUrl === bvPreview.url) || refreshed[refreshed.length - 1];
+
+            if (added && targetFavId) {
+                const fav = favorites.find((f) => f.id === targetFavId);
+                if (fav) {
+                    const updatedFav = {
+                        ...fav,
+                        songIds: [...fav.songIds, { id: 0, songId: added.id, favoriteId: fav.id }],
+                    };
+                    await Services.SaveFavorite(updatedFav as any);
+                    const refreshedFavs = await Services.ListFavorites();
+                    setFavorites(refreshedFavs);
+                    setSelectedFavId(fav.id);
+                }
+            }
+
+            notifications.show({
+                title: '添加成功',
+                message: `${bvSongName || bvPreview.title} 已加入${targetFavId ? '' : '库'}${targetFavId ? '。' : ''}`,
+                color: 'teal',
+            });
+
+            setBvModalOpen(false);
+            setBvPreview(null);
+            setBvSongName('');
+            setBvSinger('');
+            setSliceStart(0);
+            setSliceEnd(0);
+            setIsSlicePreviewing(false);
+        } catch (err) {
+            notifications.show({
+                title: '保存失败',
+                message: err instanceof Error ? err.message : '未知错误',
+                color: 'red',
+            });
+        }
+    };
+
+    useEffect(() => {
+        if (!bvPreview) return;
+        const duration = bvPreview.duration && bvPreview.duration > 0 ? bvPreview.duration : 0;
+        setSliceStart(0);
+        setSliceEnd(duration || 0);
+        setSlicePreviewPosition(0);
+        if (sliceAudioRef.current && bvPreview.url) {
+            sliceAudioRef.current.src = bvPreview.url;
+        }
+    }, [bvPreview]);
+
+    useEffect(() => {
+        const audio = sliceAudioRef.current;
+        if (!audio) return;
+        const onTime = () => {
+            if (isSlicePreviewing && sliceEnd > 0 && audio.currentTime >= sliceEnd - 0.05) {
+                audio.pause();
+                setIsSlicePreviewing(false);
+            }
+            setSlicePreviewPosition(audio.currentTime || 0);
+        };
+        audio.addEventListener("timeupdate", onTime);
+        return () => {
+            audio.removeEventListener("timeupdate", onTime);
+        };
+    }, [isSlicePreviewing, sliceEnd]);
+
+    useEffect(() => {
+        if (!isSlicePreviewing) return;
+        const audio = sliceAudioRef.current;
+        if (audio) {
+            audio.currentTime = Math.max(0, sliceStart);
+        }
+    }, [sliceStart, isSlicePreviewing]);
+
+    useEffect(() => {
+        if (bvModalOpen) return;
+        const audio = sliceAudioRef.current;
+        if (audio) {
+            audio.pause();
+            audio.currentTime = 0;
+        }
+        setIsSlicePreviewing(false);
+        setSlicePreviewPosition(0);
+    }, [bvModalOpen]);
+
+    return (
+        <Box h="100vh" w="100vw" style={backgroundStyle}>
+            {/* 顶部右侧设置按钮移动到工具栏，避免与主题按钮重叠 */}
+            <ThemeManagerModal
+                opened={showThemeModal}
+                onClose={() => setShowThemeModal(false)}
+                themes={themes}
+                currentThemeId={currentThemeId}
+                onSelectTheme={handleSelectTheme}
+                onEditTheme={handleEditTheme}
+                onDeleteTheme={handleDeleteTheme}
+                onCreateTheme={handleCreateThemeClick}
+                accentColor={themeColor}
+            />
+
+            <ThemeEditorModal
+                opened={showNewThemeModal}
+                onClose={handleCloseThemeEditor}
+                onCancel={handleCloseThemeEditor}
+                editingThemeId={editingThemeId}
+                newThemeName={newThemeName}
+                onNameChange={setNewThemeName}
+                colorSchemeDraft={colorSchemeDraft}
+                onColorSchemeChange={setColorSchemeDraft}
+                themeColorDraft={themeColorDraft}
+                onThemeColorChange={setThemeColorDraft}
+                backgroundColorDraft={backgroundColorDraft}
+                onBackgroundColorChange={setBackgroundColorDraft}
+                backgroundOpacityDraft={backgroundOpacityDraft}
+                onBackgroundOpacityChange={setBackgroundOpacityDraft}
+                backgroundImageUrlDraft={backgroundImageUrlDraft}
+                onBackgroundImageChange={setBackgroundImageUrlDraftSafe}
+                onClearBackgroundImage={handleClearBackgroundImageDraft}
+                panelColorDraft={panelColorDraft}
+                onPanelColorChange={setPanelColorDraft}
+                panelOpacityDraft={panelOpacityDraft}
+                onPanelOpacityChange={setPanelOpacityDraft}
+                onSubmit={handleSubmitTheme}
+                savingTheme={savingTheme}
+                fileInputRef={fileDraftInputRef}
+                onBackgroundFileChange={handleBackgroundFileDraft}
+            />
+
+            <AddToFavoriteModal
+                opened={showFavoriteModal}
+                onClose={() => setShowFavoriteModal(false)}
+                favorites={favorites}
+                currentSong={currentSong}
+                themeColor={themeColor}
+                onAdd={handleAddToFavoriteFromModal}
+            />
+
+            <PlaylistModal
+                opened={showPlaylistModal}
+                onClose={() => setShowPlaylistModal(false)}
+                queue={queue}
+                currentIndex={currentIndex}
+                themeColorHighlight={themeColorLight}
+                onSelect={handlePlaylistSelect}
+            />
+
+            <LoginModal
+                opened={loginModalOpened}
+                onClose={() => setLoginModalOpened(false)}
+                onLoginSuccess={async () => {
+                    setLoginModalOpened(false);
+                    try {
+                        const info = await Services.GetUserInfo();
+                        setUserInfo(info);
+                        localStorage.setItem("tomorin.userInfo", JSON.stringify(info));
+                        setStatus(`已登录: ${info.username}`);
+                        notifications.show({
+                            title: "登录成功",
+                            message: `欢迎回来，${info.username}！`,
+                            color: "green",
+                        });
+                    } catch (e) {
+                        console.error("获取用户信息失败:", e);
+                        setStatus("已登录");
+                    }
+                }}
+            />
+
+            {/* 设置弹窗 */}
+            <Modal
+                opened={settingsOpen}
+                onClose={() => setSettingsOpen(false)}
+                size="md"
+                centered
+                title="设置"
+                overlayProps={{ blur: 10, opacity: 0.35 }}
+            >
+                <Stack gap="md">
+                    <Text fw={600}>软件信息</Text>
+                    <Text>Tomorin Player v{APP_VERSION}</Text>
+                    <Text size="sm" c="dimmed">更好的 bilibili 音乐播放器</Text>
+
+                    <Text fw={600} mt="sm">缓存</Text>
+                    <Group>
+                        <Button variant="default" onClick={async () => {
+                            try {
+                                await Services.Logout();
+                            } catch { }
+                            try {
+                                localStorage.removeItem("tomorin.userInfo");
+                            } catch { }
+                            setUserInfo(null);
+                            notifications.show({ title: "已清除登录缓存", message: "需要重新扫码登录", color: "green" });
+                        }}>清除登录缓存</Button>
+                        <Button variant="default" onClick={() => {
+                            try {
+                                // 置空主题缓存，促使下次加载走远端
+                                localStorage.removeItem("tomorin.customThemes");
+                                saveCachedCustomThemes([]);
+                            } catch { }
+                            notifications.show({ title: "已清除主题缓存", message: "已重置到默认主题", color: "green" });
+                        }}>清除主题缓存</Button>
+                        <Button color={themeColor} onClick={async () => {
+                            try {
+                                await Services.Logout();
+                            } catch { }
+                            try {
+                                localStorage.clear();
+                            } catch { }
+                            setUserInfo(null);
+                            notifications.show({ title: "已清除所有缓存", message: "请重新配置与登录", color: "green" });
+                        }}>清除所有缓存</Button>
+                    </Group>
+
+                    <Text fw={600}>数据</Text>
+                    <Group>
+                        <Button color="red" variant="light" onClick={async () => {
+                            try {
+                                await Services.ClearLibrary();
+                                const refreshedSongs = await Services.ListSongs();
+                                const refreshedFavs = await Services.ListFavorites();
+                                setSongs(refreshedSongs);
+                                setFavorites(refreshedFavs);
+                                setQueue([]);
+                                setCurrentIndex(0);
+                                setCurrentSong(null);
+                                notifications.show({ title: "已清空歌单与歌曲", message: "默认歌单已重建", color: "green" });
+                            } catch (err) {
+                                notifications.show({ title: "清空失败", message: err instanceof Error ? err.message : '未知错误', color: "red" });
+                            }
+                        }}>
+                            清空歌单与歌曲
+                        </Button>
+                    </Group>
+                </Stack>
+            </Modal>
+
+            <Modal
+                opened={globalSearchOpen}
+                onClose={() => setGlobalSearchOpen(false)}
+                size="lg"
+                centered
+                radius="md"
+                padding="lg"
+                title="搜索视频 (BV 号或链接)"
+                overlayProps={{ blur: 10, opacity: 0.35 }}
+            >
+                <Stack gap="md">
+                    <TextInput
+                        placeholder="输入 BV 号或完整链接，如 BV1xx... 或 https://www.bilibili.com/video/BV..."
+                        value={globalSearchTerm}
+                        onChange={(e) => setGlobalSearchTerm(e.currentTarget.value)}
+                        leftSection={<Search size={14} />}
+                        leftSectionPointerEvents="none"
+                        autoFocus
+                        disabled={resolvingBV}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" && !resolvingBV) {
+                                if (globalSearchResults.length > 0) {
+                                    handleSearchResultClick(globalSearchResults[0]);
+                                } else {
+                                    handleResolveBVAndAdd();
+                                }
+                            }
+                        }}
+                    />
+                    <ScrollArea h={380} type="auto">
+                        {globalSearchResults.length === 0 && remoteResults.length === 0 ? (
+                            <Stack gap="md" align="center" py="xl">
+                                <Text c="dimmed" size="sm" ta="center">
+                                    输入 BV 号或完整链接解析视频音频
+                                </Text>
+                                <Text c="dimmed" size="xs" ta="center">
+                                    本地已有歌曲也会显示在这里
+                                </Text>
+                                {globalSearchTerm.trim() && (
+                                    <Paper withBorder p="md" w="100%">
+                                        <Group justify="space-between">
+                                            <Stack gap={4}>
+                                                <Text size="sm" fw={500}>解析并添加到歌单</Text>
+                                                <Text size="xs" c="dimmed" lineClamp={1}>{globalSearchTerm}</Text>
+                                            </Stack>
+                                            <ActionIcon
+                                                size="lg"
+                                                variant="filled"
+                                                color={themeColor}
+                                                onClick={handleResolveBVAndAdd}
+                                                loading={resolvingBV}
+                                                disabled={resolvingBV}
+                                            >
+                                                <Search size={16} />
+                                            </ActionIcon>
+                                        </Group>
+                                    </Paper>
+                                )}
+                                {globalSearchTerm.trim() && (
+                                    <Button onClick={handleRemoteSearch} loading={remoteLoading} disabled={remoteLoading} variant="light">
+                                        从 B站搜索：{globalSearchTerm}
+                                    </Button>
+                                )}
+                            </Stack>
+                        ) : (
+                            <Stack gap="xs">
+                                {globalSearchResults.map((item) => (
+                                    <Paper
+                                        key={item.kind === "song" ? `song-${item.song.id}` : `fav-${item.favorite.id}`}
+                                        withBorder
+                                        p="sm"
+                                        shadow="xs"
+                                        style={{ cursor: "pointer" }}
+                                        onClick={() => handleSearchResultClick(item)}
+                                    >
+                                        <Group justify="space-between" align="flex-start">
+                                            <Stack gap={4} style={{ flex: 1 }}>
+                                                <Text fw={600} size="sm" lineClamp={1}>
+                                                    {item.kind === "song" ? item.song.name || "未命名视频" : item.favorite.title || "未命名收藏夹"}
+                                                </Text>
+                                                <Text size="xs" c="dimmed" lineClamp={1}>
+                                                    {item.kind === "song"
+                                                        ? item.song.singer || item.song.singerId || "未知 UP"
+                                                        : `fid: ${item.favorite.id} · 曲目数: ${item.favorite.songIds.length}`}
+                                                </Text>
+                                                {item.kind === "song" && item.song.bvid ? (
+                                                    <Text size="xs" c="dimmed">BV: {item.song.bvid}</Text>
+                                                ) : null}
+                                            </Stack>
+                                            <Badge color={item.kind === "song" ? "blue" : "violet"} variant="light">
+                                                {item.kind === "song" ? "视频" : "收藏夹"}
+                                            </Badge>
+                                        </Group>
+                                    </Paper>
+                                ))}
+                                {remoteResults.map((s) => (
+                                    <Paper key={`remote-${s.bvid}-${s.name}`} withBorder p="sm" shadow="xs">
+                                        <Group justify="space-between" align="flex-start" wrap="nowrap" gap="sm">
+                                            <AspectRatio ratio={16 / 9} w={120}>
+                                                <Image
+                                                    src={s.cover || undefined}
+                                                    alt={s.name}
+                                                    fit="cover"
+                                                    radius="sm"
+                                                    fallbackSrc="https://via.placeholder.com/160x90?text=No+Cover"
+                                                />
+                                            </AspectRatio>
+                                            <Stack gap={4} style={{ flex: 1 }}>
+                                                <Text fw={600} size="sm" lineClamp={1}>{s.name || '未命名视频'}</Text>
+                                                <Text size="xs" c="dimmed" lineClamp={2}>{s.singer || '未知 UP'} · BV: {s.bvid}</Text>
+                                            </Stack>
+                                            <Group gap="xs">
+                                                <Badge color="grape" variant="light">B站</Badge>
+                                                <Button size="xs" variant="filled" onClick={() => handleAddFromRemote(s)}>添加到歌单</Button>
+                                            </Group>
+                                        </Group>
+                                    </Paper>
+                                ))}
+                            </Stack>
+                        )}
+                    </ScrollArea>
+                </Stack>
+            </Modal>
+
+            <Modal
+                opened={bvModalOpen}
+                onClose={() => setBvModalOpen(false)}
+                size="lg"
+                centered
+                title="添加到歌单"
+                overlayProps={{ blur: 10, opacity: 0.35 }}
+            >
+                {bvPreview ? (
+                    <Stack gap="md">
+                        <AspectRatio ratio={16 / 9} w="100%">
+                            {bvPreview.bvid ? (
+                                <iframe
+                                    title="bilibili-preview"
+                                    src={`https://player.bilibili.com/player.html?bvid=${bvPreview.bvid}&high_quality=1&as_wide=1&autoplay=0`}
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
+                                    allowFullScreen
+                                    style={{ border: 0, width: "100%", height: "100%", borderRadius: 12 }}
+                                />
+                            ) : (
+                                <Image
+                                    src={bvPreview.cover || undefined}
+                                    alt={bvPreview.title}
+                                    fit="cover"
+                                    w="100%"
+                                    radius="md"
+                                    fallbackSrc="https://via.placeholder.com/640x360?text=No+Cover"
+                                />
+                            )}
+                        </AspectRatio>
+                        <Stack gap="xs">
+                            <Text fw={600}>{bvPreview.title}</Text>
+                            <Text size="sm" c="dimmed">BV: {bvPreview.bvid}</Text>
+                            <Text size="sm" c="dimmed">时长: {formatTime(bvPreview.duration)}</Text>
+                        </Stack>
+                        <Stack gap="xs">
+                            <Text fw={600}>切片预览</Text>
+                            <RangeSlider
+                                min={0}
+                                max={Math.max(bvPreview.duration || 0, sliceEnd || 0, 1)}
+                                step={0.1}
+                                value={[sliceStart, sliceEnd]}
+                                onChange={([startVal, endVal]) => {
+                                    const limit = bvPreview.duration && bvPreview.duration > 0 ? bvPreview.duration : Math.max(endVal, startVal);
+                                    const safeStart = Math.max(0, Math.min(startVal, endVal, limit));
+                                    const safeEnd = Math.max(safeStart, Math.min(endVal, limit));
+                                    setSliceStart(safeStart);
+                                    setSliceEnd(safeEnd);
+                                    const nextPos = Math.min(Math.max(slicePreviewPosition, safeStart), safeEnd || safeStart);
+                                    setSlicePreviewPosition(nextPos);
+                                    if (isSlicePreviewing && sliceAudioRef.current) {
+                                        sliceAudioRef.current.currentTime = nextPos;
+                                    }
+                                }}
+                                label={(value) => formatTime(Number(value))}
+                                color={themeColor}
+                            />
+                            <Slider
+                                min={sliceStart}
+                                max={Math.max(sliceEnd || sliceStart || 0, sliceStart + 0.1, 0.1)}
+                                step={0.1}
+                                value={slicePreviewPosition}
+                                onChange={(value) => {
+                                    const safe = Math.min(Math.max(value, sliceStart), Math.max(sliceEnd || sliceStart, sliceStart));
+                                    setSlicePreviewPosition(safe);
+                                    if (sliceAudioRef.current) {
+                                        sliceAudioRef.current.currentTime = safe;
+                                    }
+                                }}
+                                label={(value) => formatTime(Number(value))}
+                                color={themeColor}
+                            />
+                            <Group gap="xs" align="flex-end">
+                                <NumberInput
+                                    label="开始 (秒)"
+                                    min={0}
+                                    max={Math.max(bvPreview.duration || 0, sliceEnd || 0, 1)}
+                                    step={0.5}
+                                    value={sliceStart}
+                                    onChange={(value) => {
+                                        const v = Number(value) || 0;
+                                        const limit = bvPreview.duration && bvPreview.duration > 0 ? bvPreview.duration : Math.max(sliceEnd, v);
+                                        const safeStart = Math.max(0, Math.min(v, limit));
+                                        const safeEnd = Math.max(safeStart, Math.min(sliceEnd, limit));
+                                        setSliceStart(safeStart);
+                                        setSliceEnd(safeEnd);
+                                        const nextPos = Math.min(Math.max(slicePreviewPosition, safeStart), safeEnd || safeStart);
+                                        setSlicePreviewPosition(nextPos);
+                                        if (isSlicePreviewing && sliceAudioRef.current) {
+                                            sliceAudioRef.current.currentTime = nextPos;
+                                        }
+                                    }}
+                                    formatter={(val) => (val === undefined || val === null ? "0" : `${val}`)}
+                                />
+                                <NumberInput
+                                    label="结束 (秒)"
+                                    min={0}
+                                    max={Math.max(bvPreview.duration || 0, sliceEnd || 0, 1)}
+                                    step={0.5}
+                                    value={sliceEnd}
+                                    onChange={(value) => {
+                                        const v = Number(value) || 0;
+                                        const limit = bvPreview.duration && bvPreview.duration > 0 ? bvPreview.duration : Math.max(v, sliceStart);
+                                        const safeEnd = Math.max(sliceStart, Math.min(v, limit));
+                                        setSliceEnd(safeEnd);
+                                        const nextPos = Math.min(Math.max(slicePreviewPosition, sliceStart), safeEnd || sliceStart);
+                                        setSlicePreviewPosition(nextPos);
+                                        if (isSlicePreviewing && sliceAudioRef.current) {
+                                            sliceAudioRef.current.currentTime = nextPos;
+                                        }
+                                    }}
+                                    formatter={(val) => (val === undefined || val === null ? "0" : `${val}`)}
+                                />
+                                <Button variant="light" onClick={handleSlicePreviewPlay} disabled={!bvPreview.url} color={themeColor}>
+                                    {isSlicePreviewing ? '停止预览' : '预览片段'}
+                                </Button>
+                            </Group>
+                            <Text size="xs" c="dimmed">基于音频流实时预览，播放到结束时间自动停止。</Text>
+                            <audio ref={sliceAudioRef} style={{ display: "none" }} />
+                        </Stack>
+                        <Stack gap="xs">
+                            <Select
+                                label="加入歌单"
+                                placeholder={favorites.length === 0 ? '暂无歌单' : '选择歌单'}
+                                data={favorites.map((f) => ({ value: f.id, label: f.title }))}
+                                value={bvTargetFavId}
+                                onChange={(val) => setBvTargetFavId(val)}
+                                clearable={favorites.length === 0}
+                            />
+                            <Group align="flex-end" wrap="nowrap" gap="xs">
+                                <TextInput
+                                    label="新建歌单"
+                                    placeholder="输入名称后点击创建"
+                                    value={newFavName}
+                                    onChange={(e) => setNewFavName(e.currentTarget.value)}
+                                    style={{ flex: 1 }}
+                                />
+                                <Button
+                                    variant="light"
+                                    onClick={async () => {
+                                        const name = newFavName.trim();
+                                        if (!name) return;
+                                        try {
+                                            await Services.SaveFavorite({ id: '', title: name, songIds: [] } as any);
+                                            const refreshedFavs = await Services.ListFavorites();
+                                            setFavorites(refreshedFavs);
+                                            const targetId = refreshedFavs.find((f) => f.title === name)?.id || refreshedFavs[refreshedFavs.length - 1]?.id || null;
+                                            setBvTargetFavId(targetId);
+                                            notifications.show({ title: '已创建歌单', message: name, color: 'green' });
+                                            setNewFavName('');
+                                        } catch (error) {
+                                            notifications.show({ title: '创建歌单失败', message: String(error), color: 'red' });
+                                        }
+                                    }}
+                                >
+                                    创建
+                                </Button>
+                            </Group>
+                            <TextInput
+                                label="歌曲名"
+                                value={bvSongName}
+                                onChange={(e) => setBvSongName(e.currentTarget.value)}
+                            />
+                            <TextInput
+                                label="歌手"
+                                value={bvSinger}
+                                onChange={(e) => setBvSinger(e.currentTarget.value)}
+                                placeholder="默认使用视频 UP/联合投稿"
+                            />
+                        </Stack>
+                        <Group justify="flex-end">
+                            <Button variant="default" onClick={() => setBvModalOpen(false)}>
+                                取消
+                            </Button>
+                            <Button color={themeColor} onClick={handleConfirmBVAdd}>
+                                确认添加
+                            </Button>
+                        </Group>
+                    </Stack>
+                ) : (
+                    <Text c="dimmed">暂无预览数据</Text>
+                )}
+            </Modal>
+
+            <Flex direction="column" h="100%" gap="sm" p="sm" style={{ overflow: "hidden" }}>
+                <Group justify="space-between" align="center">
+                    <Group gap="xs" align="center">
+                        <ActionIcon
+                            variant="default"
+                            size="lg"
+                            onClick={() => {
+                                setGlobalSearchTerm("");
+                                setGlobalSearchOpen(true);
+                            }}
+                            title="搜索视频 (BV 号或链接)"
+                        >
+                            <Search size={16} />
+                        </ActionIcon>
+                        <Text size="sm" c="dimmed">{status}</Text>
+                    </Group>
+                    <Group gap="xs">
+                        {userInfo ? (
+                            <Group gap="xs">
+                                <img
+                                    src={userInfo.face}
+                                    alt={userInfo.username}
+                                    style={{
+                                        width: 28,
+                                        height: 28,
+                                        borderRadius: "50%",
+                                        border: "2px solid " + themeColor
+                                    }}
+                                    title={`${userInfo.username} (Lv.${userInfo.level})`}
+                                />
+                                <Text size="sm" fw={500}>{userInfo.username}</Text>
+                                <Button
+                                    size="xs"
+                                    variant="subtle"
+                                    color="red"
+                                    onClick={async () => {
+                                        await Services.Logout();
+                                        setUserInfo(null);
+                                        localStorage.removeItem("tomorin.userInfo");
+                                        setStatus("已退出登录");
+                                        notifications.show({
+                                            title: "已退出",
+                                            message: "您已成功退出登录",
+                                            color: "blue",
+                                        });
+                                    }}
+                                >
+                                    退出
+                                </Button>
+                            </Group>
+                        ) : (
+                            <Button
+                                size="xs"
+                                variant="light"
+                                onClick={() => setLoginModalOpened(true)}
+                                title="登录 B 站账号以获取高质量音频"
+                            >
+                                登录
+                            </Button>
+                        )}
+                        <ActionIcon
+                            variant="default"
+                            size="lg"
+                            onClick={() => {
+                                setThemeColorDraft(themeColor);
+                                setBackgroundColorDraft(backgroundColor);
+                                setBackgroundOpacityDraft(backgroundOpacity);
+                                setBackgroundImageUrlDraftSafe(backgroundImageUrl);
+                                setPanelColorDraft(panelColor);
+                                setPanelOpacityDraft(panelOpacity);
+                                setShowThemeModal(true);
+                            }}
+                            title="主题设置"
+                        >
+                            <Palette size={16} />
+                        </ActionIcon>
+                        <ActionIcon
+                            variant="default"
+                            size="lg"
+                            onClick={() => setSettingsOpen(true)}
+                            title="设置"
+                        >
+                            <SettingsIcon size={16} />
+                        </ActionIcon>
+                    </Group>
+                </Group>
+
+                <Flex flex={1} gap="md" miw={0} style={{ minHeight: 0 }}>
+                    <SongDetailCard
+                        song={currentSong}
+                        panelBackground={panelBackground}
+                        themeColor={themeColor}
+                        computedColorScheme={computedColorScheme}
+                        placeholderCover={placeholderCover}
+                        maxSkipLimit={maxSkipLimit}
+                        formatTime={formatTime}
+                        formatTimeLabel={formatTimeLabel}
+                        parseTimeLabel={parseTimeLabel}
+                        onIntervalChange={handleIntervalChange}
+                        onSkipStartChange={handleSkipStartChange}
+                        onSkipEndChange={handleSkipEndChange}
+                        onStreamUrlChange={handleStreamUrlChange}
+                    />
+
+                    <CurrentPlaylistCard
+                        panelBackground={panelBackground}
+                        currentFav={currentFav}
+                        currentFavSongs={currentFavSongs}
+                        currentSongId={currentSong?.id}
+                        searchQuery={searchQuery}
+                        onSearchChange={setSearchQuery}
+                        onPlaySong={playSong}
+                        onAddSong={addSong}
+                        themeColor={themeColor}
+                    />
+
+                    <FavoriteListCard
+                        panelBackground={panelBackground}
+                        favorites={favorites}
+                        selectedFavId={selectedFavId}
+                        onSelectFavorite={setSelectedFavId}
+                        onPlayFavorite={playFavorite}
+                        onPlaySongInFavorite={playSong}
+                        onAddCurrentToFavorite={addCurrentToFavorite}
+                        onCreateFavorite={createFavorite}
+                        currentSong={currentSong}
+                        themeColor={themeColor}
+                    />
+                </Flex>
+
+                <Paper
+                    shadow="sm"
+                    radius="md"
+                    p="md"
+                    withBorder
+                    pos="sticky"
+                    bottom={0}
+                    style={{ zIndex: 5, backgroundColor: panelBackground }}
+                >
+                    <PlayerBar
+                        themeColor={themeColor}
+                        computedColorScheme={computedColorScheme}
+                        currentSong={currentSong}
+                        cover={currentSong?.cover}
+                        progressInInterval={progressInInterval}
+                        intervalStart={intervalStart}
+                        intervalLength={intervalLength}
+                        duration={duration}
+                        formatTime={formatTime}
+                        seek={seek}
+                        playPrev={playPrev}
+                        togglePlay={togglePlay}
+                        playNext={playNext}
+                        isPlaying={isPlaying}
+                        playMode={playMode}
+                        onTogglePlayMode={handlePlayModeToggle}
+                        onAddToFavorite={() => setShowFavoriteModal(true)}
+                        onShowPlaylist={() => setShowPlaylistModal(true)}
+                        onDownload={handleDownload}
+                        volume={volume}
+                        changeVolume={changeVolume}
+                        songsCount={songs.length}
+                    />
+                </Paper>
+            </Flex>
+        </Box>
+    );
+};
+
+export default App;

@@ -1,0 +1,33 @@
+{
+    "$schema": "https://wails.io/schemas/config.v2.json",
+    "name": "Tomorin Player",
+    "description": "更好的 bilibili 音乐播放器",
+    "author": {
+        "name": "Sheyiyuan",
+        "email": "sheyiyuantan90@qq.com"
+    },
+    "version": "0.1.0",
+    "build": {
+        "frontend": {
+            "dir": "frontend",
+            "install": "pnpm install",
+            "build": "pnpm run build",
+            "dev": "pnpm run dev"
+        },
+        "devServerURL": "http://localhost:5173",
+        "watcher": {
+            "paths": [
+                ".",
+                "frontend"
+            ],
+            "ignore": [
+                "node_modules",
+                "build",
+                "frontend/node_modules",
+                "frontend/dist",
+                "frontend/.vite"
+            ]
+        }
+    },
+    "platform": "darwin"
+}
