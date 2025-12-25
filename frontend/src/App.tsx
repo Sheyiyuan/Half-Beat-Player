@@ -14,6 +14,7 @@ import AddToFavoriteModal from "./components/AddToFavoriteModal";
 import PlaylistModal from "./components/PlaylistModal";
 import LoginModal from "./components/LoginModal";
 import { TopBar } from "./components/TopBar";
+import MainLayout from "./components/MainLayout";
 
 // Hooks
 import { useAudioPlayer, usePlaylist, useAudioInterval } from "./hooks/player";
@@ -2765,74 +2766,60 @@ const App: React.FC = () => {
                     }}
                 />
 
-                <Flex flex={1} gap="md" miw={0} style={{ minHeight: 0 }}>
-                    <SongDetailCard
-                        song={currentSong}
-                        panelBackground={panelBackground}
-                        themeColor={themeColor}
-                        computedColorScheme={computedColorScheme}
-                        placeholderCover={PLACEHOLDER_COVER}
-                        maxSkipLimit={maxSkipLimit}
-                        formatTime={formatTime}
-                        formatTimeLabel={formatTimeLabel}
-                        parseTimeLabel={parseTimeLabel}
-                        onIntervalChange={handleIntervalChange}
-                        onSkipStartChange={handleSkipStartChange}
-                        onSkipEndChange={handleSkipEndChange}
-                        onStreamUrlChange={handleStreamUrlChange}
-                    />
-
-                    <CurrentPlaylistCard
-                        panelBackground={panelBackground}
-                        currentFav={currentFav}
-                        currentFavSongs={currentFavSongs}
-                        currentSongId={currentSong?.id}
-                        searchQuery={searchQuery}
-                        onSearchChange={setSearchQuery}
-                        onPlaySong={playSong}
-                        onAddSong={addSong}
-                        themeColor={themeColor}
-                        downloadedSongIds={downloadedSongIds}
-                        onDownloadSong={handleDownloadSong}
-                        onAddSongToFavorite={handleAddSongToFavorite}
-                        onRemoveSongFromPlaylist={handleRemoveSongFromPlaylist}
-                        confirmRemoveSongId={confirmRemoveSongId}
-                        onToggleConfirmRemove={setConfirmRemoveSongId}
-                        onPlayAll={() => {
-                            if (currentFav) {
-                                playFavorite(currentFav);
-                            }
-                        }}
-                        onDownloadAll={() => {
-                            if (currentFav) {
-                                handleDownloadAllFavorite(currentFav);
-                            }
-                        }}
-                    />
-
-                    <FavoriteListCard
-                        panelBackground={panelBackground}
-                        favorites={favorites}
-                        selectedFavId={selectedFavId}
-                        onSelectFavorite={(id) => {
-                            setSelectedFavId(id);
-                            setConfirmDeleteFavId(null);
-                        }}
-                        onPlayFavorite={playFavorite}
-                        onPlaySongInFavorite={(song) => {
-                            const fav = currentFav || favorites.find(f => f.songIds.some(ref => ref.songId === song.id));
-                            playSingleSong(song, fav);
-                        }}
-                        onAddCurrentToFavorite={addCurrentToFavorite}
-                        onCreateFavorite={createFavorite}
-                        onEditFavorite={handleEditFavorite}
-                        onDeleteFavorite={handleDeleteFavorite}
-                        onToggleConfirmDelete={setConfirmDeleteFavId}
-                        confirmDeleteFavId={confirmDeleteFavId}
-                        currentSong={currentSong}
-                        themeColor={themeColor}
-                    />
-                </Flex>
+                <MainLayout
+                    currentSong={currentSong}
+                    panelBackground={panelBackground}
+                    themeColor={themeColor}
+                    computedColorScheme={computedColorScheme}
+                    placeholderCover={PLACEHOLDER_COVER}
+                    maxSkipLimit={maxSkipLimit}
+                    formatTime={formatTime}
+                    formatTimeLabel={formatTimeLabel}
+                    parseTimeLabel={parseTimeLabel}
+                    onIntervalChange={handleIntervalChange}
+                    onSkipStartChange={handleSkipStartChange}
+                    onSkipEndChange={handleSkipEndChange}
+                    onStreamUrlChange={handleStreamUrlChange}
+                    currentFav={currentFav}
+                    currentFavSongs={currentFavSongs}
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    onPlaySong={playSong}
+                    onAddSong={addSong}
+                    downloadedSongIds={downloadedSongIds}
+                    onDownloadSong={handleDownloadSong}
+                    onAddSongToFavorite={handleAddSongToFavorite}
+                    onRemoveSongFromPlaylist={handleRemoveSongFromPlaylist}
+                    confirmRemoveSongId={confirmRemoveSongId}
+                    onToggleConfirmRemove={setConfirmRemoveSongId}
+                    onPlayAll={() => {
+                        if (currentFav) {
+                            playFavorite(currentFav);
+                        }
+                    }}
+                    onDownloadAll={() => {
+                        if (currentFav) {
+                            handleDownloadAllFavorite(currentFav);
+                        }
+                    }}
+                    favorites={favorites}
+                    selectedFavId={selectedFavId}
+                    onSelectFavorite={(id) => {
+                        setSelectedFavId(id);
+                        setConfirmDeleteFavId(null);
+                    }}
+                    onPlayFavorite={playFavorite}
+                    onPlaySongInFavorite={(song) => {
+                        const fav = currentFav || favorites.find(f => f.songIds.some(ref => ref.songId === song.id));
+                        playSingleSong(song, fav);
+                    }}
+                    onAddCurrentToFavorite={addCurrentToFavorite}
+                    onCreateFavorite={createFavorite}
+                    onEditFavorite={handleEditFavorite}
+                    onDeleteFavorite={handleDeleteFavorite}
+                    onToggleConfirmDelete={setConfirmDeleteFavId}
+                    confirmDeleteFavId={confirmDeleteFavId}
+                />
 
                 <Paper
                     shadow="sm"
