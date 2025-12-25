@@ -22,6 +22,7 @@ import { useAudioPlayer, usePlaylist, useAudioInterval } from "./hooks/player";
 import { useSongs, useFavorites, useSongCache } from "./hooks/data";
 import { useTheme, useAuth, useBVResolver } from "./hooks/features";
 import { useHitokoto } from "./hooks/ui";
+import { useModalManager } from "./hooks/ui/useModalManager";
 
 // Utils
 import { formatTime, formatTimeLabel, parseTimeLabel } from "./utils/time";
@@ -98,9 +99,9 @@ const App: React.FC = () => {
     const [selectedFavId, setSelectedFavId] = useState<string | null>(null);
     const [remoteResults, setRemoteResults] = useState<Song[]>([]);
     const [remoteLoading, setRemoteLoading] = useState(false);
-    const [showPlaylistModal, setShowPlaylistModal] = useState(false);
-    const [showFavoriteModal, setShowFavoriteModal] = useState(false);
-    const [settingsOpen, setSettingsOpen] = useState(false);
+
+    // 模态框管理
+    const { modals, openModal, closeModal } = useModalManager();
     const [cacheSize, setCacheSize] = useState(0);
     const [createFavModalOpen, setCreateFavModalOpen] = useState(false);
     const [createFavName, setCreateFavName] = useState("新歌单");
