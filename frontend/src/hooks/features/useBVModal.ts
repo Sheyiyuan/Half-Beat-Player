@@ -59,11 +59,16 @@ export const useBVModal = ({
 
         try {
             // 1. 创建流源
-            const sourceId = await Services.CreateStreamSource(
-                bvPreview.bvid,
-                bvPreview.url,
-                bvPreview.expiresAt
-            );
+            let sourceId: string;
+            try {
+                sourceId = await Services.CreateStreamSource(
+                    bvPreview.bvid,
+                    bvPreview.url,
+                    bvPreview.expiresAt
+                );
+            } catch (err) {
+                throw new Error(`创建流源失败: ${err instanceof Error ? err.message : String(err)}`);
+            }
 
             // 2. 创建新的独立歌曲实例（不使用 BVID 作为 ID）
             const newSong = new SongClass({
@@ -82,8 +87,19 @@ export const useBVModal = ({
                 updatedAt: new Date().toISOString(),
             });
 
-            await Services.UpsertSongs([newSong as any]);
-            const refreshed = await Services.ListSongs();
+            try {
+                await Services.UpsertSongs([newSong as any]);
+            } catch (err) {
+                throw new Error(`保存歌曲失败: ${err instanceof Error ? err.message : String(err)}`);
+            }
+
+            let refreshed: typeof songs = [];
+            try {
+                refreshed = await Services.ListSongs();
+            } catch (err) {
+                throw new Error(`获取歌曲列表失败: ${err instanceof Error ? err.message : String(err)}`);
+            }
+
             setSongs(refreshed);
 
             // 找到刚添加的歌曲（按 sourceId 和 skipStartTime 匹配）
@@ -96,8 +112,19 @@ export const useBVModal = ({
                         ...fav,
                         songIds: [...fav.songIds, { id: 0, songId: added.id, favoriteId: fav.id }],
                     };
-                    await Services.SaveFavorite(updatedFav as any);
-                    const refreshedFavs = await Services.ListFavorites();
+                    try {
+                        await Services.SaveFavorite(updatedFav as any);
+                    } catch (err) {
+                        throw new Error(`保存歌单失败: ${err instanceof Error ? err.message : String(err)}`);
+                    }
+
+                    let refreshedFavs: typeof favorites = [];
+                    try {
+                        refreshedFavs = await Services.ListFavorites();
+                    } catch (err) {
+                        throw new Error(`获取歌单列表失败: ${err instanceof Error ? err.message : String(err)}`);
+                    }
+
                     setFavorites(refreshedFavs);
                     setSelectedFavId(fav.id);
                 }
@@ -116,13 +143,14 @@ export const useBVModal = ({
             setSliceStart(0);
             setSliceEnd(0);
         } catch (err) {
+            console.error('BV 添加失败:', err);
             notifications.show({
                 title: '保存失败',
                 message: err instanceof Error ? err.message : '未知错误',
                 color: 'red',
             });
         }
-    }, [bvPreview, bvTargetFavId, sliceStart, sliceEnd, bvSongName, bvSinger, favorites, setSongs, setFavorites, setSelectedFavId, setBvModalOpen, setBvPreview, setBvSongName, setBvSinger, setSliceStart, setSliceEnd]);
+    }, [bvPreview, bvTargetFavId, sliceStart, sliceEnd, bvSongName, bvSinger, favorites, songs, setSongs, setFavorites, setSelectedFavId, setBvModalOpen, setBvPreview, setBvSongName, setBvSinger, setSliceStart, setSliceEnd]);
 
     return {
         handleConfirmBVAdd,
