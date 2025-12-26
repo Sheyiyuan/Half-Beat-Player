@@ -117,6 +117,24 @@ export const usePlaybackControls = ({
                 playPromise
                     .catch((err) => {
                         console.error("播放失败:", err);
+
+                        // 如果是 NotSupportedError 或 AbortError，可能是 URL 过期导致的
+                        if (err.name === 'NotSupportedError' || err.name === 'AbortError') {
+                            console.log("检测到音频加载失败，可能是 URL 过期，尝试刷新...");
+                            if (currentSong?.bvid) {
+                                setIsPlaying(false);
+                                audio.pause();
+                                audio.src = '';
+                                // 刷新 URL
+                                playSong({
+                                    ...currentSong,
+                                    streamUrl: '',
+                                    streamUrlExpiresAt: new Date().toISOString(),
+                                } as Song, queue).catch(console.error);
+                            }
+                            return;
+                        }
+
                         // 如果是 NotAllowedError，尝试静音播放
                         if (err.name === 'NotAllowedError' && !audio.muted) {
                             console.log("尝试静音播放来绕过浏览器限制...");
@@ -136,7 +154,7 @@ export const usePlaybackControls = ({
         } else {
             audio.pause();
         }
-    }, [audioRef, currentSong, intervalStart, intervalEnd]);
+    }, [audioRef, currentSong, intervalStart, intervalEnd, setIsPlaying, playSong, queue]);
 
     /**
      * 改变音量

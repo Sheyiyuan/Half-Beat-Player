@@ -58,6 +58,10 @@ export function GetFavoriteCollectionBVIDs(arg1) {
   return window['go']['services']['Service']['GetFavoriteCollectionBVIDs'](arg1);
 }
 
+export function GetFavoriteCollectionInfo(arg1) {
+  return window['go']['services']['Service']['GetFavoriteCollectionInfo'](arg1);
+}
+
 export function GetHTTPClient() {
   return window['go']['services']['Service']['GetHTTPClient']();
 }

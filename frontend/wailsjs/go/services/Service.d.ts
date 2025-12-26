@@ -33,6 +33,8 @@ export function GetAudioCacheSize():Promise<number>;
 
 export function GetFavoriteCollectionBVIDs(arg1:number):Promise<Array<models.BiliFavoriteInfo>>;
 
+export function GetFavoriteCollectionInfo(arg1:number):Promise<models.BiliFavoriteCollection>;
+
 export function GetHTTPClient():Promise<http.Client>;
 
 export function GetLocalAudioURL(arg1:string):Promise<string>;

@@ -60,10 +60,11 @@ export const useAudioSourceManager = ({
         const isLocalUrl = currentSong.streamUrl?.includes('127.0.0.1:9999/local');
         if (!isLocalUrl) {
             const exp = (currentSong as any).streamUrlExpiresAt;
-            const isExpired = exp && new Date(exp).getTime() <= Date.now() + 60_000;
+            // 提前 5 分钟检测过期（原来是 1 分钟）
+            const isExpired = exp && new Date(exp).getTime() <= Date.now() + 300_000;
             if (isExpired && currentSong.bvid) {
-                console.log("URL 已过期，正在刷新...");
-                setStatus("播放地址已过期，正在刷新...");
+                console.log("[URL 过期检测] URL 即将过期或已过期，正在刷新...");
+                setStatus("播放地址即将过期，正在刷新...");
                 playSong(currentSong, queue);
                 return;
             }

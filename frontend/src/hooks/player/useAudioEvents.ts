@@ -111,11 +111,12 @@ export const useAudioEvents = ({
                 return;
             }
 
-            // 如果是网络错误（通常是 403），尝试刷新 URL，但限制重试次数
-            if (audio.error && audio.error.code === 2 && currentSong?.bvid) {
+            // 如果是网络错误（通常是 403/404）或格式不支持错误，尝试刷新 URL
+            // code 2 = MEDIA_ERR_NETWORK, code 4 = MEDIA_ERR_SRC_NOT_SUPPORTED
+            if (audio.error && (audio.error.code === 2 || audio.error.code === 4) && currentSong?.bvid) {
                 const count = (playbackRetryRef.current.get(currentSong.id) ?? 0) + 1;
                 playbackRetryRef.current.set(currentSong.id, count);
-                console.log(`检测到网络错误（可能是 403），第 ${count} 次尝试刷新播放地址...`);
+                console.log(`[错误处理] 检测到网络/格式错误 (code=${audio.error.code})，第 ${count} 次尝试刷新播放地址...`);
                 if (count > 2) {
                     const msg = '播放地址获取失败，请稍后重试';
                     setStatus(msg);
@@ -127,7 +128,9 @@ export const useAudioEvents = ({
                     }
                     return;
                 }
-                setStatus('网络源失效，正在重新获取...');
+
+                const errorCodeMsg = audio.error.code === 2 ? '网络错误（403/404）' : '格式不支持';
+                setStatus(`${errorCodeMsg}，正在重新获取...`);
                 // 立即停止音频并清空 src，防止继续触发错误事件
                 audio.pause();
                 audio.src = '';
@@ -143,23 +146,10 @@ export const useAudioEvents = ({
                 setTimeout(() => {
                     if (urlExpiredSong && urlExpiredSong.id) {
                         playSong(urlExpiredSong, queue).catch(err => {
-                            console.error("音频重试播放失败:", err);
+                            console.error("[错误恢复] 音频重试播放失败:", err);
                         });
                     }
                 }, 500);
-                return;
-            }
-
-            // 如果是源不支持/URL 无效，直接停止并提示，避免循环
-            if (audio.error && audio.error.code === 4) {
-                const msg = '音频源不可用或格式不支持';
-                setStatus(msg);
-                setIsPlaying(false);
-                notifications.show({ title: '播放失败', message: msg, color: 'red' });
-                // 如果是单曲循环，跳到下一首避免死循环
-                if (playMode === 'single' && queue.length > 1) {
-                    playNext();
-                }
                 return;
             }
 
