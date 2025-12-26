@@ -1,6 +1,6 @@
 /**
  * BV 号解析 Hook
- * 管理 Bilibili 视频解析和预览，支持搜索本地和远程结果
+ * 管理 Bilibili 视频解析，支持搜索本地和远程结果
  */
 
 import { useState, useCallback } from 'react';
@@ -28,8 +28,6 @@ export interface UseBVResolverReturn {
     resolvingBV: boolean;
     sliceStart: number;
     sliceEnd: number;
-    isSlicePreviewing: boolean;
-    slicePreviewPosition: number;
 
     setBvPreview: React.Dispatch<React.SetStateAction<BVPreview | null>>;
     setBvModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -40,8 +38,6 @@ export interface UseBVResolverReturn {
     setResolvingBV: React.Dispatch<React.SetStateAction<boolean>>;
     setSliceStart: React.Dispatch<React.SetStateAction<number>>;
     setSliceEnd: React.Dispatch<React.SetStateAction<number>>;
-    setIsSlicePreviewing: React.Dispatch<React.SetStateAction<boolean>>;
-    setSlicePreviewPosition: React.Dispatch<React.SetStateAction<number>>;
 
     resolveBV: (input: string) => Promise<void>;
     resetBVState: () => void;
@@ -57,8 +53,6 @@ export const useBVResolver = () => {
     const [resolvingBV, setResolvingBV] = useState(false);
     const [sliceStart, setSliceStart] = useState(0);
     const [sliceEnd, setSliceEnd] = useState(0);
-    const [isSlicePreviewing, setIsSlicePreviewing] = useState(false);
-    const [slicePreviewPosition, setSlicePreviewPosition] = useState(0);
 
     // 解析 BV 号，同时搜索本地和远程
     const resolveBV = useCallback(async (input: string) => {
@@ -127,8 +121,6 @@ export const useBVResolver = () => {
         setBvTargetFavId(null);
         setSliceStart(0);
         setSliceEnd(0);
-        setIsSlicePreviewing(false);
-        setSlicePreviewPosition(0);
     }, []);
 
     return {
@@ -141,8 +133,6 @@ export const useBVResolver = () => {
         resolvingBV,
         sliceStart,
         sliceEnd,
-        isSlicePreviewing,
-        slicePreviewPosition,
 
         setBvPreview,
         setBvModalOpen,
@@ -153,8 +143,6 @@ export const useBVResolver = () => {
         setResolvingBV,
         setSliceStart,
         setSliceEnd,
-        setIsSlicePreviewing,
-        setSlicePreviewPosition,
 
         resolveBV,
         resetBVState,
