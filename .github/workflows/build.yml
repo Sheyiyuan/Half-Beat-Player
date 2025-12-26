@@ -59,7 +59,11 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        arch: [darwin/amd64, darwin/arm64]
+        include:
+          - arch: darwin/amd64
+            label: darwin-amd64
+          - arch: darwin/arm64
+            label: darwin-arm64
     steps:
       - uses: actions/checkout@v4
 
@@ -120,7 +124,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           # artifact 名称不能包含 '/'
-          name: tomorin-macos-${{ matrix.arch }}
+          name: tomorin-macos-${{ matrix.label }}
           path: build/bin/*.dmg
 
   build-linux:
@@ -128,7 +132,9 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        arch: [linux/amd64]
+        include:
+          - arch: linux/amd64
+            label: linux-amd64
     steps:
       - uses: actions/checkout@v4
 
@@ -231,7 +237,7 @@ jobs:
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: tomorin-linux-${{ matrix.arch }}
+          name: tomorin-linux-${{ matrix.label }}
           path: |
             build/bin/tomorin-player
             build/bin/*.deb
