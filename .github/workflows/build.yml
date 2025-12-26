@@ -43,6 +43,11 @@ jobs:
           cd frontend
           pnpm install
 
+      - name: Build frontend
+        run: |
+          cd frontend
+          pnpm run build
+
       - name: Build Windows
         run: |
           $env:PATH = "$env:USERPROFILE\go\bin;$env:PATH"
@@ -93,6 +98,11 @@ jobs:
         run: |
           cd frontend
           pnpm install
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          pnpm run build
 
       - name: Build macOS
         run: |
@@ -171,6 +181,11 @@ jobs:
         run: |
           cd frontend
           pnpm install
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          pnpm run build
 
       - name: Build Linux
         run: |
