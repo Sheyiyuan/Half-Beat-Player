@@ -119,14 +119,16 @@ jobs:
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: tomorin-macos-${{ matrix.arch }}
+          # artifact 名称不能包含 '/'
+          name: tomorin-macos-${{ matrix.arch | replace('/', '-') }}
           path: build/bin/*.dmg
 
   build-linux:
-    runs-on: ubuntu-latest
+    # ubuntu-22.04 仍提供 webkit2gtk-4.0-dev，避免 24.04 缺包
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
-        arch: [linux/amd64, linux/arm64]
+        arch: [linux/amd64]
     steps:
       - uses: actions/checkout@v4
 
@@ -148,9 +150,9 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev gcc-aarch64-linux-gnu
-          # Ubuntu 24.04 将 webkit 开发包升级为 4.1，旧版 4.0 在部分镜像已不可用
-          sudo apt-get install -y libwebkit2gtk-4.1-dev || sudo apt-get install -y libwebkit2gtk-4.0-dev
+          sudo apt-get install -y libgtk-3-dev
+          # Ubuntu 22.04 提供 webkit2gtk-4.0-dev，若源中仅有 4.1 再回退安装
+          sudo apt-get install -y libwebkit2gtk-4.0-dev || sudo apt-get install -y libwebkit2gtk-4.1-dev
 
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
@@ -229,7 +231,7 @@ jobs:
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: tomorin-linux-${{ matrix.arch }}
+          name: tomorin-linux-${{ matrix.arch | replace('/', '-') }}
           path: |
             build/bin/tomorin-player
             build/bin/*.deb
