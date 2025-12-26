@@ -148,7 +148,9 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev gcc-aarch64-linux-gnu
+          sudo apt-get install -y libgtk-3-dev gcc-aarch64-linux-gnu
+          # Ubuntu 24.04 将 webkit 开发包升级为 4.1，旧版 4.0 在部分镜像已不可用
+          sudo apt-get install -y libwebkit2gtk-4.1-dev || sudo apt-get install -y libwebkit2gtk-4.0-dev
 
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
