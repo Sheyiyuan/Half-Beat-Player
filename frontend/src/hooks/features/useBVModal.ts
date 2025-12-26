@@ -8,7 +8,6 @@ interface UseBVModalProps {
     bvPreview: any | null;
     sliceStart: number;
     sliceEnd: number;
-    isSlicePreviewing: boolean;
     bvSongName: string;
     bvSinger: string;
     bvTargetFavId: string | null;
@@ -17,15 +16,12 @@ interface UseBVModalProps {
     songs: Song[];
     currentSong: Song | null;
     themeColor: string;
-    sliceAudioRef: React.MutableRefObject<HTMLAudioElement | null>;
     setBvModalOpen: (open: boolean) => void;
     setBvPreview: (preview: any) => void;
     setBvSongName: (name: string) => void;
     setBvSinger: (singer: string) => void;
     setSliceStart: (start: number) => void;
     setSliceEnd: (end: number) => void;
-    setIsSlicePreviewing: (previewing: boolean) => void;
-    setSlicePreviewPosition: (position: number) => void;
     setSongs: (songs: Song[]) => void;
     setFavorites: (favorites: Favorite[]) => void;
     setSelectedFavId: (id: string | null) => void;
@@ -35,7 +31,6 @@ export const useBVModal = ({
     bvPreview,
     sliceStart,
     sliceEnd,
-    isSlicePreviewing,
     bvSongName,
     bvSinger,
     bvTargetFavId,
@@ -44,45 +39,16 @@ export const useBVModal = ({
     songs,
     currentSong,
     themeColor,
-    sliceAudioRef,
     setBvModalOpen,
     setBvPreview,
     setBvSongName,
     setBvSinger,
     setSliceStart,
     setSliceEnd,
-    setIsSlicePreviewing,
-    setSlicePreviewPosition,
     setSongs,
     setFavorites,
     setSelectedFavId,
 }: UseBVModalProps) => {
-
-    const handleSlicePreviewPlay = useCallback(async () => {
-        if (!sliceAudioRef.current || !bvPreview?.url) return;
-        const audio = sliceAudioRef.current;
-        const start = Math.max(0, sliceStart);
-        const end = Math.max(start, sliceEnd || start);
-        if (end <= start) {
-            notifications.show({ title: '切片区间无效', message: '结束时间需大于开始时间', color: 'orange' });
-            return;
-        }
-        if (isSlicePreviewing) {
-            audio.pause();
-            audio.currentTime = start;
-            setIsSlicePreviewing(false);
-            return;
-        }
-        audio.currentTime = start;
-        setSlicePreviewPosition(start);
-        try {
-            await audio.play();
-            setIsSlicePreviewing(true);
-        } catch (error) {
-            notifications.show({ title: '预览失败', message: String(error), color: 'red' });
-            setIsSlicePreviewing(false);
-        }
-    }, [bvPreview, sliceStart, sliceEnd, isSlicePreviewing, sliceAudioRef, setIsSlicePreviewing, setSlicePreviewPosition]);
 
     const handleConfirmBVAdd = useCallback(async () => {
         if (!bvPreview) return;
@@ -149,7 +115,6 @@ export const useBVModal = ({
             setBvSinger('');
             setSliceStart(0);
             setSliceEnd(0);
-            setIsSlicePreviewing(false);
         } catch (err) {
             notifications.show({
                 title: '保存失败',
@@ -157,10 +122,9 @@ export const useBVModal = ({
                 color: 'red',
             });
         }
-    }, [bvPreview, bvTargetFavId, sliceStart, sliceEnd, bvSongName, bvSinger, favorites, setSongs, setFavorites, setSelectedFavId, setBvModalOpen, setBvPreview, setBvSongName, setBvSinger, setSliceStart, setSliceEnd, setIsSlicePreviewing]);
+    }, [bvPreview, bvTargetFavId, sliceStart, sliceEnd, bvSongName, bvSinger, favorites, setSongs, setFavorites, setSelectedFavId, setBvModalOpen, setBvPreview, setBvSongName, setBvSinger, setSliceStart, setSliceEnd]);
 
     return {
-        handleSlicePreviewPlay,
         handleConfirmBVAdd,
     };
 };
