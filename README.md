@@ -1,20 +1,48 @@
+<div align="center">
+  
+<img src="assets/icons/appicon-256.png" alt="Tomorin Player Icon" width="120" height="120" />
+
 # Tomorin Player
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Wails](https://img.shields.io/badge/Wails-v2-DF0039)
+**基于 B站 API 的音乐播放器**
 
-![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-3-003B57?logo=sqlite&logoColor=white)
+_使用 Wails v2 构建的跨平台桌面应用_
 
-![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript&logoColor=white)
-![Mantine](https://img.shields.io/badge/Mantine-v8-339AF0?logo=mantine&logoColor=white)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Wails](https://img.shields.io/badge/Wails-v2.11-DF0039?logo=wails&logoColor=white)](https://wails.io)
+[![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go&logoColor=white)](https://golang.org)
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 
-基于 B站 API 的音乐播放器，使用 Wails v2 构建桌面应用。
+[功能特性](#功能特性) • [开发环境](#开发环境) • [打包构建](#打包构建) • [项目结构](#项目结构)
 
-**技术栈**: Go (后端) + React 18 + TypeScript (前端) + SQLite (数据库) + Mantine UI
+</div>
+
+---
+
+## 简介
+<div align="center">
+
+Tomorin Player 是一款功能丰富的音乐播放器，支持 B站扫码登录、BV 号解析、歌单管理等功能。采用现代化技术栈构建，提供流畅的用户体验。
+
+</div>
+
+**技术栈**
+
+- **后端**: Go + SQLite + Wails v2
+- **前端**: React 18 + TypeScript + Mantine UI v8
+- **构建**: Vite + pnpm
+
+**特点**
+
+- 跨平台支持（macOS / Windows / Linux）
+- 主题系统（浅色/深色 + 自定义）
+- 无需依赖 yt-dlp，直接使用 B站 API
+- 本地数据库存储，离线可用
 
 > 本项目受到 [Azusa Player](https://github.com/kenmingwang/azusa-player) 的启发
+
+---
 
 ## 功能特性
 
@@ -75,6 +103,8 @@
 - 播放列表可视化编辑
 - 拖拽排序
 
+---
+
 ## 开发环境
 
 ### 前置要求
@@ -113,6 +143,8 @@ pnpm dev
 wails dev
 ```
 
+---
+
 ## 打包构建
 
 ### macOS
@@ -145,6 +177,101 @@ wails build -platform linux/amd64
 # build/bin/tomorin-player
 ```
 
+### Debian 13 打包 (.deb)
+
+#### 1. 安装系统依赖
+
+```bash
+# 安装 Wails CLI
+go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+# 安装构建依赖（注意：Debian 13 使用 webkit2gtk-4.1）
+sudo apt install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+
+# 创建兼容性软链接（Wails 需要 webkit2gtk-4.0）
+sudo ln -s /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.1.pc \
+           /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.0.pc
+```
+
+#### 2. 构建前端资源
+
+```bash
+cd frontend
+pnpm install
+pnpm run build
+cd ..
+```
+
+#### 3. 构建应用程序
+
+```bash
+~/go/bin/wails build
+```
+
+#### 4. 创建 .deb 包结构
+
+```bash
+# 创建目录结构
+mkdir -p build/deb/tomorin-player_1.0.0_amd64/{DEBIAN,usr/bin,usr/share/applications,usr/share/icons/hicolor/256x256/apps,usr/share/doc/tomorin-player}
+
+# 复制文件
+cp build/bin/tomorin-player build/deb/tomorin-player_1.0.0_amd64/usr/bin/
+cp assets/icons/appicon-256.png build/deb/tomorin-player_1.0.0_amd64/usr/share/icons/hicolor/256x256/apps/tomorin-player.png
+
+# 设置权限
+chmod 755 build/deb/tomorin-player_1.0.0_amd64/usr/bin/tomorin-player
+chmod 644 build/deb/tomorin-player_1.0.0_amd64/usr/share/icons/hicolor/256x256/apps/tomorin-player.png
+```
+
+#### 5. 创建控制文件
+
+在 `build/deb/tomorin-player_1.0.0_amd64/DEBIAN/control` 创建：
+
+```
+Package: tomorin-player
+Version: 1.0.0
+Section: sound
+Priority: optional
+Architecture: amd64
+Depends: libgtk-3-0, libwebkit2gtk-4.1-0
+Maintainer: Sheyiyuan <sheyiyuantan90@qq.com>
+Description: 更好的 bilibili 音乐播放器
+ Tomorin Player 是一个基于 B站 API 的音乐播放器，
+ 支持扫码登录、BV 号解析、音频播放和歌单管理。
+Homepage: https://github.com/Sheyiyuan/Tomorin-Player
+```
+
+创建桌面快捷方式 `build/deb/tomorin-player_1.0.0_amd64/usr/share/applications/tomorin-player.desktop`:
+
+```ini
+[Desktop Entry]
+Name=Tomorin Player
+Comment=更好的 bilibili 音乐播放器
+Exec=/usr/bin/tomorin-player
+Icon=tomorin-player
+Terminal=false
+Type=Application
+Categories=AudioVideo;Audio;Player;
+```
+
+#### 6. 构建 .deb 包
+
+```bash
+cd build/deb
+dpkg-deb --build --root-owner-group tomorin-player_1.0.0_amd64
+```
+
+#### 7. 安装测试
+
+```bash
+sudo dpkg -i tomorin-player_1.0.0_amd64.deb
+
+# 如有依赖问题
+sudo apt-get install -f
+```
+
+生成的 .deb 包约 4.9 MB，包含完整的前端资源和可执行文件。
+
 ### 构建选项
 
 ```bash
@@ -157,6 +284,8 @@ wails build -skipbindings
 # 自定义输出目录
 wails build -o custom-output-name
 ```
+
+---
 
 ## 项目结构
 
@@ -180,6 +309,18 @@ tomorin/
 └── wails.json            # Wails 配置
 ```
 
+---
+
 ## 许可证
 
 MIT License
+
+---
+
+<div align="center">
+
+**Made with love by Sheyiyuan**
+
+如果这个项目对你有帮助，请给一个 Star！
+
+</div>
