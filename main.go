@@ -52,7 +52,7 @@ func run() error {
 
 	gormDB, err := db.Open(dbPath, func(gdb *gorm.DB) error {
 		// 标准迁移
-		if err := gdb.AutoMigrate(&models.Song{}, &models.Favorite{}, &models.SongRef{}, &models.PlayerSetting{}, &models.LyricMapping{}, &models.Playlist{}); err != nil {
+		if err := gdb.AutoMigrate(&models.StreamSource{}, &models.Song{}, &models.Favorite{}, &models.SongRef{}, &models.PlayerSetting{}, &models.LyricMapping{}, &models.Playlist{}); err != nil {
 			return err
 		}
 		// 确保 songs 表有 bvid 列（兼容旧数据库）
