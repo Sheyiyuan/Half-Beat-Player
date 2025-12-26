@@ -72,8 +72,8 @@ interface UseAppPanelsPropsParams {
     isPlaying: boolean;
     playMode: string;
     handlePlayModeToggle: () => void;
-    handleDownload: () => void;
-    isDownloaded: boolean;
+    handleDownloadCurrentSong: () => void;
+    handleManageDownload: () => void;
     volume: number;
     changeVolume: (val: number) => void;
     songsCount: number;
@@ -147,8 +147,8 @@ export const useAppPanelsProps = (params: UseAppPanelsPropsParams) => {
             isPlaying,
             playMode,
             handlePlayModeToggle,
-            handleDownload,
-            isDownloaded,
+            handleDownloadCurrentSong,
+            handleManageDownload,
             volume,
             changeVolume,
             songsCount,
@@ -196,7 +196,11 @@ export const useAppPanelsProps = (params: UseAppPanelsPropsParams) => {
             currentFavSongs,
             searchQuery,
             onSearchChange: setSearchQuery,
-            onPlaySong: playSong,
+            onPlaySong: (song: Song) => {
+                // 从歌单点击歌曲时，使用 playSingleSong 避免替换当前播放队列
+                const fav = currentFav || favorites.find(f => f.songIds.some(ref => ref.songId === song.id));
+                playSingleSong(song, fav);
+            },
             onAddSong: addSong,
             downloadedSongIds,
             onDownloadSong: handleDownloadSong,
@@ -252,8 +256,9 @@ export const useAppPanelsProps = (params: UseAppPanelsPropsParams) => {
             onTogglePlayMode: handlePlayModeToggle,
             onAddToFavorite: () => openModal("addFavoriteModal"),
             onShowPlaylist: () => openModal("playlistModal"),
-            onDownload: handleDownload,
-            isDownloaded,
+            onDownloadSong: handleDownloadCurrentSong,
+            onManageDownload: handleManageDownload,
+            downloadedSongIds,
             volume,
             changeVolume,
             songsCount,

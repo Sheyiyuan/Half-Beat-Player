@@ -18,12 +18,13 @@ interface ControlsPanelProps {
     togglePlay: () => void;
     playNext: () => void;
     isPlaying: boolean;
-    playMode: "single" | "repeat" | "random";
+    playMode: "loop" | "random" | "single";
     onTogglePlayMode: () => void;
     onAddToFavorite: () => void;
     onShowPlaylist: () => void;
-    onDownload: () => void;
-    isDownloaded: boolean;
+    onDownloadSong: () => void;
+    onManageDownload: () => void;
+    downloadedSongIds: Set<string>;
     volume: number;
     changeVolume: (value: number) => void;
     songsCount: number;
@@ -49,8 +50,9 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
     onTogglePlayMode,
     onAddToFavorite,
     onShowPlaylist,
-    onDownload,
-    isDownloaded,
+    onDownloadSong,
+    onManageDownload,
+    downloadedSongIds,
     volume,
     changeVolume,
     songsCount,
@@ -85,8 +87,9 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
                 onTogglePlayMode={onTogglePlayMode}
                 onAddToFavorite={onAddToFavorite}
                 onShowPlaylist={onShowPlaylist}
-                onDownload={onDownload}
-                isDownloaded={isDownloaded}
+                onDownloadSong={onDownloadSong}
+                onManageDownload={onManageDownload}
+                downloadedSongIds={downloadedSongIds}
                 volume={volume}
                 changeVolume={changeVolume}
                 songsCount={songsCount}

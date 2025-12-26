@@ -8,6 +8,7 @@ interface UseAudioEventsProps {
     queue: Song[];
     currentIndex: number;
     volume: number;
+    playMode: 'loop' | 'random' | 'single';
     intervalRef: React.MutableRefObject<{ start: number; end: number; length: number }>;
     setIsPlaying: (playing: boolean) => void;
     setProgress: (progress: number) => void;
@@ -16,8 +17,10 @@ interface UseAudioEventsProps {
     setCurrentSong: (song: Song | null) => void;
     setStatus: (status: string) => void;
     playbackRetryRef: React.MutableRefObject<Map<string, number>>;
+    isHandlingErrorRef: React.MutableRefObject<Set<string>>;
     upsertSongs: (songs: Song[]) => Promise<void>;
     playSong: (song: Song, list?: Song[]) => Promise<void>;
+    playNext: () => void;
 }
 
 export const useAudioEvents = ({
@@ -26,6 +29,7 @@ export const useAudioEvents = ({
     queue,
     currentIndex,
     volume,
+    playMode,
     intervalRef,
     setIsPlaying,
     setProgress,
@@ -34,8 +38,10 @@ export const useAudioEvents = ({
     setCurrentSong,
     setStatus,
     playbackRetryRef,
+    isHandlingErrorRef,
     upsertSongs,
     playSong,
+    playNext,
 }: UseAudioEventsProps) => {
     // 注册音频事件监听
     useEffect(() => {
@@ -45,6 +51,13 @@ export const useAudioEvents = ({
 
         // 错误处理
         const handleError = (e: ErrorEvent | Event) => {
+            // 防止同一首歌曲的错误被多次处理
+            if (!currentSong?.id || isHandlingErrorRef.current.has(currentSong.id)) {
+                console.log('错误已在处理中，跳过重复处理');
+                return;
+            }
+            isHandlingErrorRef.current.add(currentSong.id);
+
             console.error('音频加载错误:', e);
             const errorMsg = audio.error ? `${audio.error.code}: ${audio.error.message}` : '未知错误';
             console.log(`错误代码: ${audio.error?.code}, 消息: ${audio.error?.message}`);
@@ -52,25 +65,47 @@ export const useAudioEvents = ({
             // AbortError 通常表示播放被中止或快速切歌，不需要处理
             if (audio.error && audio.error.code === 1) {
                 console.log('播放被中止（快速切歌），跳过重试');
+                isHandlingErrorRef.current.delete(currentSong.id);
                 return;
             }
 
             // 如果是本地文件 404，说明文件已被删除，应该清除本地 URL 并重新获取
             const isLocalUrl = currentSong?.streamUrl?.includes('127.0.0.1:9999/local');
             if (isLocalUrl && currentSong?.bvid) {
-                console.log('本地文件加载失败，清除本地 URL 并重新获取网络地址...');
+                const count = (playbackRetryRef.current.get(currentSong.id) ?? 0) + 1;
+                playbackRetryRef.current.set(currentSong.id, count);
+                console.log(`本地文件加载失败，第 ${count} 次尝试重新获取网络地址...`);
+
+                if (count > 2) {
+                    const msg = '本地文件损坏且网络获取失败，请删除后重新下载';
+                    setStatus(msg);
+                    setIsPlaying(false);
+                    notifications.show({ title: '播放失败', message: msg, color: 'red' });
+                    // 如果是单曲循环，跳到下一首避免死循环
+                    if (playMode === 'single' && queue.length > 1) {
+                        playNext();
+                    }
+                    return;
+                }
+
                 setStatus('本地文件不可用，正在重新获取...');
+                // 立即停止音频并清空 src，防止继续触发错误事件
+                audio.pause();
+                audio.src = '';
+
                 // 清除本地 URL
                 const clearedSong = {
                     ...currentSong,
-                    streamUrl: '',
+                    streamUrl: '__SKIP_LOCAL__', // 标记跳过本地文件
                     streamUrlExpiresAt: new Date().toISOString(),
                 };
                 upsertSongs([clearedSong as any]).catch(console.error);
                 // 延迟后重试播放
                 setTimeout(() => {
-                    if (currentSong && currentSong.id) {
-                        playSong(currentSong, queue);
+                    if (clearedSong && clearedSong.id) {
+                        playSong(clearedSong, queue).catch(err => {
+                            console.error('音频重试播放失败:', err);
+                        });
                     }
                 }, 500);
                 return;
@@ -81,18 +116,35 @@ export const useAudioEvents = ({
                 const count = (playbackRetryRef.current.get(currentSong.id) ?? 0) + 1;
                 playbackRetryRef.current.set(currentSong.id, count);
                 console.log(`检测到网络错误（可能是 403），第 ${count} 次尝试刷新播放地址...`);
-                if (count > 3) {
-                    const msg = '播放地址刷新失败，请稍后重试';
+                if (count > 2) {
+                    const msg = '播放地址获取失败，请稍后重试';
                     setStatus(msg);
                     setIsPlaying(false);
                     notifications.show({ title: '播放失败', message: msg, color: 'red' });
+                    // 如果是单曲循环，跳到下一首避免死循环
+                    if (playMode === 'single' && queue.length > 1) {
+                        playNext();
+                    }
                     return;
                 }
-                setStatus('播放地址失效，正在刷新...');
+                setStatus('网络源失效，正在重新获取...');
+                // 立即停止音频并清空 src，防止继续触发错误事件
+                audio.pause();
+                audio.src = '';
+
+                // 强制清除 streamUrl 以便 playSong 重新获取
+                const urlExpiredSong = {
+                    ...currentSong,
+                    streamUrl: '', // 清空 URL 强制刷新
+                    streamUrlExpiresAt: new Date().toISOString(),
+                } as unknown as Song;
+
                 // 延迟一下再刷新，避免立即重试
                 setTimeout(() => {
-                    if (currentSong && currentSong.id) {
-                        playSong(currentSong, queue);
+                    if (urlExpiredSong && urlExpiredSong.id) {
+                        playSong(urlExpiredSong, queue).catch(err => {
+                            console.error("音频重试播放失败:", err);
+                        });
                     }
                 }, 500);
                 return;
@@ -104,11 +156,16 @@ export const useAudioEvents = ({
                 setStatus(msg);
                 setIsPlaying(false);
                 notifications.show({ title: '播放失败', message: msg, color: 'red' });
+                // 如果是单曲循环，跳到下一首避免死循环
+                if (playMode === 'single' && queue.length > 1) {
+                    playNext();
+                }
                 return;
             }
 
             setStatus(`音频错误: ${errorMsg}`);
             notifications.show({ title: '音频加载失败', message: errorMsg, color: 'red' });
+            setIsPlaying(false);
         };
 
         // 时间更新处理
@@ -152,34 +209,76 @@ export const useAudioEvents = ({
 
         // 播放结束处理
         const onEnded = () => {
-            // 如果在区间内播放完，直接停；否则按队列跳下一首
-            const { start, end } = intervalRef.current;
-            if (audio.currentTime >= end) {
-                audio.pause();
-                setIsPlaying(false);
+            const { start } = intervalRef.current;
+
+            console.log('[onEnded] 播放结束，当前模式:', playMode);
+
+            // 根据播放模式处理播放结束
+            if (playMode === 'single') {
+                // 单曲循环：重置到区间起点并播放
+                console.log('[onEnded] 单曲循环：重置播放');
                 audio.currentTime = start;
                 setProgress(start);
-                return;
-            }
-            if (queue.length > 0 && currentIndex < queue.length - 1) {
-                const nextIndex = currentIndex + 1;
-                setCurrentIndex(nextIndex);
-                setCurrentSong(queue[nextIndex]);
+                audio.play().catch(console.error);
             } else {
-                setIsPlaying(false);
+                // 列表循环/随机播放：播放下一首
+                console.log('[onEnded] 列表循环/随机：播放下一首');
+                if (queue.length > 0) {
+                    playNext();
+                }
             }
+        };
+
+        // 音频可以播放处理 - 清理错误状态并自动播放
+        const onCanPlay = () => {
+            if (currentSong?.id) {
+                // 歌曲成功加载，清除错误处理标记
+                isHandlingErrorRef.current.delete(currentSong.id);
+
+                // 如果当前是播放状态，且音频已暂停，则自动播放
+                // 这确保了切换歌曲时的自动播放
+                if (audio.paused) {
+                    // 设置到区间起点
+                    const { start } = intervalRef.current;
+                    if (start > 0 && audio.currentTime < start) {
+                        audio.currentTime = start;
+                        setProgress(start);
+                    }
+
+                    audio.play().catch((err) => {
+                        console.error("自动播放失败:", err);
+                        setIsPlaying(false);
+                    });
+                }
+            }
+        };
+
+        // 同步播放状态 - 当音频真正开始播放时
+        const onPlay = () => {
+            setIsPlaying(true);
+        };
+
+        // 同步暂停状态 - 当音频暂停时
+        const onPause = () => {
+            setIsPlaying(false);
         };
 
         audio.addEventListener('error', handleError);
         audio.addEventListener('timeupdate', onTime);
         audio.addEventListener('loadedmetadata', onLoaded);
         audio.addEventListener('ended', onEnded);
+        audio.addEventListener('canplaythrough', onCanPlay);
+        audio.addEventListener('play', onPlay);
+        audio.addEventListener('pause', onPause);
 
         return () => {
             audio.removeEventListener('error', handleError);
             audio.removeEventListener('timeupdate', onTime);
             audio.removeEventListener('loadedmetadata', onLoaded);
             audio.removeEventListener('ended', onEnded);
+            audio.removeEventListener('canplaythrough', onCanPlay);
+            audio.removeEventListener('play', onPlay);
+            audio.removeEventListener('pause', onPause);
         };
     }, [
         audioRef,
@@ -187,6 +286,7 @@ export const useAudioEvents = ({
         queue,
         currentIndex,
         volume,
+        playMode,
         intervalRef,
         setIsPlaying,
         setProgress,
@@ -195,7 +295,9 @@ export const useAudioEvents = ({
         setCurrentSong,
         setStatus,
         playbackRetryRef,
+        isHandlingErrorRef,
         upsertSongs,
         playSong,
+        playNext,
     ]);
 };

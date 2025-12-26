@@ -78,10 +78,12 @@ export const useSongs = () => {
         }
     }, []);
 
-    // 删除歌曲
+    // 删除歌曲，自动清理未被引用的歌曲和流源
     const deleteSong = useCallback(async (songId: string) => {
         try {
             await Services.DeleteSong(songId);
+            // 删除后清理所有未被任何歌单引用的歌曲
+            await Services.DeleteUnreferencedSongs();
             setSongs(prev => prev.filter(s => s.id !== songId));
         } catch (error) {
             console.error('删除歌曲失败:', error);

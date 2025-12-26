@@ -62,7 +62,8 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setThemeColor(theme.themeColor);
         setBackgroundColor(theme.backgroundColor);
         setBackgroundOpacity(theme.backgroundOpacity);
-        setBackgroundImageUrl(theme.backgroundImageUrl || "");
+        // 使用后端模型字段名 backgroundImage
+        setBackgroundImageUrl(theme.backgroundImage || "");
         setPanelColor(theme.panelColor);
         setPanelOpacity(theme.panelOpacity);
         setCurrentThemeId(theme.id);
@@ -72,7 +73,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         localStorage.setItem('themeColor', theme.themeColor);
         localStorage.setItem('backgroundColor', theme.backgroundColor);
         localStorage.setItem('backgroundOpacity', theme.backgroundOpacity.toString());
-        localStorage.setItem('backgroundImageUrl', theme.backgroundImageUrl || "");
+        localStorage.setItem('backgroundImageUrl', theme.backgroundImage || "");
         localStorage.setItem('panelColor', theme.panelColor);
         localStorage.setItem('panelOpacity', theme.panelOpacity.toString());
     }, []);
@@ -83,8 +84,11 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const setBackgroundImageUrlSafe = useCallback((url: string) => {
         const trimmedUrl = url.trim();
 
-        // 验证 URL 格式
-        if (trimmedUrl && !trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+        // 验证 URL 格式：允许 http://, https://, 和 data: URLs
+        if (trimmedUrl &&
+            !trimmedUrl.startsWith('http://') &&
+            !trimmedUrl.startsWith('https://') &&
+            !trimmedUrl.startsWith('data:')) {
             console.warn('Invalid background image URL:', trimmedUrl);
             return;
         }

@@ -84,7 +84,7 @@ func (ap *AudioProxy) Stop() error {
 func (ap *AudioProxy) handleAudio(w http.ResponseWriter, r *http.Request) {
 	// Set CORS headers first for all responses
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Range")
 
 	// Handle preflight
@@ -167,6 +167,11 @@ func (ap *AudioProxy) handleAudio(w http.ResponseWriter, r *http.Request) {
 
 	// Write status
 	w.WriteHeader(resp.StatusCode)
+
+	// For HEAD requests, don't stream the body
+	if r.Method == "HEAD" {
+		return
+	}
 
 	// Stream response body with timeout
 	io.Copy(w, resp.Body)

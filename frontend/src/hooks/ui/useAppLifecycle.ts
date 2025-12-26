@@ -105,7 +105,13 @@ export const useAppLifecycle = ({
                 saveCachedCustomThemes(customThemes);
                 setSetting(s as any);
                 setVolume(s.defaultVolume ?? 0.5);
-                setPlayMode((s.playMode as any) ?? "order");
+
+                // 验证并设置播放模式，移除旧的 "order" 模式
+                const validModes = ['loop', 'random', 'single'];
+                const savedMode = s.playMode as string;
+                const mode = validModes.includes(savedMode) ? savedMode : 'loop';
+                console.log('[初始化] 播放模式:', savedMode, '->', mode);
+                setPlayMode(mode as any);
 
                 const allThemes = [...DEFAULT_THEMES, ...customThemes];
                 setThemes(allThemes);
@@ -113,6 +119,7 @@ export const useAppLifecycle = ({
 
                 const currentTheme = allThemes.find((t: Theme) => t.id === (s.currentThemeId || "light"));
                 if (currentTheme) {
+                    console.log("应用主题:", currentTheme.id, "背景图:", currentTheme.backgroundImage);
                     setThemeColor(currentTheme.themeColor);
                     setBackgroundColor(currentTheme.backgroundColor);
                     setBackgroundOpacity(currentTheme.backgroundOpacity);

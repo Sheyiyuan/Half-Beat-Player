@@ -88,7 +88,7 @@ const App: React.FC = () => {
         bvPreview, bvModalOpen, bvSongName, bvSinger, bvTargetFavId, resolvingBV,
         sliceStart, sliceEnd, isSlicePreviewing, slicePreviewPosition,
         setBvPreview, setBvModalOpen, setBvSongName, setBvSinger, setBvTargetFavId,
-        setSliceStart, setSliceEnd, setIsSlicePreviewing, setSlicePreviewPosition,
+        setResolvingBV, setSliceStart, setSliceEnd, setIsSlicePreviewing, setSlicePreviewPosition,
         resolveBV, resetBVState
     } = bvResolver;
 
@@ -97,6 +97,7 @@ const App: React.FC = () => {
     // ========== Refs ==========
     const playingRef = useRef<string | null>(null);
     const playbackRetryRef = useRef<Map<string, number>>(new Map());
+    const isHandlingErrorRef = useRef<Set<string>>(new Set());
     const prevSongIdRef = useRef<string | null>(null);
     const sliceAudioRef = useRef<HTMLAudioElement | null>(null);
     const skipPersistRef = useRef(false);
@@ -118,6 +119,9 @@ const App: React.FC = () => {
     const [selectedFavId, setSelectedFavId] = useState<string | null>(null);
     const [remoteResults, setRemoteResults] = useState<Song[]>([]);
     const [remoteLoading, setRemoteLoading] = useState(false);
+
+    // BV 模态创建歌单名称
+    const [newFavName, setNewFavName] = useState("");
 
     // 设置相关
     const [cacheSize, setCacheSize] = useState(0);
@@ -157,7 +161,7 @@ const App: React.FC = () => {
     // Mantine 颜色方案切换
     const { setColorScheme } = useMantineColorScheme();
     const setBackgroundImageUrlDraftSafe = useCallback((url: string) => {
-        setBackgroundImageUrlDraft(prev => (prev === url ? prev : url));
+        setBackgroundImageUrlDraft(url);
     }, []);
 
     // 从状态中提取自定义主题（非默认）
@@ -206,6 +210,24 @@ const App: React.FC = () => {
 
     const currentFav = selectedFavId ? (favorites.find((f: Favorite) => f.id === selectedFavId) ?? null) : null;
 
+    // 当前歌单的歌曲列表需在下方 hooks 使用前定义，避免 TDZ
+    const currentFavSongs = currentFav
+        ? songs.filter((s) => currentFav.songIds.some((ref: any) => ref.songId === s.id))
+        : [];
+
+    // 核心播放函数需在使用前定义，避免 TDZ
+    const { playSong } = usePlaySong({
+        queue,
+        selectedFavId,
+        setQueue,
+        setCurrentIndex,
+        setCurrentSong,
+        setIsPlaying,
+        setStatus,
+        setSongs,
+        playbackRetryRef,
+    });
+
     const playlistActions = usePlaylistActions({
         queue,
         setQueue,
@@ -220,6 +242,7 @@ const App: React.FC = () => {
         setConfirmRemoveSongId,
         openModal,
         closeModal,
+        playSong,
     });
 
     const themeEditor = useThemeEditor({
@@ -294,23 +317,10 @@ const App: React.FC = () => {
         managingSong,
         setStatus,
         setDownloadedSongIds,
-        setIsDownloaded,
         setManagingSong,
         setConfirmDeleteDownloaded,
         openModal,
         closeModal,
-    });
-
-    // 核心播放函数需在使用前定义，避免 TDZ
-    const { playSong } = usePlaySong({
-        queue,
-        selectedFavId,
-        setQueue,
-        setCurrentIndex,
-        setCurrentSong,
-        setIsPlaying,
-        setStatus,
-        setSongs,
     });
 
     // 播放模式（单曲/歌单）依赖 playSong
@@ -332,6 +342,7 @@ const App: React.FC = () => {
         queue,
         playingRef,
         playbackRetryRef,
+        isPlaying,
         setIsPlaying,
         setStatus,
         playSong,
@@ -375,6 +386,7 @@ const App: React.FC = () => {
         setCurrentSong,
         setStatus,
         playbackRetryRef,
+        isHandlingErrorRef,
         upsertSongs: Services.UpsertSongs,
         playSong,
     });
@@ -401,6 +413,8 @@ const App: React.FC = () => {
         setCurrentSong,
         setVolume,
         playSong,
+        playbackRetryRef,
+        isHandlingErrorRef,
     });
     const { playNext, playPrev, togglePlay, changeVolume } = playbackControls;
 
@@ -493,12 +507,9 @@ const App: React.FC = () => {
         currentSong,
         songs,
         setIsDownloaded,
+        downloadedSongIds,
         setDownloadedSongIds,
         audioRef,
-        isPlaying,
-        setIsPlaying,
-        setStatus,
-        playbackRetryRef,
         prevSongIdRef,
     });
 
@@ -519,6 +530,7 @@ const App: React.FC = () => {
         queue,
         currentIndex,
         volume,
+        playMode,
         intervalRef,
         setIsPlaying,
         setProgress,
@@ -527,8 +539,10 @@ const App: React.FC = () => {
         setCurrentSong,
         setStatus,
         playbackRetryRef,
+        isHandlingErrorRef,
         upsertSongs: Services.UpsertSongs,
         playSong,
+        playNext,
     });
 
     const handleBackgroundFileDraft = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -563,20 +577,17 @@ const App: React.FC = () => {
         searchQuery === "" || s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.singer.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const currentFavSongs = currentFav
-        ? songs.filter((s) => currentFav.songIds.some((ref: any) => ref.songId === s.id))
-        : [];
-
-
-
-    const backgroundStyle = useMemo(() => ({
-        overflow: "hidden",
-        backgroundColor: backgroundWithOpacity,
-        backgroundImage: backgroundImageUrl ? `url(${backgroundImageUrl})` : undefined,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-    }), [backgroundWithOpacity, backgroundImageUrl]);
+    const backgroundStyle = useMemo(() => {
+        console.log("背景图 URL:", backgroundImageUrl, "透明度:", backgroundWithOpacity);
+        return {
+            overflow: "hidden",
+            backgroundColor: backgroundWithOpacity,
+            backgroundImage: backgroundImageUrl ? `url(${backgroundImageUrl})` : undefined,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+        };
+    }, [backgroundWithOpacity, backgroundImageUrl]);
     // 已上移到前文并改为 useCallback 版本
 
     // ========== 主题管理函数（来自 useThemeEditor Hook）==========
@@ -614,10 +625,17 @@ const App: React.FC = () => {
         updateStreamUrl(value);
     };
 
-    const handlePlayModeToggle = () => setPlayMode(playMode === "order" ? "random" : playMode === "random" ? "single" : "order");
+    const handlePlayModeToggle = () => {
+        // 循环切换：列表循环 -> 随机 -> 单曲循环 -> 列表循环
+        const newMode = playMode === "loop" ? "random" : playMode === "random" ? "single" : "loop";
+        console.log('[handlePlayModeToggle] 切换播放模式:', playMode, '->', newMode);
+        setPlayMode(newMode);
+    };
 
     // ========== 下载管理函数（来自 useDownloadManager Hook）==========
     const handleDownload = downloadManager.handleDownload;
+    const handleDownloadCurrentSong = downloadManager.handleDownloadCurrentSong;
+    const handleManageDownload = downloadManager.handleManageDownload;
     const handleDownloadSong = downloadManager.handleDownloadSong;
     const handleDownloadAllFavorite = downloadManager.handleDownloadAllFavorite;
     const handleOpenDownloadedFile = downloadManager.handleOpenDownloadedFile;
@@ -732,7 +750,7 @@ const App: React.FC = () => {
         setStatus,
         currentSong,
         panelBackground,
-        computedColorScheme,
+        computedColorScheme: (computedColorScheme === "auto" ? "light" : computedColorScheme) as "light" | "dark",
         placeholderCover: PLACEHOLDER_COVER,
         maxSkipLimit,
         formatTime,
@@ -777,8 +795,8 @@ const App: React.FC = () => {
         isPlaying,
         playMode,
         handlePlayModeToggle,
-        handleDownload,
-        isDownloaded,
+        handleDownloadCurrentSong,
+        handleManageDownload,
         volume,
         changeVolume,
         songsCount: songs.length,
@@ -886,7 +904,14 @@ const App: React.FC = () => {
     }, [bvModalOpen]);
 
     return (
-        <Box h="100vh" w="100vw" style={backgroundStyle}>
+        <Box
+            h="100vh"
+            w="100vw"
+            style={{
+                ...backgroundStyle,
+                backgroundAttachment: 'fixed',  // 固定背景不滚动
+            }}
+        >
             {/* 顶部右侧设置按钮移动到工具栏，避免与主题按钮重叠 */}
             <ThemeManagerModal
                 opened={modals.themeModal}

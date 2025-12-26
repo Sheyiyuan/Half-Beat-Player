@@ -10,6 +10,10 @@ export function ClearLibrary() {
   return window['go']['services']['Service']['ClearLibrary']();
 }
 
+export function CreateStreamSource(arg1, arg2, arg3) {
+  return window['go']['services']['Service']['CreateStreamSource'](arg1, arg2, arg3);
+}
+
 export function CreateTheme(arg1) {
   return window['go']['services']['Service']['CreateTheme'](arg1);
 }
@@ -28,6 +32,10 @@ export function DeleteSong(arg1) {
 
 export function DeleteTheme(arg1) {
   return window['go']['services']['Service']['DeleteTheme'](arg1);
+}
+
+export function DeleteUnreferencedSongs() {
+  return window['go']['services']['Service']['DeleteUnreferencedSongs']();
 }
 
 export function DownloadSong(arg1) {
@@ -154,8 +162,16 @@ export function SavePlaylist(arg1, arg2) {
   return window['go']['services']['Service']['SavePlaylist'](arg1, arg2);
 }
 
+export function SearchBVID(arg1) {
+  return window['go']['services']['Service']['SearchBVID'](arg1);
+}
+
 export function SearchBiliVideos(arg1, arg2, arg3) {
   return window['go']['services']['Service']['SearchBiliVideos'](arg1, arg2, arg3);
+}
+
+export function SearchLocalSongs(arg1) {
+  return window['go']['services']['Service']['SearchLocalSongs'](arg1);
 }
 
 export function Seed() {

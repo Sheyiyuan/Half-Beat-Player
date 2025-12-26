@@ -10,7 +10,7 @@ export type CurrentPlaylistCardProps = {
     currentSongId?: string | null;
     searchQuery: string;
     onSearchChange: (value: string) => void;
-    onPlaySong: (song: Song, list: Song[]) => void;
+    onPlaySong: (song: Song) => void;  // 只需要 song 参数，不再需要 list
     onAddSong: () => void;
     themeColor: string;
     downloadedSongIds: Set<string>;
@@ -71,7 +71,7 @@ const CurrentPlaylistCard: React.FC<CurrentPlaylistCardProps> = ({
                                         variant={currentSongId === s.id ? "filled" : "subtle"}
                                         color={themeColor}
                                         justify="flex-start"
-                                        onClick={() => onPlaySong(s, currentFavSongs)}
+                                        onClick={() => onPlaySong(s)}
                                         style={{ flex: 1 }}
                                     >
                                         <Stack gap={2} align="flex-start">

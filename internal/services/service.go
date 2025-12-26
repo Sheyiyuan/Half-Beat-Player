@@ -1,10 +1,12 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -36,9 +38,23 @@ const cookieCacheFile = "sessdata.json"
 
 func NewService(db *gorm.DB, dataDir string) *Service {
 	jar, _ := cookiejar.New(nil)
+
+	// 创建具有合理超时的 HTTP Transport
+	transport := &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   10 * time.Second, // 连接超时
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		TLSHandshakeTimeout: 10 * time.Second,
+		IdleConnTimeout:     90 * time.Second,
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 10,
+	}
+
 	client := &http.Client{
-		Jar:     jar,
-		Timeout: 30 * time.Second,
+		Jar:       jar,
+		Transport: transport,
+		Timeout:   30 * time.Second, // 默认请求超时
 	}
 
 	// 确保数据目录存在（跨平台用户级路径）
@@ -83,36 +99,137 @@ func (s *Service) ListSongs() ([]models.Song, error) {
 	return songs, nil
 }
 
-// UpsertSongs inserts or updates songs.
+// UpsertSongs inserts or updates songs with their stream sources.
+// Each new song is a separate instance, even if they share the same BVID.
+// Supports backward compatibility by accepting streamUrl in Song object.
+// Uses INSERT OR REPLACE to handle duplicate IDs gracefully.
 func (s *Service) UpsertSongs(songs []models.Song) error {
-	for i := range songs {
-		// 如果是新建歌曲，至少需要有一个有效的标识符（BVID 或 ID）
-		if songs[i].ID == "" {
-			if songs[i].BVID == "" {
-				// 既没有 ID 也没有 BVID，生成新 ID
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		for i := range songs {
+			// 每个新的歌曲实例都需要独立的 ID
+			if songs[i].ID == "" {
 				songs[i].ID = uuid.NewString()
-			} else {
-				// 有 BVID 就用 BVID 作为 ID
-				songs[i].ID = songs[i].BVID
+			}
+
+			// 确保歌曲有名字
+			if songs[i].Name == "" {
+				return fmt.Errorf("歌曲缺少名字")
+			}
+
+			// 向后兼容：如果 streamUrl 存在但 sourceId 为空，创建 StreamSource
+			if songs[i].StreamURL != "" && songs[i].SourceID == "" {
+				sourceID := uuid.NewString()
+				source := models.StreamSource{
+					ID:        sourceID,
+					BVID:      songs[i].BVID,
+					StreamURL: songs[i].StreamURL,
+					ExpiresAt: songs[i].StreamURLExpiresAt,
+				}
+				if err := tx.Create(&source).Error; err != nil {
+					return err
+				}
+				songs[i].SourceID = sourceID
 			}
 		}
-		// 确保歌曲有名字，否则跳过保存（避免保存空歌曲）
-		if songs[i].Name == "" {
-			return fmt.Errorf("歌曲缺少名字")
+
+		// 批量保存歌曲（使用 UPSERT 处理重复 ID）
+		if err := tx.Clauses(clause.OnConflict{
+			UpdateAll: true,
+		}).Create(&songs).Error; err != nil {
+			return err
 		}
-	}
-	return s.db.Save(&songs).Error
+
+		return nil
+	})
 }
 
-// DeleteSong removes song and references.
+// CreateStreamSource creates a new stream source and returns its ID.
+func (s *Service) CreateStreamSource(bvid, streamURL string, expiresAt time.Time) (string, error) {
+	sourceID := uuid.NewString()
+	source := models.StreamSource{
+		ID:        sourceID,
+		BVID:      bvid,
+		StreamURL: streamURL,
+		ExpiresAt: expiresAt,
+	}
+	if err := s.db.Create(&source).Error; err != nil {
+		return "", err
+	}
+	return sourceID, nil
+}
+
+// DeleteSong removes song only if it's not referenced by any favorite.
 func (s *Service) DeleteSong(id string) error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
+		// 检查是否有歌单引用此歌曲
+		var refCount int64
+		if err := tx.Model(&models.SongRef{}).Where("song_id = ?", id).Count(&refCount).Error; err != nil {
+			return err
+		}
+
+		if refCount > 0 {
+			return fmt.Errorf("歌曲仍被歌单引用，无法删除")
+		}
+
+		// 删除歌曲
 		if err := tx.Delete(&models.Song{}, "id = ?", id).Error; err != nil {
 			return err
 		}
-		if err := tx.Delete(&models.SongRef{}, "song_id = ?", id).Error; err != nil {
+
+		// 检查是否有其他歌曲引用此流源
+		var song models.Song
+		if err := tx.First(&song, "id = ?", id).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
+
+		// 如果没有其他歌曲引用此流源，删除流源
+		if song.SourceID != "" {
+			var sourceRefCount int64
+			if err := tx.Model(&models.Song{}).Where("source_id = ?", song.SourceID).Count(&sourceRefCount).Error; err != nil {
+				return err
+			}
+
+			if sourceRefCount == 0 {
+				if err := tx.Delete(&models.StreamSource{}, "id = ?", song.SourceID).Error; err != nil {
+					return err
+				}
+			}
+		}
+
+		return nil
+	})
+}
+
+// DeleteUnreferencedSongs deletes all songs that are not referenced by any favorite.
+func (s *Service) DeleteUnreferencedSongs() (int64, error) {
+	return 0, s.db.Transaction(func(tx *gorm.DB) error {
+		// 获取所有被引用的歌曲 ID
+		var referencedIDs []string
+		if err := tx.Model(&models.SongRef{}).
+			Distinct("song_id").
+			Pluck("song_id", &referencedIDs).Error; err != nil {
+			return err
+		}
+
+		// 删除所有未被引用的歌曲
+		if len(referencedIDs) == 0 {
+			// 如果没有引用，删除所有歌曲
+			if err := tx.Delete(&models.Song{}).Error; err != nil {
+				return err
+			}
+		} else {
+			// 删除不在引用列表中的歌曲
+			if err := tx.Where("id NOT IN ?", referencedIDs).Delete(&models.Song{}).Error; err != nil {
+				return err
+			}
+		}
+
+		// 清理未被引用的流源
+		if err := tx.Where("id NOT IN (SELECT DISTINCT source_id FROM songs WHERE source_id IS NOT NULL AND source_id != '')").
+			Delete(&models.StreamSource{}).Error; err != nil {
+			return err
+		}
+
 		return nil
 	})
 }
@@ -1057,6 +1174,17 @@ func (s *Service) getVideoInfo(bvid string) (VideoInfo, error) {
 	}, nil
 }
 
+// SearchLocalSongs searches songs in local database by name or singer.
+func (s *Service) SearchLocalSongs(keyword string) ([]models.Song, error) {
+	var songs []models.Song
+	searchTerm := "%" + keyword + "%"
+	if err := s.db.Where("name LIKE ? OR singer LIKE ?", searchTerm, searchTerm).
+		Find(&songs).Error; err != nil {
+		return nil, err
+	}
+	return songs, nil
+}
+
 // SearchBiliVideos queries Bilibili video search and returns lightweight Song-like items.
 func (s *Service) SearchBiliVideos(keyword string, page int, pageSize int) ([]models.Song, error) {
 	if page <= 0 {
@@ -1109,16 +1237,46 @@ func (s *Service) SearchBiliVideos(keyword string, page int, pageSize int) ([]mo
 	var out []models.Song
 	for _, it := range parsed.Data.Result {
 		out = append(out, models.Song{
-			ID:        "",
-			BVID:      it.BVID,
-			Name:      tagRe.ReplaceAllString(it.Title, ""),
-			Singer:    it.Author,
-			SingerID:  "",
-			Cover:     normalizeBiliPic(it.Pic),
-			StreamURL: "",
+			ID:       "",
+			BVID:     it.BVID,
+			Name:     tagRe.ReplaceAllString(it.Title, ""),
+			Singer:   it.Author,
+			SingerID: "",
+			Cover:    normalizeBiliPic(it.Pic),
+			SourceID: "",
 		})
 	}
 	return out, nil
+}
+
+// SearchBVID searches for a BV number in both local database and Bilibili.
+// Returns local results first, then remote results.
+func (s *Service) SearchBVID(bvid string) ([]models.Song, error) {
+	var results []models.Song
+
+	// 1. 搜索本地数据库中相同 BVID 的所有歌曲实例
+	if err := s.db.Where("bvid = ?", bvid).Find(&results).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+
+	// 2. 从 B站搜索该 BV 号的视频信息
+	// 这里直接调用 ResolveBiliAudio 获取最新信息
+	audioInfo, err := s.ResolveBiliAudio(bvid)
+	if err == nil {
+		// 创建一个虚拟的歌曲条目表示 B站版本
+		remoteResult := models.Song{
+			ID:       "",
+			BVID:     bvid,
+			Name:     audioInfo.Title,
+			Singer:   audioInfo.Author,
+			SingerID: "",
+			Cover:    audioInfo.Cover,
+			SourceID: "", // 未保存的远程资源
+		}
+		results = append(results, remoteResult)
+	}
+
+	return results, nil
 }
 
 // clauseOnConflictID is a small helper to update on PK conflict.
@@ -1368,8 +1526,11 @@ func (s *Service) DownloadSong(songID string) (string, error) {
 	filename := fmt.Sprintf("%s.m4s", song.ID)
 	dstPath := filepath.Join(dstDir, filename)
 
-	// Download
-	req, err := http.NewRequest("GET", audioURL, nil)
+	// Download with extended timeout for large files (5 minutes)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", audioURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("创建下载请求失败: %w", err)
 	}
@@ -1386,20 +1547,65 @@ func (s *Service) DownloadSong(songID string) (string, error) {
 		return "", fmt.Errorf("下载失败，状态码: %d", resp.StatusCode)
 	}
 
-	// Write to file
+	// Get expected content length
+	contentLength := resp.ContentLength
+	if contentLength <= 0 {
+		return "", fmt.Errorf("无法获取文件大小信息，可能是服务器不支持")
+	}
+
+	// Write to temporary file
 	tmpPath := dstPath + ".part"
+	// 如果存在残留的 .part 文件，先删除
+	_ = os.Remove(tmpPath)
+
 	f, err := os.Create(tmpPath)
 	if err != nil {
 		return "", fmt.Errorf("创建文件失败: %w", err)
 	}
 	defer f.Close()
 
-	if _, err := io.Copy(f, resp.Body); err != nil {
+	// Copy with size tracking to verify complete download
+	written, err := io.Copy(f, resp.Body)
+	if err != nil {
 		_ = f.Close()
 		_ = os.Remove(tmpPath)
 		return "", fmt.Errorf("写入文件失败: %w", err)
 	}
+
+	// Verify file was written completely
+	if written != contentLength {
+		_ = f.Close()
+		_ = os.Remove(tmpPath)
+		return "", fmt.Errorf("下载不完整: 期望 %d 字节，实际 %d 字节", contentLength, written)
+	}
+
+	// Flush to disk before closing
+	if err := f.Sync(); err != nil {
+		_ = f.Close()
+		_ = os.Remove(tmpPath)
+		return "", fmt.Errorf("刷新文件失败: %w", err)
+	}
 	_ = f.Close()
+
+	// Verify file exists and size is correct
+	stat, err := os.Stat(tmpPath)
+	if err != nil {
+		_ = os.Remove(tmpPath)
+		return "", fmt.Errorf("文件验证失败: %w", err)
+	}
+	if stat.Size() != contentLength {
+		_ = os.Remove(tmpPath)
+		return "", fmt.Errorf("文件大小验证失败: 期望 %d 字节，实际 %d 字节", contentLength, stat.Size())
+	}
+
+	// Check if destination already exists and is different
+	if _, err := os.Stat(dstPath); err == nil {
+		// File exists, remove it first (atomic operation requires no existing file on some systems)
+		if err := os.Remove(dstPath); err != nil {
+			_ = os.Remove(tmpPath)
+			return "", fmt.Errorf("无法覆盖已存在的文件: %w", err)
+		}
+	}
 
 	// Atomic rename
 	if err := os.Rename(tmpPath, dstPath); err != nil {
@@ -1407,6 +1613,18 @@ func (s *Service) DownloadSong(songID string) (string, error) {
 		return "", fmt.Errorf("保存文件失败: %w", err)
 	}
 
+	// Final verification after rename
+	stat, err = os.Stat(dstPath)
+	if err != nil {
+		_ = os.Remove(dstPath)
+		return "", fmt.Errorf("最终验证失败: %w", err)
+	}
+	if stat.Size() != contentLength {
+		_ = os.Remove(dstPath)
+		return "", fmt.Errorf("最终大小验证失败: 期望 %d 字节，实际 %d 字节", contentLength, stat.Size())
+	}
+
+	fmt.Printf("[Download] 成功下载 %s: %d 字节\n", filename, contentLength)
 	return dstPath, nil
 }
 

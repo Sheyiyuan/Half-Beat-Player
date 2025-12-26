@@ -69,9 +69,9 @@ export const useTheme = () => {
         setColorScheme(theme.colorScheme);
     }, [setColorScheme]);
 
-    // 安全设置背景图片（避免重复更新）
+    // 安全设置背景图片（直接设置，不需要避免重复）
     const setBackgroundImageUrlSafe = useCallback((url: string) => {
-        setBackgroundImageUrl(prev => (prev === url ? prev : url));
+        setBackgroundImageUrl(url);
     }, []);
 
     // 缓存自定义主题

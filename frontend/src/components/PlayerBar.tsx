@@ -18,12 +18,13 @@ export type PlayerBarProps = {
     togglePlay: () => void;
     playNext: () => void;
     isPlaying: boolean;
-    playMode: "order" | "random" | "single";
+    playMode: "loop" | "random" | "single";
     onTogglePlayMode: () => void;
     onAddToFavorite: () => void;
     onShowPlaylist: () => void;
-    onDownload: () => void;
-    isDownloaded: boolean;
+    onDownloadSong: () => void;
+    onManageDownload: () => void;
+    downloadedSongIds: Set<string>;
     volume: number;
     changeVolume: (value: number) => void;
     songsCount: number;
@@ -48,12 +49,14 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
     onTogglePlayMode,
     onAddToFavorite,
     onShowPlaylist,
-    onDownload,
-    isDownloaded,
+    onDownloadSong,
+    onManageDownload,
+    downloadedSongIds,
     volume,
     changeVolume,
     songsCount,
 }) => {
+    const isDownloaded = currentSong ? downloadedSongIds.has(currentSong.id) : false;
     return (
         <Group align="flex-start" gap="md">
             {cover ? (
@@ -178,23 +181,36 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
                         >
                             <ListMusic size={16} />
                         </ActionIcon>
-                        <ActionIcon
-                            variant={isDownloaded ? "filled" : "default"}
-                            color={isDownloaded ? "teal" : undefined}
-                            size="lg"
-                            onClick={onDownload}
-                            title={isDownloaded ? "已下载：管理下载文件" : "下载当前歌曲"}
-                            disabled={!currentSong}
-                        >
-                            <Download size={16} />
-                        </ActionIcon>
+                        {!isDownloaded && (
+                            <ActionIcon
+                                variant="default"
+                                size="lg"
+                                onClick={onDownloadSong}
+                                title="下载当前歌曲"
+                                disabled={!currentSong}
+                            >
+                                <Download size={16} />
+                            </ActionIcon>
+                        )}
+                        {isDownloaded && (
+                            <ActionIcon
+                                variant="filled"
+                                color="teal"
+                                size="lg"
+                                onClick={onManageDownload}
+                                title="管理下载文件"
+                                disabled={!currentSong}
+                            >
+                                <Download size={16} />
+                            </ActionIcon>
+                        )}
                         <ActionIcon
                             variant="default"
                             size="lg"
                             onClick={onTogglePlayMode}
-                            title={`播放模式: ${playMode === "order" ? "顺序" : playMode === "random" ? "随机" : "单曲循环"}`}
+                            title={`播放模式: ${playMode === "loop" ? "列表循环" : playMode === "random" ? "随机" : "单曲循环"}`}
                         >
-                            {playMode === "order" ? <Repeat size={16} /> : playMode === "random" ? <Shuffle size={16} /> : <Repeat1 size={16} />}
+                            {playMode === "loop" ? <Repeat size={16} /> : playMode === "random" ? <Shuffle size={16} /> : <Repeat1 size={16} />}
                         </ActionIcon>
                         <Group gap={6} align="center">
                             <Text size="xs" c="dimmed">音量</Text>

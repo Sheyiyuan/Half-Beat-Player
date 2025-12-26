@@ -12,6 +12,7 @@ interface UsePlaySongProps {
     setIsPlaying: (playing: boolean) => void;
     setStatus: (status: string) => void;
     setSongs: (songs: Song[]) => void;
+    playbackRetryRef: React.MutableRefObject<Map<string, number>>;
 }
 
 /**
@@ -27,8 +28,11 @@ export const usePlaySong = ({
     setIsPlaying,
     setStatus,
     setSongs,
+    playbackRetryRef,
 }: UsePlaySongProps) => {
     const playSong = useCallback(async (song: Song, list?: Song[]) => {
+        // 注意：不在这里清除重试计数，因为重试时会再次调用这个函数
+        // 计数只在成功播放时（canplaythrough事件）或手动切歌时清除
         const targetList = list ?? queue;
         const idx = targetList.findIndex((s) => s.id === song.id);
         setQueue(targetList);
@@ -36,32 +40,63 @@ export const usePlaySong = ({
 
         let toPlay = song;
 
-        // 优先使用本地缓存：如果存在本地文件，直接走本地代理URL
-        try {
-            const localUrl = await Services.GetLocalAudioURL(song.id);
-            if (localUrl) {
-                console.log("找到本地缓存文件，使用本地 URL:", localUrl);
-                toPlay = {
-                    ...song,
-                    streamUrl: localUrl,
-                    // 本地文件不需要过期，给一个很远的未来时间
-                    streamUrlExpiresAt: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
-                    updatedAt: new Date().toISOString()
-                } as any;
-                // 不保存到数据库，只是临时使用，避免保存过时的本地 URL 引用
-                setCurrentSong(toPlay);
-                setIsPlaying(true);
-                // 保存播放历史
-                const currentFavId = selectedFavId || "";
-                if (toPlay.id) {
-                    Services.SavePlayHistory(currentFavId, toPlay.id).catch((e) => {
-                        console.warn("保存播放历史失败", e);
-                    });
+        // 优先使用本地缓存：如果存在本地文件且未被标记为失败，直接走本地代理URL
+        // 如果 streamUrl 包含 __SKIP_LOCAL__ 说明该本地文件已经失败过，跳过本地文件
+        const shouldSkipLocal = song.streamUrl?.includes('__SKIP_LOCAL__');
+
+        if (!shouldSkipLocal) {
+            try {
+                const localUrl = await Services.GetLocalAudioURL(song.id);
+                if (localUrl) {
+                    // 先验证本地 URL 是否可用，避免死循环
+                    let localOk = false;
+                    try {
+                        const ctrl = new AbortController();
+                        const t = setTimeout(() => ctrl.abort(), 1500);
+                        try {
+                            const resp = await fetch(localUrl, { method: 'HEAD', cache: 'no-store', signal: ctrl.signal });
+                            clearTimeout(t);
+                            localOk = resp.ok;
+                        } catch (fetchErr) {
+                            clearTimeout(t);
+                            // AbortError 表示超时或被中止，这是正常的失败情况
+                            if (fetchErr instanceof Error && fetchErr.name === 'AbortError') {
+                                console.warn('本地 URL 校验超时');
+                            } else {
+                                console.warn('本地 URL 校验失败:', fetchErr);
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('本地 URL 校验异常', err);
+                    }
+
+                    if (localOk) {
+                        console.log("找到本地缓存文件，使用本地 URL:", localUrl);
+                        toPlay = {
+                            ...song,
+                            streamUrl: localUrl,
+                            // 本地文件不需要过期，给一个很远的未来时间
+                            streamUrlExpiresAt: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
+                            updatedAt: new Date().toISOString()
+                        } as any;
+                        // 不保存到数据库，只是临时使用，避免保存过时的本地 URL 引用
+                        setCurrentSong(toPlay);
+                        setIsPlaying(true);
+                        // 保存播放历史
+                        const currentFavId = selectedFavId || "";
+                        if (toPlay.id) {
+                            Services.SavePlayHistory(currentFavId, toPlay.id).catch((e) => {
+                                console.warn("保存播放历史失败", e);
+                            });
+                        }
+                        return;
+                    } else {
+                        console.log('本地 URL 不可用，尝试获取网络播放地址');
+                    }
                 }
-                return;
+            } catch (e) {
+                console.warn('检查本地缓存失败', e);
             }
-        } catch (e) {
-            console.warn('检查本地缓存失败', e);
         }
 
         const exp: any = (song as any).streamUrlExpiresAt;
@@ -91,9 +126,15 @@ export const usePlaySong = ({
                 console.log("已更新 streamUrl:", playInfo.ProxyURL);
                 console.log("过期时间:", playInfo.ExpiresAt);
 
-                await Services.UpsertSongs([toPlay as any]);
-                const refreshed = await Services.ListSongs();
-                setSongs(refreshed);
+                // 尝试保存到数据库，但如果失败也不影响播放
+                try {
+                    await Services.UpsertSongs([toPlay as any]);
+                    const refreshed = await Services.ListSongs();
+                    setSongs(refreshed);
+                } catch (dbErr) {
+                    console.warn("保存到数据库失败（不影响播放）:", dbErr);
+                    // 继续使用内存中的 toPlay 继续播放
+                }
                 setStatus("就绪");
             } catch (e) {
                 const errorMsg = e instanceof Error ? e.message : '未知错误';
@@ -115,7 +156,7 @@ export const usePlaySong = ({
                 console.warn("保存播放历史失败", e);
             });
         }
-    }, [queue, selectedFavId, setQueue, setCurrentIndex, setCurrentSong, setIsPlaying, setStatus, setSongs]);
+    }, [queue, selectedFavId, setQueue, setCurrentIndex, setCurrentSong, setIsPlaying, setStatus, setSongs, playbackRetryRef]);
 
     return { playSong };
 };

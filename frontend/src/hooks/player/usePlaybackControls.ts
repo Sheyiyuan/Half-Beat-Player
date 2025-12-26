@@ -6,7 +6,7 @@ interface UsePlaybackControlsProps {
     currentSong: Song | null;
     currentIndex: number;
     queue: Song[];
-    playMode: 'single' | 'list' | 'loop' | 'random';
+    playMode: 'loop' | 'random' | 'single';
     intervalStart: number;
     intervalEnd: number;
     setIsPlaying: (playing: boolean) => void;
@@ -14,6 +14,8 @@ interface UsePlaybackControlsProps {
     setCurrentSong: (song: Song | null) => void;
     setVolume: (volume: number) => void;
     playSong: (song: Song, list?: Song[]) => Promise<void>;
+    playbackRetryRef: React.MutableRefObject<Map<string, number>>;
+    isHandlingErrorRef?: React.MutableRefObject<Set<string>>;
 }
 
 export const usePlaybackControls = ({
@@ -29,32 +31,56 @@ export const usePlaybackControls = ({
     setCurrentSong,
     setVolume,
     playSong,
+    playbackRetryRef,
+    isHandlingErrorRef,
 }: UsePlaybackControlsProps) => {
     /**
      * 播放下一首
+     * 注意：single 模式不应该调用这个函数，单曲循环在 onEnded 事件中处理
+     * 
+     * 播放模式说明：
+     * - loop: 列表循环，播放到最后一首后回到第一首
+     * - random: 随机播放，随机选择下一首
+     * - single: 单曲循环，不调用此函数
      */
     const playNext = useCallback(() => {
-        if (playMode === "single") {
-            const audio = audioRef.current;
-            if (audio) {
-                audio.currentTime = 0;
-                audio.play().catch(console.error);
-            }
-        } else if (queue.length > 0) {
-            let nextIdx = currentIndex + 1;
-            if (playMode === "random") {
-                nextIdx = Math.floor(Math.random() * queue.length);
-            } else if (nextIdx >= queue.length) {
+        if (queue.length === 0) return;
+
+        console.log('[playNext] 当前播放模式:', playMode);
+
+        let nextIdx: number;
+
+        if (playMode === "random") {
+            // 随机播放：随机选择下一首（可能重复）
+            nextIdx = Math.floor(Math.random() * queue.length);
+            console.log('[playNext] 随机模式，选择索引:', nextIdx);
+        } else if (playMode === "loop") {
+            // 列表循环：播放下一首，到最后一首后回到第一首
+            nextIdx = currentIndex + 1;
+            if (nextIdx >= queue.length) {
                 nextIdx = 0;
             }
-            setCurrentIndex(nextIdx);
-            const nextSong = queue[nextIdx];
-            setCurrentSong(nextSong);
-            // 自动播放下一首
-            setIsPlaying(true);
-            playSong(nextSong, queue);
+            console.log('[playNext] 列表循环，当前索引:', currentIndex, '下一个索引:', nextIdx);
+        } else {
+            // single 模式不应该调用此函数
+            console.warn('[playNext] 单曲循环模式不应该调用 playNext');
+            return;
         }
-    }, [audioRef, currentIndex, playMode, queue, setCurrentIndex, setCurrentSong, setIsPlaying, playSong]);
+
+        setCurrentIndex(nextIdx);
+        const nextSong = queue[nextIdx];
+
+        // 清除新歌曲的重试计数和错误处理标记（用户手动切歌）
+        if (nextSong.id) {
+            playbackRetryRef.current.delete(nextSong.id);
+            isHandlingErrorRef?.current.delete(nextSong.id);
+        }
+
+        setCurrentSong(nextSong);
+        // 自动播放下一首
+        setIsPlaying(true);
+        playSong(nextSong, queue);
+    }, [currentIndex, playMode, queue, setCurrentIndex, setCurrentSong, setIsPlaying, playSong, playbackRetryRef, isHandlingErrorRef]);
 
     /**
      * 播放上一首
@@ -65,12 +91,17 @@ export const usePlaybackControls = ({
             if (prevIdx < 0) prevIdx = queue.length - 1;
             setCurrentIndex(prevIdx);
             const prevSong = queue[prevIdx];
+            // 清除新歌曲的重试计数和错误处理标记（用户手动切歌）
+            if (prevSong.id) {
+                playbackRetryRef.current.delete(prevSong.id);
+                isHandlingErrorRef?.current.delete(prevSong.id);
+            }
             setCurrentSong(prevSong);
             // 自动播放上一首
             setIsPlaying(true);
             playSong(prevSong, queue);
         }
-    }, [currentIndex, queue, setCurrentIndex, setCurrentSong, setIsPlaying, playSong]);
+    }, [currentIndex, queue, setCurrentIndex, setCurrentSong, setIsPlaying, playSong, playbackRetryRef]);
 
     /**
      * 切换播放/暂停
@@ -81,13 +112,31 @@ export const usePlaybackControls = ({
         const target = Math.max(intervalStart, Math.min(audio.currentTime || 0, intervalEnd));
         audio.currentTime = target;
         if (audio.paused) {
-            await audio.play();
-            setIsPlaying(true);
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise
+                    .catch((err) => {
+                        console.error("播放失败:", err);
+                        // 如果是 NotAllowedError，尝试静音播放
+                        if (err.name === 'NotAllowedError' && !audio.muted) {
+                            console.log("尝试静音播放来绕过浏览器限制...");
+                            audio.muted = true;
+                            audio.play()
+                                .then(() => {
+                                    console.log("静音播放成功");
+                                    // 1秒后取消静音
+                                    setTimeout(() => {
+                                        audio.muted = false;
+                                    }, 1000);
+                                })
+                                .catch((e) => console.error("静音播放失败:", e));
+                        }
+                    });
+            }
         } else {
             audio.pause();
-            setIsPlaying(false);
         }
-    }, [audioRef, currentSong, intervalStart, intervalEnd, setIsPlaying]);
+    }, [audioRef, currentSong, intervalStart, intervalEnd]);
 
     /**
      * 改变音量

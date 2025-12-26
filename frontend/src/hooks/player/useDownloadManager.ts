@@ -10,7 +10,6 @@ interface UseDownloadManagerProps {
     managingSong: Song | null;
     setStatus: (status: string) => void;
     setDownloadedSongIds: (ids: Set<string> | ((prev: Set<string>) => Set<string>)) => void;
-    setIsDownloaded: (downloaded: boolean) => void;
     setManagingSong: (song: Song | null) => void;
     setConfirmDeleteDownloaded: (confirm: boolean) => void;
     openModal: (name: string) => void;
@@ -24,7 +23,6 @@ export const useDownloadManager = ({
     managingSong,
     setStatus,
     setDownloadedSongIds,
-    setIsDownloaded,
     setManagingSong,
     setConfirmDeleteDownloaded,
     openModal,
@@ -36,8 +34,35 @@ export const useDownloadManager = ({
             notifications.show({ title: '无法操作', message: '未选择歌曲', color: 'red' });
             return;
         }
+        const isAlreadyDownloaded = downloadedSongIds.has(currentSong.id);
+        if (isAlreadyDownloaded) {
+            // 已下载，打开管理模态框
+            setManagingSong(currentSong);
+            setConfirmDeleteDownloaded(false);
+            openModal("downloadModal");
+        } else {
+            // 未下载，执行下载
+            await handleDownloadSong(currentSong);
+        }
+    }, [currentSong, downloadedSongIds]);
+
+    const handleDownloadCurrentSong = useCallback(async () => {
+        if (!currentSong) {
+            notifications.show({ title: '无法操作', message: '未选择歌曲', color: 'red' });
+            return;
+        }
         await handleDownloadSong(currentSong);
     }, [currentSong]);
+
+    const handleManageDownload = useCallback(() => {
+        if (!currentSong) {
+            notifications.show({ title: '无法操作', message: '未选择歌曲', color: 'red' });
+            return;
+        }
+        setManagingSong(currentSong);
+        setConfirmDeleteDownloaded(false);
+        openModal("downloadModal");
+    }, [currentSong, setManagingSong, setConfirmDeleteDownloaded, openModal]);
 
     const handleDownloadSong = useCallback(async (song: Song) => {
         if (!song) {
@@ -57,15 +82,12 @@ export const useDownloadManager = ({
             notifications.show({ title: '下载完成', message: `已保存到: ${savedPath}`, color: 'green' });
             setStatus('下载完成');
             setDownloadedSongIds(prev => new Set([...prev, song.id]));
-            if (currentSong?.id === song.id) {
-                setIsDownloaded(true);
-            }
         } catch (e: any) {
             const msg = e?.message ?? String(e);
             notifications.show({ title: '下载失败', message: msg, color: 'red' });
             setStatus(`下载失败: ${msg}`);
         }
-    }, [currentSong, downloadedSongIds, setStatus, setDownloadedSongIds, setIsDownloaded, setManagingSong, setConfirmDeleteDownloaded, openModal]);
+    }, [downloadedSongIds, setStatus, setDownloadedSongIds, setManagingSong, setConfirmDeleteDownloaded, openModal]);
 
     const handleDownloadAllFavorite = useCallback(async (fav: Favorite) => {
         if (!fav || fav.songIds.length === 0) {
@@ -117,20 +139,19 @@ export const useDownloadManager = ({
                 next.delete(managingSong.id);
                 return next;
             });
-            if (currentSong?.id === managingSong.id) {
-                setIsDownloaded(false);
-            }
             closeModal("downloadModal");
             setConfirmDeleteDownloaded(false);
             setManagingSong(null);
-            notifications.show({ title: '已删除下载文件', color: 'green' });
+            notifications.show({ title: '已删除下载文件', message: '成功', color: 'green' });
         } catch (e: any) {
             notifications.show({ title: '删除失败', message: e?.message ?? String(e), color: 'red' });
         }
-    }, [managingSong, currentSong, setDownloadedSongIds, setIsDownloaded, closeModal, setConfirmDeleteDownloaded, setManagingSong]);
+    }, [managingSong, setDownloadedSongIds, closeModal, setConfirmDeleteDownloaded, setManagingSong]);
 
     return {
         handleDownload,
+        handleDownloadCurrentSong,
+        handleManageDownload,
         handleDownloadSong,
         handleDownloadAllFavorite,
         handleOpenDownloadedFile,

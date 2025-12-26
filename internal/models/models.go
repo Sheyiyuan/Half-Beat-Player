@@ -2,7 +2,19 @@ package models
 
 import "time"
 
-// Song mirrors the browser extension Song model.
+// StreamSource represents the actual playable audio stream.
+// Multiple songs can share the same stream source.
+type StreamSource struct {
+	ID        string    `gorm:"primaryKey" json:"id"`
+	BVID      string    `json:"bvid"`
+	StreamURL string    `json:"streamUrl"`
+	ExpiresAt time.Time `json:"expiresAt"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// Song represents a song instance with independent metadata.
+// Each song instance is unique, even if they share the same stream source.
 type Song struct {
 	ID                 string    `gorm:"primaryKey" json:"id"`
 	BVID               string    `json:"bvid"`
@@ -10,8 +22,9 @@ type Song struct {
 	Singer             string    `json:"singer"`
 	SingerID           string    `json:"singerId"`
 	Cover              string    `json:"cover"`
-	StreamURL          string    `json:"streamUrl"`
-	StreamURLExpiresAt time.Time `json:"streamUrlExpiresAt"`
+	SourceID           string    `json:"sourceId"`           // Foreign key to StreamSource
+	StreamURL          string    `json:"streamUrl"`          // Cache of the stream URL (for backward compatibility)
+	StreamURLExpiresAt time.Time `json:"streamUrlExpiresAt"` // Expiration of cached URL
 	Lyric              string    `json:"lyric"`
 	LyricOffset        int       `json:"lyricOffset"`
 	SkipStartTime      float64   `json:"skipStartTime"`

@@ -62,6 +62,9 @@ const SongDetailCard: React.FC<SongDetailCardProps> = ({
                         <Stack gap={4}>
                             <Text fw={700} size="lg" lineClamp={2}>{song.name}</Text>
                             <Text c="dimmed" size="sm" lineClamp={1}>{song.singer}</Text>
+                            {song.bvid && (
+                                <Text size="xs" c="dimmed" lineClamp={1}>BV: {song.bvid}</Text>
+                            )}
                         </Stack>
 
                         <Stack gap="xs">
@@ -99,16 +102,7 @@ const SongDetailCard: React.FC<SongDetailCardProps> = ({
                             </Group>
                         </Stack>
 
-                        <Group gap="sm" align="flex-end" wrap="wrap">
-                            <TextInput
-                                label="播放源"
-                                placeholder="https://..."
-                                value={song.streamUrl ?? ""}
-                                onChange={(e) => onStreamUrlChange(e.currentTarget.value)}
-                                size="sm"
-                                w="100%"
-                            />
-                        </Group>
+
                     </Stack>
                 </ScrollArea>
             ) : (

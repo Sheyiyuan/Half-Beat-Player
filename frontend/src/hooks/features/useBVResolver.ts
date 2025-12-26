@@ -1,11 +1,12 @@
 /**
  * BV 号解析 Hook
- * 管理 Bilibili 视频解析和预览
+ * 管理 Bilibili 视频解析和预览，支持搜索本地和远程结果
  */
 
 import { useState, useCallback } from 'react';
 import * as Services from '../../../wailsjs/go/services/Service';
 import { notifications } from '@mantine/notifications';
+import { Song } from '../../types';
 
 export interface BVPreview {
     bvid: string;
@@ -14,11 +15,13 @@ export interface BVPreview {
     url: string;
     expiresAt: string;
     duration: number;
+    isLocal: boolean; // 标记是否来自本地数据库
 }
 
 export interface UseBVResolverReturn {
     bvPreview: BVPreview | null;
     bvModalOpen: boolean;
+    bvSearchResults: Song[]; // 本地搜索结果
     bvSongName: string;
     bvSinger: string;
     bvTargetFavId: string | null;
@@ -30,6 +33,7 @@ export interface UseBVResolverReturn {
 
     setBvPreview: React.Dispatch<React.SetStateAction<BVPreview | null>>;
     setBvModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+    setBvSearchResults: React.Dispatch<React.SetStateAction<Song[]>>;
     setBvSongName: React.Dispatch<React.SetStateAction<string>>;
     setBvSinger: React.Dispatch<React.SetStateAction<string>>;
     setBvTargetFavId: React.Dispatch<React.SetStateAction<string | null>>;
@@ -46,6 +50,7 @@ export interface UseBVResolverReturn {
 export const useBVResolver = () => {
     const [bvPreview, setBvPreview] = useState<BVPreview | null>(null);
     const [bvModalOpen, setBvModalOpen] = useState(false);
+    const [bvSearchResults, setBvSearchResults] = useState<Song[]>([]);
     const [bvSongName, setBvSongName] = useState('');
     const [bvSinger, setBvSinger] = useState('');
     const [bvTargetFavId, setBvTargetFavId] = useState<string | null>(null);
@@ -55,7 +60,7 @@ export const useBVResolver = () => {
     const [isSlicePreviewing, setIsSlicePreviewing] = useState(false);
     const [slicePreviewPosition, setSlicePreviewPosition] = useState(0);
 
-    // 解析 BV 号
+    // 解析 BV 号，同时搜索本地和远程
     const resolveBV = useCallback(async (input: string) => {
         if (!input.trim()) {
             notifications.show({
@@ -68,14 +73,35 @@ export const useBVResolver = () => {
 
         setResolvingBV(true);
         try {
-            const result = await Services.ResolveBiliAudio(input);
+            // 提取 BV 号
+            const bvPattern = /BV[0-9A-Za-z]{10}/;
+            const bvMatch = input.match(bvPattern);
+            if (!bvMatch) {
+                notifications.show({
+                    title: '格式错误',
+                    message: '请输入有效的 BV 号',
+                    color: 'orange',
+                });
+                setResolvingBV(false);
+                return;
+            }
+
+            const bvid = bvMatch[0];
+
+            // 1. 搜索本地和远程
+            const searchResults = await Services.SearchBVID(bvid);
+            setBvSearchResults(searchResults);
+
+            // 2. 获取音频信息以更新预览
+            const result = await Services.ResolveBiliAudio(bvid);
             setBvPreview({
-                bvid: input,
+                bvid,
                 title: result.title,
                 cover: result.cover,
                 url: result.url,
                 expiresAt: result.expiresAt,
                 duration: result.duration || 0,
+                isLocal: false, // 总是从B站获取最新音频
             });
             setBvSongName(result.title);
             setBvModalOpen(true);
@@ -95,6 +121,7 @@ export const useBVResolver = () => {
     const resetBVState = useCallback(() => {
         setBvPreview(null);
         setBvModalOpen(false);
+        setBvSearchResults([]);
         setBvSongName('');
         setBvSinger('');
         setBvTargetFavId(null);
@@ -107,6 +134,7 @@ export const useBVResolver = () => {
     return {
         bvPreview,
         bvModalOpen,
+        bvSearchResults,
         bvSongName,
         bvSinger,
         bvTargetFavId,
@@ -118,6 +146,7 @@ export const useBVResolver = () => {
 
         setBvPreview,
         setBvModalOpen,
+        setBvSearchResults,
         setBvSongName,
         setBvSinger,
         setBvTargetFavId,

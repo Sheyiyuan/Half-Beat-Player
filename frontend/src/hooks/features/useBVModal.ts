@@ -92,15 +92,22 @@ export const useBVModal = ({
         const end = sliceEnd > 0 ? Math.max(start, sliceEnd) : songDuration;
 
         try {
+            // 1. 创建流源
+            const sourceId = await Services.CreateStreamSource(
+                bvPreview.bvid,
+                bvPreview.url,
+                bvPreview.expiresAt
+            );
+
+            // 2. 创建新的独立歌曲实例（不使用 BVID 作为 ID）
             const newSong = new SongClass({
-                id: '',
+                id: '', // 每个实例都有独立的 ID
                 bvid: bvPreview.bvid,
                 name: bvSongName || bvPreview.title,
                 singer: bvSinger,
                 singerId: '',
                 cover: bvPreview.cover || '',
-                streamUrl: bvPreview.url,
-                streamUrlExpiresAt: bvPreview.expiresAt,
+                sourceId: sourceId,
                 lyric: '',
                 lyricOffset: 0,
                 skipStartTime: start,
@@ -113,7 +120,8 @@ export const useBVModal = ({
             const refreshed = await Services.ListSongs();
             setSongs(refreshed);
 
-            const added = refreshed.find((s) => s.bvid === bvPreview.bvid && s.streamUrl === bvPreview.url) || refreshed[refreshed.length - 1];
+            // 找到刚添加的歌曲（按 sourceId 和 skipStartTime 匹配）
+            const added = refreshed.find((s) => s.sourceId === sourceId && s.skipStartTime === start) || refreshed[refreshed.length - 1];
 
             if (added && targetFavId) {
                 const fav = favorites.find((f) => f.id === targetFavId);

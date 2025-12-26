@@ -7,6 +7,7 @@ interface UseAudioSourceManagerProps {
     queue: Song[];
     playingRef: React.MutableRefObject<string | null>;
     playbackRetryRef: React.MutableRefObject<Map<string, number>>;
+    isPlaying: boolean;
     setIsPlaying: (playing: boolean) => void;
     setStatus: (status: string) => void;
     playSong: (song: Song, list?: Song[]) => Promise<void>;
@@ -15,6 +16,7 @@ interface UseAudioSourceManagerProps {
 /**
  * 音频源管理 Hook
  * 监听 currentSong 变化，设置音频源和处理 URL 验证
+ * 注意：只在歌曲切换时设置音频源，播放/暂停状态变化不会触发
  */
 export const useAudioSourceManager = ({
     audioRef,
@@ -22,10 +24,12 @@ export const useAudioSourceManager = ({
     queue,
     playingRef,
     playbackRetryRef,
+    isPlaying,
     setIsPlaying,
     setStatus,
     playSong,
 }: UseAudioSourceManagerProps) => {
+    // Effect 1: 处理歌曲源设置（仅依赖 currentSong，不依赖 isPlaying）
     useEffect(() => {
         const audio = audioRef.current;
         if (!audio || !currentSong) {
@@ -72,9 +76,33 @@ export const useAudioSourceManager = ({
             audio.src = "";
         }
 
+        // 只在切换歌曲时设置音频源
         playingRef.current = currentSong.id;
         audio.src = currentSong.streamUrl;
+        // 设置媒体属性以支持跨域和流式播放
+        audio.crossOrigin = "anonymous";
+        audio.preload = "metadata";
         audio.load();
         console.log("已设置音频源:", currentSong.streamUrl);
     }, [audioRef, currentSong, queue, playingRef, playbackRetryRef, setIsPlaying, setStatus, playSong]);
+
+    // Effect 2: 处理播放/暂停控制（仅依赖 isPlaying 状态变化）
+    useEffect(() => {
+        const audio = audioRef.current;
+        if (!audio || !currentSong?.streamUrl) return;
+
+        // 根据 isPlaying 状态控制播放/暂停
+        if (isPlaying && audio.paused) {
+            // 只有在音频已经准备好的情况下才播放
+            // 对于新加载的音频，会在 canplaythrough 事件中自动播放
+            if (audio.readyState >= 3) { // HAVE_FUTURE_DATA
+                audio.play().catch((err) => {
+                    console.error("播放失败:", err);
+                    setIsPlaying(false);
+                });
+            }
+        } else if (!isPlaying && !audio.paused) {
+            audio.pause();
+        }
+    }, [audioRef, currentSong?.streamUrl, isPlaying, setIsPlaying]);
 };

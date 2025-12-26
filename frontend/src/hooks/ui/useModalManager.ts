@@ -10,6 +10,8 @@ interface ModalStates {
     bvModal: boolean;
     editFavModal: boolean;
     globalSearchModal: boolean;
+    downloadModal: boolean;
+    createFavModal: boolean;
 }
 
 export const useModalManager = () => {
@@ -23,6 +25,8 @@ export const useModalManager = () => {
         bvModal: false,
         editFavModal: false,
         globalSearchModal: false,
+        downloadModal: false,
+        createFavModal: false,
     });
 
     const openModal = useCallback((modalName: keyof ModalStates) => {

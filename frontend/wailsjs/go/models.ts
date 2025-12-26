@@ -23,8 +23,7 @@ export namespace models {
 	
 	export class BiliAudio {
 	    url: string;
-	    // Go type: time
-	    expiresAt: any;
+	    expiresAt: time.Time;
 	    fromCache: boolean;
 	    title: string;
 	    format: string;
@@ -39,7 +38,7 @@ export namespace models {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.url = source["url"];
-	        this.expiresAt = this.convertValues(source["expiresAt"], null);
+	        this.expiresAt = this.convertValues(source["expiresAt"], time.Time);
 	        this.fromCache = source["fromCache"];
 	        this.title = source["title"];
 	        this.format = source["format"];
@@ -120,10 +119,8 @@ export namespace models {
 	    id: string;
 	    title: string;
 	    songIds: SongRef[];
-	    // Go type: time
-	    createdAt: any;
-	    // Go type: time
-	    updatedAt: any;
+	    createdAt: time.Time;
+	    updatedAt: time.Time;
 	
 	    static createFrom(source: any = {}) {
 	        return new Favorite(source);
@@ -134,8 +131,8 @@ export namespace models {
 	        this.id = source["id"];
 	        this.title = source["title"];
 	        this.songIds = this.convertValues(source["songIds"], SongRef);
-	        this.createdAt = this.convertValues(source["createdAt"], null);
-	        this.updatedAt = this.convertValues(source["updatedAt"], null);
+	        this.createdAt = this.convertValues(source["createdAt"], time.Time);
+	        this.updatedAt = this.convertValues(source["updatedAt"], time.Time);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -160,8 +157,7 @@ export namespace models {
 	    id: string;
 	    lyric: string;
 	    offsetMs: number;
-	    // Go type: time
-	    updatedAt: any;
+	    updatedAt: time.Time;
 	
 	    static createFrom(source: any = {}) {
 	        return new LyricMapping(source);
@@ -172,7 +168,7 @@ export namespace models {
 	        this.id = source["id"];
 	        this.lyric = source["lyric"];
 	        this.offsetMs = source["offsetMs"];
-	        this.updatedAt = this.convertValues(source["updatedAt"], null);
+	        this.updatedAt = this.convertValues(source["updatedAt"], time.Time);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -199,8 +195,7 @@ export namespace models {
 	    defaultVolume: number;
 	    themes: string;
 	    currentThemeId: string;
-	    // Go type: time
-	    updatedAt: any;
+	    updatedAt: time.Time;
 	
 	    static createFrom(source: any = {}) {
 	        return new PlayerSetting(source);
@@ -213,7 +208,7 @@ export namespace models {
 	        this.defaultVolume = source["defaultVolume"];
 	        this.themes = source["themes"];
 	        this.currentThemeId = source["currentThemeId"];
-	        this.updatedAt = this.convertValues(source["updatedAt"], null);
+	        this.updatedAt = this.convertValues(source["updatedAt"], time.Time);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -238,8 +233,7 @@ export namespace models {
 	    id: number;
 	    queue: string;
 	    currentIndex: number;
-	    // Go type: time
-	    updatedAt: any;
+	    updatedAt: time.Time;
 	
 	    static createFrom(source: any = {}) {
 	        return new Playlist(source);
@@ -250,7 +244,7 @@ export namespace models {
 	        this.id = source["id"];
 	        this.queue = source["queue"];
 	        this.currentIndex = source["currentIndex"];
-	        this.updatedAt = this.convertValues(source["updatedAt"], null);
+	        this.updatedAt = this.convertValues(source["updatedAt"], time.Time);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -278,17 +272,15 @@ export namespace models {
 	    singer: string;
 	    singerId: string;
 	    cover: string;
+	    sourceId: string;
 	    streamUrl: string;
-	    // Go type: time
-	    streamUrlExpiresAt: any;
+	    streamUrlExpiresAt: time.Time;
 	    lyric: string;
 	    lyricOffset: number;
 	    skipStartTime: number;
 	    skipEndTime: number;
-	    // Go type: time
-	    createdAt: any;
-	    // Go type: time
-	    updatedAt: any;
+	    createdAt: time.Time;
+	    updatedAt: time.Time;
 	
 	    static createFrom(source: any = {}) {
 	        return new Song(source);
@@ -302,14 +294,15 @@ export namespace models {
 	        this.singer = source["singer"];
 	        this.singerId = source["singerId"];
 	        this.cover = source["cover"];
+	        this.sourceId = source["sourceId"];
 	        this.streamUrl = source["streamUrl"];
-	        this.streamUrlExpiresAt = this.convertValues(source["streamUrlExpiresAt"], null);
+	        this.streamUrlExpiresAt = this.convertValues(source["streamUrlExpiresAt"], time.Time);
 	        this.lyric = source["lyric"];
 	        this.lyricOffset = source["lyricOffset"];
 	        this.skipStartTime = source["skipStartTime"];
 	        this.skipEndTime = source["skipEndTime"];
-	        this.createdAt = this.convertValues(source["createdAt"], null);
-	        this.updatedAt = this.convertValues(source["updatedAt"], null);
+	        this.createdAt = this.convertValues(source["createdAt"], time.Time);
+	        this.updatedAt = this.convertValues(source["updatedAt"], time.Time);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -437,8 +430,7 @@ export namespace services {
 	export class PlayInfo {
 	    RawURL: string;
 	    ProxyURL: string;
-	    // Go type: time
-	    ExpiresAt: any;
+	    ExpiresAt: time.Time;
 	    Title: string;
 	    Duration: number;
 	
@@ -450,7 +442,7 @@ export namespace services {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.RawURL = source["RawURL"];
 	        this.ProxyURL = source["ProxyURL"];
-	        this.ExpiresAt = this.convertValues(source["ExpiresAt"], null);
+	        this.ExpiresAt = this.convertValues(source["ExpiresAt"], time.Time);
 	        this.Title = source["Title"];
 	        this.Duration = source["Duration"];
 	    }
@@ -476,8 +468,7 @@ export namespace services {
 	export class QRCodeResponse {
 	    url: string;
 	    qrcode_key: string;
-	    // Go type: time
-	    expire_at: any;
+	    expire_at: time.Time;
 	
 	    static createFrom(source: any = {}) {
 	        return new QRCodeResponse(source);
@@ -487,7 +478,7 @@ export namespace services {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.url = source["url"];
 	        this.qrcode_key = source["qrcode_key"];
-	        this.expire_at = this.convertValues(source["expire_at"], null);
+	        this.expire_at = this.convertValues(source["expire_at"], time.Time);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -526,6 +517,23 @@ export namespace services {
 	        this.face = source["face"];
 	        this.level = source["level"];
 	        this.vip_type = source["vip_type"];
+	    }
+	}
+
+}
+
+export namespace time {
+	
+	export class Time {
+	
+	
+	    static createFrom(source: any = {}) {
+	        return new Time(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	
 	    }
 	}
 

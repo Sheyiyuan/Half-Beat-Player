@@ -1,13 +1,14 @@
 /**
  * 播放列表管理 Hook
- * 管理播放队列、当前歌曲索引、播放模式
+ * 只管理播放队列、当前歌曲索引、播放模式的状态
+ * 播放控制逻辑由 usePlaybackControls 处理
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import type { Song } from '../../types';
 import * as Services from '../../../wailsjs/go/services/Service';
 
-export type PlayMode = 'order' | 'random' | 'single';
+export type PlayMode = 'loop' | 'random' | 'single';
 
 export interface UsePlaylistReturn {
     queue: Song[];
@@ -18,59 +19,13 @@ export interface UsePlaylistReturn {
     setCurrentIndex: (index: number) => void;
     setCurrentSong: (song: Song | null) => void;
     setPlayMode: (mode: PlayMode) => void;
-    playNext: () => void;
-    playPrevious: () => void;
-    playSongAt: (index: number) => void;
 }
 
 export const usePlaylist = () => {
     const [queue, setQueue] = useState<Song[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [currentSong, setCurrentSong] = useState<Song | null>(null);
-    const [playMode, setPlayMode] = useState<PlayMode>('order');
-
-    // 播放下一首
-    const playNext = useCallback(() => {
-        if (queue.length === 0) return;
-
-        if (playMode === 'single') {
-            // 单曲循环：不切歌
-            return;
-        }
-
-        if (playMode === 'random') {
-            // 随机播放
-            const nextIndex = Math.floor(Math.random() * queue.length);
-            setCurrentIndex(nextIndex);
-            setCurrentSong(queue[nextIndex]);
-        } else {
-            // 顺序播放
-            if (currentIndex < queue.length - 1) {
-                const nextIndex = currentIndex + 1;
-                setCurrentIndex(nextIndex);
-                setCurrentSong(queue[nextIndex]);
-            }
-        }
-    }, [queue, currentIndex, playMode]);
-
-    // 播放上一首
-    const playPrevious = useCallback(() => {
-        if (queue.length === 0) return;
-
-        if (currentIndex > 0) {
-            const prevIndex = currentIndex - 1;
-            setCurrentIndex(prevIndex);
-            setCurrentSong(queue[prevIndex]);
-        }
-    }, [queue, currentIndex]);
-
-    // 播放指定位置的歌曲
-    const playSongAt = useCallback((index: number) => {
-        if (index >= 0 && index < queue.length) {
-            setCurrentIndex(index);
-            setCurrentSong(queue[index]);
-        }
-    }, [queue]);
+    const [playMode, setPlayMode] = useState<PlayMode>('loop');
 
     // 自动保存播放列表到后端（防抖）
     useEffect(() => {
@@ -100,8 +55,5 @@ export const usePlaylist = () => {
         setCurrentIndex,
         setCurrentSong,
         setPlayMode,
-        playNext,
-        playPrevious,
-        playSongAt,
     };
 };
