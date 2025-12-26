@@ -202,7 +202,8 @@ func (s *Service) DeleteSong(id string) error {
 
 // DeleteUnreferencedSongs deletes all songs that are not referenced by any favorite.
 func (s *Service) DeleteUnreferencedSongs() (int64, error) {
-	return 0, s.db.Transaction(func(tx *gorm.DB) error {
+	var deletedCount int64
+	err := s.db.Transaction(func(tx *gorm.DB) error {
 		// 获取所有被引用的歌曲 ID
 		var referencedIDs []string
 		if err := tx.Model(&models.SongRef{}).
@@ -212,17 +213,21 @@ func (s *Service) DeleteUnreferencedSongs() (int64, error) {
 		}
 
 		// 删除所有未被引用的歌曲
+		var result *gorm.DB
 		if len(referencedIDs) == 0 {
 			// 如果没有引用，删除所有歌曲
-			if err := tx.Delete(&models.Song{}).Error; err != nil {
-				return err
+			result = tx.Delete(&models.Song{})
+			if result.Error != nil {
+				return result.Error
 			}
 		} else {
 			// 删除不在引用列表中的歌曲
-			if err := tx.Where("id NOT IN ?", referencedIDs).Delete(&models.Song{}).Error; err != nil {
-				return err
+			result = tx.Where("id NOT IN ?", referencedIDs).Delete(&models.Song{})
+			if result.Error != nil {
+				return result.Error
 			}
 		}
+		deletedCount = result.RowsAffected
 
 		// 清理未被引用的流源
 		if err := tx.Where("id NOT IN (SELECT DISTINCT source_id FROM songs WHERE source_id IS NOT NULL AND source_id != '')").
@@ -232,6 +237,7 @@ func (s *Service) DeleteUnreferencedSongs() (int64, error) {
 
 		return nil
 	})
+	return deletedCount, err
 }
 
 // ListFavorites returns favorites with song ids only (frontend can hydrate).

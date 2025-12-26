@@ -83,7 +83,8 @@ export const useSongs = () => {
         try {
             await Services.DeleteSong(songId);
             // 删除后清理所有未被任何歌单引用的歌曲
-            await Services.DeleteUnreferencedSongs();
+            const deletedCount = await Services.DeleteUnreferencedSongs();
+            console.log('[deleteSong] 清理了', deletedCount, '首未被引用的歌曲');
             setSongs(prev => prev.filter(s => s.id !== songId));
         } catch (error) {
             console.error('删除歌曲失败:', error);
