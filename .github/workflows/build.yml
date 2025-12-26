@@ -20,6 +20,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Use prebuilt icon assets
+        shell: bash
+        run: |
+          # 需要提前在仓库提交 assets/icons/appicon.png（512x512）
+          test -f assets/icons/appicon.png || (echo "missing assets/icons/appicon.png" && exit 1)
+          mkdir -p build
+          cp assets/icons/appicon.png build/appicon.png
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
@@ -51,7 +59,7 @@ jobs:
       - name: Build Windows
         run: |
           $env:PATH = "$env:USERPROFILE\go\bin;$env:PATH"
-          wails build -platform windows/amd64 -clean
+          wails build -platform windows/amd64 -clean -icon build/appicon.png
 
       - name: Create installer (NSIS)
         run: |
@@ -75,6 +83,13 @@ jobs:
             label: darwin-arm64
     steps:
       - uses: actions/checkout@v4
+
+      - name: Use prebuilt icon assets
+        run: |
+          # 需要提前在仓库提交 assets/icons/appicon.png（512x512）
+          test -f assets/icons/appicon.png || (echo "missing assets/icons/appicon.png" && exit 1)
+          mkdir -p build
+          cp assets/icons/appicon.png build/appicon.png
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -107,7 +122,7 @@ jobs:
       - name: Build macOS
         run: |
           export PATH="$HOME/go/bin:$PATH"
-          wails build -platform ${{ matrix.arch }} -clean
+          wails build -platform ${{ matrix.arch }} -clean -icon build/appicon.png
 
       - name: Create DMG
         run: |
@@ -152,6 +167,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Use prebuilt icon assets
+        run: |
+          # 需要提前在仓库提交 assets/icons/appicon.png（512x512）和 appicon-256.png（256x256）
+          test -f assets/icons/appicon.png || (echo "missing assets/icons/appicon.png" && exit 1)
+          test -f assets/icons/appicon-256.png || (echo "missing assets/icons/appicon-256.png" && exit 1)
+          mkdir -p build
+          cp assets/icons/appicon.png build/appicon.png
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
@@ -191,7 +214,7 @@ jobs:
         run: |
           export PATH="$HOME/go/bin:$PATH"
           # 显式指定输出名，后续打包步骤使用该文件
-          wails build -platform ${{ matrix.arch }} -clean -o tomorin-player
+          wails build -platform ${{ matrix.arch }} -clean -o tomorin-player -icon build/appicon.png
           ls -l build/bin
 
       - name: Install packaging tools
@@ -209,6 +232,7 @@ jobs:
           mkdir -p package/usr/local/bin
           mkdir -p package/usr/share/applications
           mkdir -p package/usr/share/icons/hicolor/256x256/apps
+          cp assets/icons/appicon-256.png package/usr/share/icons/hicolor/256x256/apps/tomorin-player.png
           
           # 复制二进制文件
           cp build/bin/tomorin-player package/usr/local/bin/
@@ -267,7 +291,6 @@ jobs:
             build/bin/tomorin-player
             build/bin/*.deb
             build/bin/*.rpm
-
   release:
     needs: [build-windows, build-macos, build-linux]
     runs-on: ubuntu-latest
