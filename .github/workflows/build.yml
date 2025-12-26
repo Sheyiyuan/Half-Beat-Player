@@ -6,13 +6,8 @@ permissions:
 
 on:
   push:
-    branches:
-      - main
     tags:
       - 'v*'
-  pull_request:
-    branches:
-      - main
 
 jobs:
   build-windows:
@@ -193,9 +188,14 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev
-          # Ubuntu 22.04 提供 webkit2gtk-4.0-dev，若源中仅有 4.1 再回退安装
-          sudo apt-get install -y libwebkit2gtk-4.0-dev || sudo apt-get install -y libwebkit2gtk-4.1-dev
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            build-essential \
+            pkg-config \
+            libayatana-appindicator3-dev \
+            imagemagick
+          # 优先安装 webkit2gtk-4.1（Debian 13/Ubuntu 24.04+），回退到 4.0（Ubuntu 22.04）
+          sudo apt-get install -y libwebkit2gtk-4.1-dev || sudo apt-get install -y libwebkit2gtk-4.0-dev
 
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
@@ -232,21 +232,43 @@ jobs:
           mkdir -p package/usr/local/bin
           mkdir -p package/usr/share/applications
           mkdir -p package/usr/share/icons/hicolor/256x256/apps
+          mkdir -p package/usr/share/icons/hicolor/128x128/apps
+          mkdir -p package/usr/share/icons/hicolor/48x48/apps
+          mkdir -p package/usr/share/pixmaps
+          
+          # 安装图标到多个尺寸目录
           cp assets/icons/appicon-256.png package/usr/share/icons/hicolor/256x256/apps/tomorin-player.png
+          convert assets/icons/appicon-256.png -resize 128x128 package/usr/share/icons/hicolor/128x128/apps/tomorin-player.png
+          convert assets/icons/appicon-256.png -resize 48x48 package/usr/share/icons/hicolor/48x48/apps/tomorin-player.png
+          # pixmaps 作为备用（一些旧系统会在这里查找）
+          cp assets/icons/appicon-256.png package/usr/share/pixmaps/tomorin-player.png
           
           # 复制二进制文件
           cp build/bin/tomorin-player package/usr/local/bin/
           chmod +x package/usr/local/bin/tomorin-player
           
           # 创建 .desktop 文件
-          cat > package/usr/share/applications/tomorin-player.desktop <<EOF
+          cat > package/usr/share/applications/tomorin-player.desktop <<'EOF'
           [Desktop Entry]
+          Version=1.0
+          Type=Application
           Name=Tomorin Player
+          Comment=B站音乐播放器
           Exec=/usr/local/bin/tomorin-player
           Icon=tomorin-player
-          Type=Application
           Categories=AudioVideo;Audio;Player;
+          Terminal=false
+          StartupNotify=true
           EOF
+          
+          # 创建安装后脚本
+          cat > postinstall.sh <<'EOF'
+          #!/bin/sh
+          if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+              gtk-update-icon-cache -f -t /usr/share/icons/hicolor 2>/dev/null || true
+          fi
+          EOF
+          chmod +x postinstall.sh
           
           # 使用 fpm 创建 DEB 包
           fpm -s dir -t deb \
@@ -257,7 +279,8 @@ jobs:
             --url "https://github.com/yourusername/tomorin" \
             --license "MIT" \
             --depends libgtk-3-0 \
-            --depends libwebkit2gtk-4.0-37 \
+            --depends "libwebkit2gtk-4.1-0 | libwebkit2gtk-4.0-37" \
+            --after-install postinstall.sh \
             -C package \
             usr
           
@@ -277,7 +300,7 @@ jobs:
             --url "https://github.com/yourusername/tomorin" \
             --license "MIT" \
             --depends gtk3 \
-            --depends webkit2gtk3 \
+            --depends webkit2gtk4.1 \
             -C package \
             usr
           
