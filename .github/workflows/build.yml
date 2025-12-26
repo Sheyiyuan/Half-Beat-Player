@@ -232,6 +232,8 @@ jobs:
             --description "B站音乐播放器" \
             --url "https://github.com/yourusername/tomorin" \
             --license "MIT" \
+            --depends libgtk-3-0 \
+            --depends libwebkit2gtk-4.0-37 \
             -C package \
             usr
           
@@ -250,6 +252,8 @@ jobs:
             --description "B站音乐播放器" \
             --url "https://github.com/yourusername/tomorin" \
             --license "MIT" \
+            --depends gtk3 \
+            --depends webkit2gtk3 \
             -C package \
             usr
           
