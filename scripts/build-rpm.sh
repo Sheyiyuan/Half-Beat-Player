@@ -61,12 +61,27 @@ Terminal=false
 StartupNotify=true
 EOF
 
+# Derive RPM-friendly version/release
+RPM_VERSION="$APP_VERSION"
+# Base version must start with digit and use dots; take prefix before ~ or + if present
+RPM_BASE="${RPM_VERSION%%[~+]*}"
+if [[ ! $RPM_BASE =~ ^[0-9] ]]; then RPM_BASE="0.0.0"; fi
+RPM_BASE=$(echo "$RPM_BASE" | sed 's/[^0-9.]/./g')
+if [[ -z "$RPM_BASE" ]]; then RPM_BASE="0.0.0"; fi
+# Iteration from remainder after ~ or + (if any)
+RPM_ITER=${RPM_VERSION#${RPM_BASE}}
+RPM_ITER=${RPM_ITER##[~+.\-]}
+RPM_ITER=${RPM_ITER//-/.}
+RPM_ITER=$(echo "$RPM_ITER" | sed 's/[^A-Za-z0-9.]/./g')
+if [[ -z "$RPM_ITER" ]]; then RPM_ITER="1"; fi
+
 # Build RPM via fpm
 mkdir -p build/rpm
 pushd "$ROOT" >/dev/null
 fpm -s dir -t rpm \
   -n "$APP_NAME" \
-  -v "$APP_VERSION" \
+  -v "$RPM_BASE" \
+  --iteration "$RPM_ITER" \
   -a amd64 \
   --description "基于 B站 API 的音乐播放器" \
   --url "https://github.com/Sheyiyuan/Tomorin-Player" \
@@ -78,4 +93,4 @@ fpm -s dir -t rpm \
 popd >/dev/null
 
 mv "$ROOT"/*.rpm build/rpm/
-echo "RPM built: build/rpm/${APP_NAME}-${APP_VERSION}-1.amd64.rpm"
+echo "RPM built: build/rpm/${APP_NAME}-${RPM_BASE}-${RPM_ITER}.x86_64.rpm"
