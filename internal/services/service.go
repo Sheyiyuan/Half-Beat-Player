@@ -285,12 +285,18 @@ func (s *Service) DeleteFavorite(id string) error {
 func (s *Service) SavePlayerSetting(setting models.PlayerSetting) error {
 	setting.ID = 1
 	setting.UpdatedAt = time.Now()
-	fmt.Printf("SavePlayerSetting: Saving themes: %s\n", setting.Themes)
-	err := s.db.Save(&setting).Error
+	// Persist player settings
+	
+	// 使用 UpdateColumns 明确更新所有字段（包括零值）
+	err := s.db.Model(&models.PlayerSetting{}).Where("id = ?", 1).UpdateColumns(map[string]interface{}{
+		"default_volume": setting.DefaultVolume,
+		"play_mode":      setting.PlayMode,
+		"themes":         setting.Themes,
+		"updated_at":     time.Now(),
+	}).Error
+	
 	if err != nil {
-		fmt.Printf("SavePlayerSetting: Error: %v\n", err)
-	} else {
-		fmt.Printf("SavePlayerSetting: Success\n")
+		fmt.Printf("SavePlayerSetting error: %v\n", err)
 	}
 	return err
 }
@@ -311,10 +317,12 @@ func (s *Service) GetPlayerSetting() (models.PlayerSetting, error) {
 			if err := s.db.Create(&setting).Error; err != nil {
 				return setting, err
 			}
+			fmt.Printf("GetPlayerSetting: Created default - Volume: %.2f\n", setting.DefaultVolume)
 			return setting, nil
 		}
 		return setting, err
 	}
+	fmt.Printf("GetPlayerSetting: Loaded - Volume: %.2f, PlayMode: %s\n", setting.DefaultVolume, setting.PlayMode)
 	return setting, nil
 }
 

@@ -33,6 +33,7 @@ interface UseAppLifecycleParams {
     setCurrentSong: (song: Song | null) => void;
     setSelectedFavId: (id: string | null) => void;
     setting: any;
+    skipPersistRef: MutableRefObject<boolean>;
 }
 
 export const useAppLifecycle = ({
@@ -63,9 +64,13 @@ export const useAppLifecycle = ({
     setCurrentSong,
     setSelectedFavId,
     setting,
+    skipPersistRef,
 }: UseAppLifecycleParams) => {
     // 初始设置和主题加载
     useEffect(() => {
+        // 跳过初始化期间的持久化，等待设置加载完成
+        skipPersistRef.current = true;
+
         if (!window.go?.services?.Service?.GetPlayerSetting) {
             console.warn("Wails runtime not ready, skipping settings load");
             settingsLoadedRef.current = true;
@@ -111,7 +116,6 @@ export const useAppLifecycle = ({
                 const validModes = ['loop', 'random', 'single'];
                 const savedMode = s.playMode as string;
                 const mode = validModes.includes(savedMode) ? savedMode : 'loop';
-                console.log('[初始化] 播放模式:', savedMode, '->', mode);
                 setPlayMode(mode as any);
 
                 const allThemes = [...DEFAULT_THEMES, ...customThemes];
@@ -132,10 +136,13 @@ export const useAppLifecycle = ({
                 setBackgroundImageUrlSafe(targetTheme.backgroundImage);
                 setPanelColor(targetTheme.panelColor);
                 setPanelOpacity(targetTheme.panelOpacity);
+                // 设置加载完成，允许后续持久化
+                skipPersistRef.current = false;
                 settingsLoadedRef.current = true;
             })
             .catch((e) => {
                 console.warn("加载设置失败", e);
+                skipPersistRef.current = false;
                 settingsLoadedRef.current = true;
             });
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -206,11 +213,6 @@ export const useAppLifecycle = ({
 
                 setSongs(songsWithCache);
                 setFavorites(favList);
-
-                if (!setting) {
-                    setSetting({ defaultVolume: 0.5 } as any);
-                    setVolume(0.5);
-                }
 
                 try {
                     const savedPlaylist = await Services.GetPlaylist();

@@ -26,12 +26,12 @@ export interface UseAudioPlayerReturn {
     actions: AudioPlayerActions;
 }
 
-export const useAudioPlayer = (currentSong: Song | null) => {
+export const useAudioPlayer = (currentSong: Song | null, initialVolume?: number) => {
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
     const [duration, setDuration] = useState(0);
-    const [volume, setVolume] = useState(0.5);
+    const [volume, setVolume] = useState(initialVolume ?? 0.5);
 
     // 初始化音频元素
     useEffect(() => {
