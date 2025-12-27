@@ -1,33 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Palette, Settings as SettingsIcon } from "lucide-react";
-import { ActionIcon, AspectRatio, Badge, Box, Button, Group, Image, Modal, NumberInput, Paper, RangeSlider, ScrollArea, Select, Slider, Stack, Text, TextInput, useMantineColorScheme } from "@mantine/core";
+import { Box, useMantineColorScheme } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import * as Services from "../wailsjs/go/services/Service";
-import { Favorite, LyricMapping, PlayerSetting, Song, Theme, SongClass } from "./types";
-import ThemeManagerModal from "./components/ThemeManagerModal";
-import ThemeEditorModal from "./components/ThemeEditorModal";
-import SongDetailCard from "./components/SongDetailCard";
-import CurrentPlaylistCard from "./components/CurrentPlaylistCard";
-import FavoriteListCard from "./components/FavoriteListCard";
-import PlayerBar from "./components/PlayerBar";
-import AddToFavoriteModal from "./components/AddToFavoriteModal";
-import PlaylistModal from "./components/PlaylistModal";
-import LoginModal from "./components/LoginModal";
-import { TopBar } from "./components/TopBar";
-import MainLayout from "./components/MainLayout";
-import ControlsPanel from "./components/ControlsPanel";
-import CreateFavoriteModal from "./components/CreateFavoriteModal";
-import GlobalSearchModal from "./components/GlobalSearchModal";
-import SettingsModal from "./components/SettingsModal";
-import DownloadManagerModal from "./components/DownloadManagerModal";
-import BVAddModal from "./components/BVAddModal";
+import { Favorite, LyricMapping, PlayerSetting, Song, Theme } from "./types";
 import AppPanels from "./components/AppPanels";
+import AppModals, { AppModalsProps } from "./components/AppModals";
 
 // Hooks
 import { useAudioPlayer, usePlaylist, useAudioInterval, usePlaylistActions, useSkipIntervalHandler, useDownloadManager, useAudioEvents, usePlaybackControls, usePlaylistPersistence, useAudioSourceManager, usePlaySong, usePlayModes } from "./hooks/player";
 import { useSongs, useFavorites, useSongCache, useSettingsPersistence } from "./hooks/data";
 import { useAuth, useBVResolver, useFavoriteActions, useThemeEditor, useSearchAndBV, useBVModal, useLyricManagement, useSongOperations, useLyricLoader, useGlobalSearch, useLoginHandlers } from "./hooks/features";
-import { useHitokoto, useUiDerived, useAppLifecycle, useAppEffects } from "./hooks/ui";
+import { useHitokoto, useUiDerived, useAppLifecycle, useAppEffects, useAppHandlers } from "./hooks/ui";
 import { useAppPanelsProps } from "./hooks/ui/useAppPanelsProps";
 // Contexts
 import { useThemeContext, useModalContext } from "./context";
@@ -35,7 +18,6 @@ import { useThemeContext, useModalContext } from "./context";
 // Utils
 import { formatTime, formatTimeLabel, parseTimeLabel } from "./utils/time";
 import { APP_VERSION, PLACEHOLDER_COVER, DEFAULT_THEMES } from "./utils/constants";
-import { compressImageToWebp, loadBackgroundFile } from "./utils/image";
 
 // Declare window.go for Wails runtime
 declare global {
@@ -367,26 +349,6 @@ const App: React.FC = () => {
         closeModal,
     });
 
-    // 音频事件处理（统一入口）
-    useAudioEvents({
-        audioRef,
-        currentSong,
-        queue,
-        currentIndex,
-        volume,
-        intervalRef,
-        setIsPlaying,
-        setProgress,
-        setDuration,
-        setCurrentIndex,
-        setCurrentSong,
-        setStatus,
-        playbackRetryRef,
-        isHandlingErrorRef,
-        upsertSongs: Services.UpsertSongs,
-        playSong,
-    });
-
     // 歌词管理
     const lyricManagement = useLyricManagement({
         currentSong,
@@ -541,57 +503,10 @@ const App: React.FC = () => {
         playNext,
     });
 
-    const handleBackgroundFileDraft = (e: React.ChangeEvent<HTMLInputElement>) => {
-        void loadBackgroundFile(e, setBackgroundImageUrlDraftSafe);
-    };
-
-    const createFavorite = () => {
-        setCreateFavName("新歌单");
-        setCreateFavMode("blank");
-        setDuplicateSourceId(null);
-        setImportFid("");
-        openModal("createFavModal");
-    };
-
-    const handleDeleteFavorite = (id: string) => favoriteActions.deleteFavorite(id, setConfirmDeleteFavId);
-
-    const handleEditFavorite = (fav: Favorite) => favoriteActions.editFavorite(fav, setEditingFavId, setEditingFavName);
-
-    const handleSaveEditFavorite = () => favoriteActions.saveEditFavorite(editingFavId, editingFavName);
-
-    const handleSubmitCreateFavorite = () => favoriteActions.createFavorite({
-        name: createFavName,
-        mode: createFavMode,
-        duplicateSourceId,
-        importFid,
-        selectedMyFavId: favoriteActions.myFavoriteImport.selectedCollectionId,
-    });
-
-
-
-    const filteredSongs = songs.filter((s) =>
-        searchQuery === "" || s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.singer.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    const backgroundStyle = useMemo(() => {
-        console.log("背景图 URL:", backgroundImageUrl, "透明度:", backgroundWithOpacity);
-        return {
-            overflow: "hidden",
-            backgroundColor: backgroundWithOpacity,
-            backgroundImage: backgroundImageUrl ? `url(${backgroundImageUrl})` : undefined,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
-        };
-    }, [backgroundWithOpacity, backgroundImageUrl]);
-    // 已上移到前文并改为 useCallback 版本
-
-    // ========== 主题管理函数（来自 useThemeEditor Hook）==========
-    const handleSelectTheme = themeEditor.selectTheme;
-    const handleEditTheme = themeEditor.editTheme;
-    const handleDeleteTheme = themeEditor.deleteTheme;
-    const handleCreateThemeClick = themeEditor.createThemeClick;
-    const handleSubmitTheme = () => themeEditor.submitTheme(
+    // ========== 应用级 Handler 聚合（来自 useAppHandlers Hook）==========
+    const handlers = useAppHandlers({
+        // 主题编辑器
+        themeEditor,
         editingThemeId,
         newThemeName,
         colorSchemeDraft,
@@ -600,109 +515,105 @@ const App: React.FC = () => {
         backgroundOpacityDraft,
         backgroundImageUrlDraft,
         panelColorDraft,
-        panelOpacityDraft
-    );
-    const handleCloseThemeEditor = themeEditor.closeThemeEditor;
+        panelOpacityDraft,
+        setBackgroundImageUrlDraftSafe,
+        // 收藏夹操作
+        favoriteActions,
+        editingFavId,
+        editingFavName,
+        setEditingFavId,
+        setEditingFavName,
+        createFavName,
+        setCreateFavName,
+        createFavMode,
+        setCreateFavMode,
+        duplicateSourceId,
+        setDuplicateSourceId,
+        importFid,
+        setImportFid,
+        openModal,
+        setConfirmDeleteFavId,
+        // 跳过区间处理
+        skipIntervalHandler,
+        // 歌曲更新
+        updateStreamUrl,
+        // 播放模式
+        playMode,
+        setPlayMode,
+        // 下载管理
+        downloadManager,
+        setConfirmDeleteDownloaded,
+        setManagingSong,
+        closeModal,
+        // 播放列表动作
+        playlistActions,
+        // 搜索与 BV
+        searchAndBV,
+        newFavName,
+        setNewFavName,
+        setFavorites,
+        setBvTargetFavId,
+        bvPreview,
+        sliceStart,
+        sliceEnd,
+        setSliceStart,
+        setSliceEnd,
+        // 设置相关
+        setUserInfo,
+        saveCachedCustomThemes,
+        setCacheSize,
+        // BV 模态
+        bvModal,
+    });
 
-    const handleClearBackgroundImageDraft = () => {
-        console.log('handleClearBackgroundImageDraft 被调用，URL长度:', backgroundImageUrlDraft?.length || 0);
-        // 注意：在 Wails 中 window.confirm 可能不工作，直接清除背景图
-        console.log('开始清除背景图');
-        setBackgroundImageUrlDraft("");
-        console.log('背景图已设置为空字符串');
-    };
-
-    // ========== 播放区间处理函数（来自 useSkipIntervalHandler Hook）==========
-    const handleIntervalChange = skipIntervalHandler.handleIntervalChange;
-    const handleSkipStartChange = skipIntervalHandler.handleSkipStartChange;
-    const handleSkipEndChange = skipIntervalHandler.handleSkipEndChange;
-
-    const handleStreamUrlChange = (value: string) => {
-        updateStreamUrl(value);
-    };
-
-    const handlePlayModeToggle = () => {
-        // 循环切换：列表循环 -> 随机 -> 单曲循环 -> 列表循环
-        const newMode = playMode === "loop" ? "random" : playMode === "random" ? "single" : "loop";
-        console.log('[handlePlayModeToggle] 切换播放模式:', playMode, '->', newMode);
-        setPlayMode(newMode);
-    };
-
-    // ========== 下载管理函数（来自 useDownloadManager Hook）==========
-    const handleDownload = downloadManager.handleDownload;
-    const handleDownloadCurrentSong = downloadManager.handleDownloadCurrentSong;
-    const handleManageDownload = downloadManager.handleManageDownload;
-    const handleDownloadSong = downloadManager.handleDownloadSong;
-    const handleDownloadAllFavorite = downloadManager.handleDownloadAllFavorite;
-    const handleOpenDownloadedFile = downloadManager.handleOpenDownloadedFile;
-    const handleDeleteDownloadedFile = downloadManager.handleDeleteDownloadedFile;
-
-    const handleAddSongToFavorite = playlistActions.addSongToFavorite;
-
-    const handleRemoveSongFromPlaylist = playlistActions.removeSongFromPlaylist;
-
-    const handleAddToFavoriteFromModal = playlistActions.addToFavoriteFromModal;
-
-    const handlePlaylistSelect = playlistActions.playlistSelect;
-
-    const handlePlaylistReorder = playlistActions.playlistReorder;
-
-    const handlePlaylistRemove = playlistActions.playlistRemove;
-
-    // 来自 useSearchAndBV 的统一搜索/解析处理函数
-    const handleSearchResultClick = searchAndBV.searchResultClick;
-    const handleRemoteSearch = searchAndBV.remoteSearch;
-    const handleAddFromRemote = searchAndBV.addFromRemote;
-    const handleResolveBVAndAdd = searchAndBV.resolveBVAndAdd;
-
-    const handleDownloadModalClose = () => {
-        closeModal("downloadModal");
-        setConfirmDeleteDownloaded(false);
-        setManagingSong(null);
-    };
-
-    // ========== BV 添加弹窗动作 ==========
-    const handleSliceRangeChange = (startVal: number, endVal: number) => {
-        const limit = bvPreview?.duration && bvPreview.duration > 0 ? bvPreview.duration : Math.max(endVal, startVal);
-        const safeStart = Math.max(0, Math.min(startVal, endVal, limit));
-        const safeEnd = Math.max(safeStart, Math.min(endVal, limit));
-        setSliceStart(safeStart);
-        setSliceEnd(safeEnd);
-    };
-
-
-
-    const handleSliceStartChange = (value: number | string) => {
-        const v = Number(value) || 0;
-        const limit = bvPreview?.duration && bvPreview.duration > 0 ? bvPreview.duration : Math.max(sliceEnd, v);
-        const safeStart = Math.max(0, Math.min(v, limit));
-        const safeEnd = Math.max(safeStart, Math.min(sliceEnd, limit));
-        setSliceStart(safeStart);
-        setSliceEnd(safeEnd);
-    };
-
-    const handleSliceEndChange = (value: number | string) => {
-        const v = Number(value) || 0;
-        const limit = bvPreview?.duration && bvPreview.duration > 0 ? bvPreview.duration : Math.max(v, sliceStart);
-        const safeEnd = Math.max(sliceStart, Math.min(v, limit));
-        setSliceEnd(safeEnd);
-    };
-
-    const handleCreateFavoriteInModal = async () => {
-        const name = newFavName.trim();
-        if (!name) return;
-        try {
-            await Services.SaveFavorite({ id: '', title: name, songIds: [] } as any);
-            const refreshedFavs = await Services.ListFavorites();
-            setFavorites(refreshedFavs);
-            const targetId = refreshedFavs.find((f) => f.title === name)?.id || refreshedFavs[refreshedFavs.length - 1]?.id || null;
-            setBvTargetFavId(targetId);
-            notifications.show({ title: '已创建歌单', message: name, color: 'green' });
-            setNewFavName('');
-        } catch (error) {
-            notifications.show({ title: '创建歌单失败', message: String(error), color: 'red' });
-        }
-    };
+    const {
+        handleSelectTheme,
+        handleEditTheme,
+        handleDeleteTheme,
+        handleCreateThemeClick,
+        handleSubmitTheme,
+        handleCloseThemeEditor,
+        handleClearBackgroundImageDraft,
+        handleBackgroundFileDraft,
+        handleDeleteFavorite,
+        handleEditFavorite,
+        handleSaveEditFavorite,
+        handleSubmitCreateFavorite,
+        createFavorite,
+        handleIntervalChange,
+        handleSkipStartChange,
+        handleSkipEndChange,
+        handleStreamUrlChange,
+        handlePlayModeToggle,
+        handleDownload,
+        handleDownloadCurrentSong,
+        handleManageDownload,
+        handleDownloadSong,
+        handleDownloadAllFavorite,
+        handleOpenDownloadedFile,
+        handleDeleteDownloadedFile,
+        handleDownloadModalClose,
+        handleAddSongToFavorite,
+        handleRemoveSongFromPlaylist,
+        handleAddToFavoriteFromModal,
+        handlePlaylistSelect,
+        handlePlaylistReorder,
+        handlePlaylistRemove,
+        handleSearchResultClick,
+        handleRemoteSearch,
+        handleAddFromRemote,
+        handleResolveBVAndAdd,
+        handleSliceRangeChange,
+        handleSliceStartChange,
+        handleSliceEndChange,
+        handleCreateFavoriteInModal,
+        handleClearLoginCache,
+        handleClearThemeCache,
+        handleOpenDownloadsFolder,
+        handleClearMusicCache,
+        handleClearAllCache,
+        handleConfirmBVAdd,
+    } = handlers;
 
     const { topBarProps, mainLayoutProps, controlsPanelProps } = useAppPanelsProps({
         userInfo,
@@ -778,68 +689,127 @@ const App: React.FC = () => {
         songsCount: songs.length,
     });
 
+    const filteredSongs = songs.filter((s) =>
+        searchQuery === "" || s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.singer.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const backgroundStyle = useMemo(() => {
+        return {
+            overflow: "hidden",
+            backgroundColor: backgroundWithOpacity,
+            backgroundImage: backgroundImageUrl ? `url(${backgroundImageUrl})` : undefined,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+        };
+    }, [backgroundWithOpacity, backgroundImageUrl]);
+
     // ========== 设置弹窗动作 ==========
-    const handleClearLoginCache = async () => {
-        try {
-            await Services.Logout();
-        } catch { }
-        try {
-            localStorage.removeItem("tomorin.userInfo");
-        } catch { }
-        setUserInfo(null);
-        notifications.show({ title: "已清除登录缓存", message: "需要重新扫码登录", color: "green" });
+
+    const myFavoriteImport = favoriteActions.myFavoriteImport;
+
+    const appModalsProps: AppModalsProps = {
+        modals,
+        themes,
+        currentThemeId,
+        themeColor,
+        themeColorLight,
+        editingThemeId,
+        newThemeName,
+        colorSchemeDraft,
+        themeColorDraft,
+        backgroundColorDraft,
+        backgroundOpacityDraft,
+        backgroundImageUrlDraft,
+        panelColorDraft,
+        panelOpacityDraft,
+        savingTheme,
+        fileDraftInputRef,
+        favorites,
+        queue,
+        currentIndex,
+        currentSong,
+        globalSearchTerm,
+        globalSearchResults,
+        remoteResults,
+        remoteLoading,
+        resolvingBV,
+        bvModalOpen,
+        bvPreview,
+        bvTargetFavId,
+        bvSongName,
+        bvSinger,
+        sliceStart,
+        sliceEnd,
+        newFavName,
+        managingSong,
+        confirmDeleteDownloaded,
+        appVersion: APP_VERSION,
+        cacheSize,
+        createFavName,
+        createFavMode,
+        duplicateSourceId,
+        importFid,
+        myCollections: myFavoriteImport.myCollections,
+        isLoadingCollections: myFavoriteImport.isLoading,
+        selectedMyCollectionId: myFavoriteImport.selectedCollectionId,
+        closeModal,
+        onSelectTheme: handleSelectTheme,
+        onEditTheme: handleEditTheme,
+        onDeleteTheme: handleDeleteTheme,
+        onCreateTheme: handleCreateThemeClick,
+        onThemeNameChange: setNewThemeName,
+        onColorSchemeChange: setColorSchemeDraft,
+        onThemeColorChange: setThemeColorDraft,
+        onBackgroundColorChange: setBackgroundColorDraft,
+        onBackgroundOpacityChange: setBackgroundOpacityDraft,
+        onBackgroundImageChange: setBackgroundImageUrlDraftSafe,
+        onClearBackgroundImage: handleClearBackgroundImageDraft,
+        onPanelColorChange: setPanelColorDraft,
+        onPanelOpacityChange: setPanelOpacityDraft,
+        onSubmitTheme: handleSubmitTheme,
+        onCancelThemeEdit: handleCloseThemeEditor,
+        onBackgroundFileChange: handleBackgroundFileDraft,
+        onAddToFavorite: handleAddToFavoriteFromModal,
+        onPlaylistSelect: handlePlaylistSelect,
+        onPlaylistReorder: handlePlaylistReorder,
+        onPlaylistRemove: handlePlaylistRemove,
+        editingFavName,
+        onEditingFavNameChange: setEditingFavName,
+        onSaveEditFavorite: handleSaveEditFavorite,
+        onLoginSuccess: handleLoginSuccess,
+        onClearLoginCache: handleClearLoginCache,
+        onClearThemeCache: handleClearThemeCache,
+        onOpenDownloadsFolder: handleOpenDownloadsFolder,
+        onClearMusicCache: handleClearMusicCache,
+        onClearAllCache: handleClearAllCache,
+        onDownloadModalClose: handleDownloadModalClose,
+        onOpenDownloadedFile: handleOpenDownloadedFile,
+        onDeleteDownloadedFile: handleDeleteDownloadedFile,
+        onToggleConfirmDelete: setConfirmDeleteDownloaded,
+        onCreateFavoriteSubmit: handleSubmitCreateFavorite,
+        onCreateFavModeChange: setCreateFavMode,
+        onDuplicateSourceChange: setDuplicateSourceId,
+        onImportFidChange: setImportFid,
+        onCreateFavNameChange: setCreateFavName,
+        onMyCollectionSelect: myFavoriteImport.setSelectedCollectionId,
+        onFetchMyCollections: myFavoriteImport.fetchMyCollections,
+        onGlobalTermChange: setGlobalSearchTerm,
+        onResolveBVAndAdd: handleResolveBVAndAdd,
+        onRemoteSearch: handleRemoteSearch,
+        onResultClick: handleSearchResultClick,
+        onAddFromRemote: handleAddFromRemote,
+        onSliceRangeChange: handleSliceRangeChange,
+        onSliceStartChange: handleSliceStartChange,
+        onSliceEndChange: handleSliceEndChange,
+        onSelectFavorite: setBvTargetFavId,
+        onCreateFavoriteInBV: handleCreateFavoriteInModal,
+        onFavNameChange: setNewFavName,
+        onSongNameChange: setBvSongName,
+        onSingerChange: setBvSinger,
+        onConfirmBVAdd: handleConfirmBVAdd,
+        onBvModalClose: () => setBvModalOpen(false),
     };
-
-    const handleClearThemeCache = () => {
-        try {
-            // 置空主题缓存，促使下次加载走远端
-            localStorage.removeItem("tomorin.customThemes");
-            saveCachedCustomThemes([]);
-        } catch { }
-        notifications.show({ title: "已清除主题缓存", message: "已重置到默认主题", color: "green" });
-    };
-
-    const handleOpenDownloadsFolder = async () => {
-        try {
-            await Services.OpenDownloadsFolder();
-        } catch (e: any) {
-            notifications.show({ title: "打开失败", message: e?.message ?? String(e), color: "red" });
-        }
-    };
-
-    const handleClearMusicCache = async () => {
-        try {
-            await Services.ClearAudioCache();
-            setCacheSize(0);
-            notifications.show({ title: "已清除音乐缓存", message: "已删除所有离线音乐文件", color: "green" });
-        } catch (e) {
-            notifications.show({ title: "清除缓存失败", message: e instanceof Error ? e.message : "未知错误", color: "red" });
-        }
-    };
-
-    const handleClearAllCache = async () => {
-        try {
-            await Services.Logout();
-        } catch { }
-        try {
-            localStorage.clear();
-        } catch { }
-        setCacheSize(0);
-        setUserInfo(null);
-        notifications.show({ title: "已清除所有缓存", message: "请重新配置与登录", color: "green" });
-    };
-
-    // ========== BV 模态框相关函数（来自 useBVModal Hook）==========
-
-    const handleConfirmBVAdd = bvModal.handleConfirmBVAdd;
-
-
-
-
-
-
-
-
 
     return (
         <Box
@@ -850,187 +820,7 @@ const App: React.FC = () => {
                 backgroundAttachment: 'fixed',  // 固定背景不滚动
             }}
         >
-            {/* 顶部右侧设置按钮移动到工具栏，避免与主题按钮重叠 */}
-            <ThemeManagerModal
-                opened={modals.themeModal}
-                onClose={() => closeModal("themeModal")}
-                themes={themes}
-                currentThemeId={currentThemeId}
-                onSelectTheme={handleSelectTheme}
-                onEditTheme={handleEditTheme}
-                onDeleteTheme={handleDeleteTheme}
-                onCreateTheme={handleCreateThemeClick}
-                accentColor={themeColor}
-            />
-
-            <ThemeEditorModal
-                opened={modals.themeEditorModal}
-                onClose={handleCloseThemeEditor}
-                onCancel={handleCloseThemeEditor}
-                editingThemeId={editingThemeId}
-                newThemeName={newThemeName}
-                onNameChange={setNewThemeName}
-                colorSchemeDraft={colorSchemeDraft}
-                onColorSchemeChange={setColorSchemeDraft}
-                themeColorDraft={themeColorDraft}
-                onThemeColorChange={setThemeColorDraft}
-                backgroundColorDraft={backgroundColorDraft}
-                onBackgroundColorChange={setBackgroundColorDraft}
-                backgroundOpacityDraft={backgroundOpacityDraft}
-                onBackgroundOpacityChange={setBackgroundOpacityDraft}
-                backgroundImageUrlDraft={backgroundImageUrlDraft}
-                onBackgroundImageChange={setBackgroundImageUrlDraftSafe}
-                onClearBackgroundImage={handleClearBackgroundImageDraft}
-                panelColorDraft={panelColorDraft}
-                onPanelColorChange={setPanelColorDraft}
-                panelOpacityDraft={panelOpacityDraft}
-                onPanelOpacityChange={setPanelOpacityDraft}
-                onSubmit={handleSubmitTheme}
-                savingTheme={savingTheme}
-                fileInputRef={fileDraftInputRef}
-                onBackgroundFileChange={handleBackgroundFileDraft}
-            />
-
-            <AddToFavoriteModal
-                opened={modals.addFavoriteModal}
-                onClose={() => closeModal("addFavoriteModal")}
-                favorites={favorites}
-                currentSong={currentSong}
-                themeColor={themeColor}
-                onAdd={handleAddToFavoriteFromModal}
-            />
-
-            <PlaylistModal
-                opened={modals.playlistModal}
-                onClose={() => closeModal("playlistModal")}
-                queue={queue}
-                currentIndex={currentIndex}
-                themeColorHighlight={themeColorLight}
-                onSelect={handlePlaylistSelect}
-                onReorder={handlePlaylistReorder}
-                onRemove={handlePlaylistRemove}
-            />
-
-            <Modal
-                opened={modals.editFavModal}
-                onClose={() => closeModal("editFavModal")}
-                title="编辑歌单"
-                centered
-                size="sm"
-            >
-                <Stack gap="md">
-                    <TextInput
-                        label="歌单名称"
-                        value={editingFavName}
-                        onChange={(e) => setEditingFavName(e.currentTarget.value)}
-                        placeholder="输入歌单名称"
-                    />
-                    <Group justify="flex-end" gap="sm">
-                        <Button variant="subtle" color={themeColor} onClick={() => closeModal("editFavModal")}>
-                            取消
-                        </Button>
-                        <Button color={themeColor} onClick={handleSaveEditFavorite}>
-                            保存
-                        </Button>
-                    </Group>
-                </Stack>
-            </Modal>
-
-            <LoginModal
-                opened={modals.loginModal}
-                onClose={() => closeModal("loginModal")}
-                onLoginSuccess={handleLoginSuccess}
-            />
-
-            <SettingsModal
-                opened={modals.settingsModal}
-                onClose={() => closeModal("settingsModal")}
-                themeColor={themeColor}
-                appVersion={APP_VERSION}
-                cacheSize={cacheSize}
-                onClearLoginCache={handleClearLoginCache}
-                onClearThemeCache={handleClearThemeCache}
-                onOpenDownloadsFolder={handleOpenDownloadsFolder}
-                onClearMusicCache={handleClearMusicCache}
-                onClearAllCache={handleClearAllCache}
-            />
-
-            <DownloadManagerModal
-                opened={modals.downloadModal}
-                managingSong={managingSong}
-                confirmDeleteDownloaded={confirmDeleteDownloaded}
-                onClose={handleDownloadModalClose}
-                onOpenFile={handleOpenDownloadedFile}
-                onDeleteFile={handleDeleteDownloadedFile}
-                onToggleConfirmDelete={setConfirmDeleteDownloaded}
-            />
-
-            <CreateFavoriteModal
-                opened={modals.createFavModal}
-                onClose={() => closeModal("createFavModal")}
-                themeColor={themeColor}
-                favorites={favorites}
-                createFavName={createFavName}
-                createFavMode={createFavMode}
-                duplicateSourceId={duplicateSourceId}
-                importFid={importFid}
-
-                // 我的收藏夹
-                myCollections={favoriteActions.myFavoriteImport.myCollections}
-                isLoadingCollections={favoriteActions.myFavoriteImport.isLoading}
-                selectedMyCollectionId={favoriteActions.myFavoriteImport.selectedCollectionId}
-
-                onNameChange={setCreateFavName}
-                onModeChange={(mode) => setCreateFavMode(mode)}
-                onDuplicateSourceChange={setDuplicateSourceId}
-                onImportFidChange={setImportFid}
-
-                // 我的收藏夹操作
-                onMyCollectionSelect={favoriteActions.myFavoriteImport.setSelectedCollectionId}
-                onFetchMyCollections={favoriteActions.myFavoriteImport.fetchMyCollections}
-
-                onSubmit={handleSubmitCreateFavorite}
-            />
-
-            <GlobalSearchModal
-                opened={modals.globalSearchModal}
-                onClose={() => closeModal("globalSearchModal")}
-                themeColor={themeColor}
-                globalSearchTerm={globalSearchTerm}
-                globalSearchResults={globalSearchResults}
-                remoteResults={remoteResults}
-                remoteLoading={remoteLoading}
-                resolvingBV={resolvingBV}
-                onTermChange={setGlobalSearchTerm}
-                onResolveBVAndAdd={handleResolveBVAndAdd}
-                onRemoteSearch={handleRemoteSearch}
-                onResultClick={handleSearchResultClick}
-                onAddFromRemote={handleAddFromRemote}
-            />
-
-            <BVAddModal
-                opened={bvModalOpen}
-                themeColor={themeColor}
-                bvPreview={bvPreview}
-                favorites={favorites}
-                bvTargetFavId={bvTargetFavId}
-                newFavName={newFavName}
-                bvSongName={bvSongName}
-                bvSinger={bvSinger}
-                sliceStart={sliceStart}
-                sliceEnd={sliceEnd}
-                onClose={() => setBvModalOpen(false)}
-                onSliceRangeChange={handleSliceRangeChange}
-                onSliceStartChange={handleSliceStartChange}
-                onSliceEndChange={handleSliceEndChange}
-                onSelectFavorite={setBvTargetFavId}
-                onCreateFavorite={handleCreateFavoriteInModal}
-                onFavNameChange={setNewFavName}
-                onSongNameChange={setBvSongName}
-                onSingerChange={setBvSinger}
-                onConfirmAdd={handleConfirmBVAdd}
-                formatTime={formatTime}
-            />
+            <AppModals {...appModalsProps} />
 
             <AppPanels
                 topBarProps={topBarProps}
