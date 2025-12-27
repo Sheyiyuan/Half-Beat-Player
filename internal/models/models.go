@@ -22,6 +22,7 @@ type Song struct {
 	Singer             string    `json:"singer"`
 	SingerID           string    `json:"singerId"`
 	Cover              string    `json:"cover"`
+	CoverLocal         string    `json:"coverLocal"`
 	SourceID           string    `json:"sourceId"`           // Foreign key to StreamSource
 	StreamURL          string    `json:"streamUrl"`          // Cache of the stream URL (for backward compatibility)
 	StreamURLExpiresAt time.Time `json:"streamUrlExpiresAt"` // Expiration of cached URL

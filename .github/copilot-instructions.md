@@ -62,3 +62,25 @@
 - [ ] 支持 Windows/Linux
 - [ ] 添加单元测试
 
+## 系统原生集成规划（新）
+
+- 托盘：仅 Windows/Linux，使用轻量 systray；功能限定为打开/隐藏主窗口与退出，不做播放控制。
+- 媒体控件：三平台统一支持歌曲信息与封面同步；媒体键控制播放/暂停/上一首/下一首。
+- 优先级：先做媒体控件（Linux MPRIS2 → Windows WinRT → macOS Cocoa/Wails），再补托盘；总目标 6-7 天。
+- 前端：新增 `useSystemIntegration` Hook，同步播放状态/元数据到后端接口，不含托盘菜单逻辑。
+
+## 技术与架构方案（托盘 & 媒体控件）
+
+- 后端：Wails v2 + Go。
+- 托盘：`getlantern/systray`（Windows/Linux），仅提供打开/隐藏与退出，不含播放控制。
+- 媒体控件：
+	- Linux：MPRIS2（`godbus/dbus`）。
+	- Windows：WinRT SMTC（`go-ole` 调用 WinRT）。
+	- macOS：Wails Runtime 的 Cocoa/objc binding（避免自写 cgo）。
+- 前端：React + Mantine；新增 `useSystemIntegration` Hook，同步当前曲目/播放状态到后端媒体接口；托盘无前端菜单逻辑。
+- 目录结构建议：
+	- `internal/media/`: `media.go` 接口 + 平台实现（linux/windows/darwin）。
+	- `internal/tray/`: `tray.go` 接口 + 平台实现（linux/windows）。
+	- `main.go`: 初始化媒体控制与托盘；`internal/services/service.go` 暴露 RPC。
+- 实施顺序：先媒体控件（Linux → Windows → macOS），后托盘；总工期约 6-7 天。
+

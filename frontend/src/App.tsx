@@ -503,9 +503,6 @@ const App: React.FC = () => {
         playNext,
     });
 
-    // ========== 设置弹窗动作 ==========
-    const myFavoriteImport = favoriteActions.myFavoriteImport;
-
     // ========== 应用级 Handler 聚合（来自 useAppHandlers Hook）==========
     const handlers = useAppHandlers({
         // 主题编辑器
@@ -714,6 +711,10 @@ const App: React.FC = () => {
             backgroundRepeat: "no-repeat",
         };
     }, [backgroundWithOpacity, backgroundImageUrl]);
+
+    // ========== 设置弹窗动作 ==========
+
+    const myFavoriteImport = favoriteActions.myFavoriteImport;
 
     const appModalsProps: AppModalsProps = {
         modals,
