@@ -14,6 +14,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Fetch tags
+        run: git fetch --tags --force --prune
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
@@ -43,16 +46,19 @@ jobs:
         run: |
           chmod +x scripts/build-deb.sh scripts/build-rpm.sh scripts/windows/build-windows.sh
 
-      - name: Derive version (tag -> release, main -> dev-date)
+      - name: Derive version (tag -> release, main -> dev from latest tag)
         id: version
         run: |
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             REF_NAME="${GITHUB_REF_NAME}"
             VERSION="${REF_NAME#v}"
           else
+            LATEST_TAG=$(git tag --list 'v*' --sort=-v:refname | head -n1)
+            BASE_VER=${LATEST_TAG#v}
+            if [[ -z "$BASE_VER" || "$BASE_VER" == "$LATEST_TAG" ]]; then BASE_VER="0.0.0"; fi
             DATE=$(date -u +%Y%m%d)
             HASH=${GITHUB_SHA::7}
-            VERSION="0.0.0-dev-${DATE}-${HASH}"
+            VERSION="${BASE_VER}~dev-${DATE}-${HASH}"
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
       
@@ -112,16 +118,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Derive version (tag -> release, main -> dev-date)
+      - name: Fetch tags
+        run: git fetch --tags --force --prune
+
+      - name: Derive version (tag -> release, main -> dev from latest tag)
         id: version
         run: |
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             REF_NAME="${GITHUB_REF_NAME}"
             VERSION="${REF_NAME#v}"
           else
+            LATEST_TAG=$(git tag --list 'v*' --sort=-v:refname | head -n1)
+            BASE_VER=${LATEST_TAG#v}
+            if [[ -z "$BASE_VER" || "$BASE_VER" == "$LATEST_TAG" ]]; then BASE_VER="0.0.0"; fi
             DATE=$(date -u +%Y%m%d)
             HASH=${GITHUB_SHA::7}
-            VERSION="0.0.0-dev-${DATE}-${HASH}"
+            VERSION="${BASE_VER}~dev-${DATE}-${HASH}"
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
@@ -186,9 +198,12 @@ jobs:
             PRERELEASE=false
             NAME="Release ${VERSION}"
           else
+            LATEST_TAG=$(git tag --list 'v*' --sort=-v:refname | head -n1)
+            BASE_VER=${LATEST_TAG#v}
+            if [[ -z "$BASE_VER" || "$BASE_VER" == "$LATEST_TAG" ]]; then BASE_VER="0.0.0"; fi
             DATE=$(date -u +%Y%m%d)
             HASH=${GITHUB_SHA::7}
-            VERSION="0.0.0-dev-${DATE}-${HASH}"
+            VERSION="${BASE_VER}~dev-${DATE}-${HASH}"
             TAG="dev-latest"
             PRERELEASE=true
             NAME="Dev ${VERSION}"
