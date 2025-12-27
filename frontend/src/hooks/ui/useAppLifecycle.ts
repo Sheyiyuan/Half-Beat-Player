@@ -115,18 +115,22 @@ export const useAppLifecycle = ({
 
                 const allThemes = [...DEFAULT_THEMES, ...customThemes];
                 setThemes(allThemes);
-                setCurrentThemeId(s.currentThemeId || "light");
 
-                const currentTheme = allThemes.find((t: Theme) => t.id === (s.currentThemeId || "light"));
-                if (currentTheme) {
-                    console.log("应用主题:", currentTheme.id, "背景图:", currentTheme.backgroundImage);
-                    setThemeColor(currentTheme.themeColor);
-                    setBackgroundColor(currentTheme.backgroundColor);
-                    setBackgroundOpacity(currentTheme.backgroundOpacity);
-                    setBackgroundImageUrlSafe(currentTheme.backgroundImage);
-                    setPanelColor(currentTheme.panelColor);
-                    setPanelOpacity(currentTheme.panelOpacity);
+                const preferredThemeId = s.currentThemeId || "light";
+                const targetTheme = allThemes.find((t: Theme) => t.id === preferredThemeId) || allThemes[0] || DEFAULT_THEMES[0];
+
+                // 如果后端记录的主题不存在（例如旧的自定义主题被删除），回退到默认主题并更新后端设置
+                if (targetTheme.id !== preferredThemeId) {
+                    Services.SetCurrentTheme(targetTheme.id).catch((err) => console.warn("SetCurrentTheme fallback failed", err));
                 }
+
+                setCurrentThemeId(targetTheme.id);
+                setThemeColor(targetTheme.themeColor);
+                setBackgroundColor(targetTheme.backgroundColor);
+                setBackgroundOpacity(targetTheme.backgroundOpacity);
+                setBackgroundImageUrlSafe(targetTheme.backgroundImage);
+                setPanelColor(targetTheme.panelColor);
+                setPanelOpacity(targetTheme.panelOpacity);
                 settingsLoadedRef.current = true;
             })
             .catch((e) => {

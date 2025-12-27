@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
-import { Theme } from '../types';
 import { MantineColorScheme, useComputedColorScheme } from '@mantine/core';
+import { Theme } from '../types';
+import { DEFAULT_THEMES } from '../utils/constants';
 
 // ========== 类型定义 ==========
 export interface ThemeState {
@@ -44,14 +45,16 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const computedColorScheme = useComputedColorScheme('light');
 
     // ========== State ==========
-    const [themes, setThemes] = useState<Theme[]>([]);
-    const [currentThemeId, setCurrentThemeId] = useState<string | null>(null);
-    const [themeColor, setThemeColor] = useState("#339af0");
-    const [backgroundColor, setBackgroundColor] = useState(computedColorScheme === "dark" ? "#1a1b1e" : "#f8fafc");
-    const [backgroundOpacity, setBackgroundOpacity] = useState(1.0);
-    const [backgroundImageUrl, setBackgroundImageUrl] = useState("");
-    const [panelColor, setPanelColor] = useState(computedColorScheme === "dark" ? "#25262b" : "#ffffff");
-    const [panelOpacity, setPanelOpacity] = useState(0.95);
+    const defaultTheme = computedColorScheme === "dark" ? DEFAULT_THEMES.find(t => t.id === "dark")! : DEFAULT_THEMES.find(t => t.id === "light")!;
+
+    const [themes, setThemes] = useState<Theme[]>(DEFAULT_THEMES);
+    const [currentThemeId, setCurrentThemeId] = useState<string | null>(defaultTheme.id);
+    const [themeColor, setThemeColor] = useState(defaultTheme.themeColor);
+    const [backgroundColor, setBackgroundColor] = useState(defaultTheme.backgroundColor);
+    const [backgroundOpacity, setBackgroundOpacity] = useState(defaultTheme.backgroundOpacity);
+    const [backgroundImageUrl, setBackgroundImageUrl] = useState(defaultTheme.backgroundImage || "");
+    const [panelColor, setPanelColor] = useState(defaultTheme.panelColor);
+    const [panelOpacity, setPanelOpacity] = useState(defaultTheme.panelOpacity);
 
     // ========== Actions ==========
 
@@ -110,11 +113,25 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         if (savedThemeColor) setThemeColor(savedThemeColor);
         if (savedBackgroundColor) setBackgroundColor(savedBackgroundColor);
         if (savedBackgroundOpacity) setBackgroundOpacity(parseFloat(savedBackgroundOpacity));
-        if (savedBackgroundImageUrl) setBackgroundImageUrl(savedBackgroundImageUrl);
+        if (savedBackgroundImageUrl !== null) setBackgroundImageUrl(savedBackgroundImageUrl);
         if (savedPanelColor) setPanelColor(savedPanelColor);
         if (savedPanelOpacity) setPanelOpacity(parseFloat(savedPanelOpacity));
         if (savedThemeId) setCurrentThemeId(savedThemeId);
     }, []);
+
+    // 当主题列表或当前主题为空时，自动应用默认主题，避免空白/残留背景
+    useEffect(() => {
+        const themeList = themes.length ? themes : DEFAULT_THEMES;
+        const savedThemeId = localStorage.getItem('currentThemeId');
+        const targetTheme = themeList.find(t => t.id === (savedThemeId || currentThemeId))
+            || themeList[0]
+            || DEFAULT_THEMES[0];
+
+        if (!currentThemeId || currentThemeId !== targetTheme.id || backgroundImageUrl !== (targetTheme.backgroundImage || "")) {
+            applyTheme(targetTheme);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [themes]);
 
     // ========== Context Value ==========
     const value: ThemeContextValue = {
