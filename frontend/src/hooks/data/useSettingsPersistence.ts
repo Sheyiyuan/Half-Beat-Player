@@ -70,7 +70,7 @@ export const useSettingsPersistence = ({
         }, 500); // 500ms 防抖延迟
         return () => clearTimeout(timeoutId);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [themeColor, backgroundColor, backgroundOpacity, backgroundImageUrl, panelOpacity]);
+    }, [playMode, volume, themeColor, backgroundColor, backgroundOpacity, backgroundImageUrl, panelOpacity]);
 
     // 关闭软件时：同步设置到后端并清理前端缓存
     useEffect(() => {
