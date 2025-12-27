@@ -27,6 +27,13 @@ if ! command -v "$WAILS_CMD" >/dev/null; then
   if [[ -x "$HOME/go/bin/wails" ]]; then WAILS_CMD="$HOME/go/bin/wails"; else echo "wails not found" >&2; exit 1; fi
 fi
 
+# Build frontend first to ensure assets are available
+echo "Building frontend..."
+cd frontend
+pnpm install
+pnpm build
+cd ..
+
 ARGS=(build -platform darwin/universal -clean)
 $CLEAN || ARGS=(build -platform darwin/universal)
 

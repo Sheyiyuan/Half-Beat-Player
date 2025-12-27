@@ -44,6 +44,13 @@ fi
 
 echo "Building app (version ${VERSION}) with ${WAILS_CMD}..."
 
+# Build frontend first to ensure assets are available
+echo "Building frontend..."
+cd frontend
+pnpm install
+pnpm build
+cd ..
+
 # 将版本注入前端 (Vite 仅暴露以 VITE_ 前缀的环境变量)
 export VITE_APP_VERSION="${VERSION}"
 

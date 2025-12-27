@@ -31,6 +31,13 @@ fi
 
 echo "Building app (version $APP_VERSION) for linux/amd64..."
 
+# Build frontend first to ensure assets are available
+echo "Building frontend..."
+cd frontend
+pnpm install
+pnpm build
+cd ..
+
 # Temporarily patch wails.json productVersion
 BACKUP_WAILS_JSON="wails.json.bak"
 cp wails.json "$BACKUP_WAILS_JSON"
@@ -82,6 +89,9 @@ if [[ -z "$RPM_ITER" ]]; then RPM_ITER="1"; fi
 # Build RPM via fpm
 mkdir -p build/rpm
 pushd "$ROOT" >/dev/null
+
+echo "Building RPM: name=$APP_NAME version=$RPM_BASE release=$RPM_ITER"
+
 fpm -s dir -t rpm \
   -n "$APP_NAME" \
   -v "$RPM_BASE" \
@@ -91,9 +101,25 @@ fpm -s dir -t rpm \
   --url "https://github.com/Sheyiyuan/Tomorin-Player" \
   --license "MIT" \
   --depends gtk3 \
-  --depends "webkit2gtk4.1 | webkit2gtk4.0" \
+  --depends "webkit2gtk4.1" \
   -C . \
-  usr
+  usr || {
+    echo "fpm failed. Trying with alternative webkit2gtk dependency..." >&2
+    # Fallback: try with webkit2gtk4.0 instead
+    fpm -s dir -t rpm \
+      -n "$APP_NAME" \
+      -v "$RPM_BASE" \
+      --iteration "$RPM_ITER" \
+      -a amd64 \
+      --description "基于 B站 API 的音乐播放器" \
+      --url "https://github.com/Sheyiyuan/Tomorin-Player" \
+      --license "MIT" \
+      --depends gtk3 \
+      --depends "webkit2gtk4.0" \
+      -C . \
+      usr
+  }
+
 popd >/dev/null
 
 mv "$ROOT"/*.rpm build/rpm/

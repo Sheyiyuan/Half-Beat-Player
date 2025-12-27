@@ -37,7 +37,7 @@ export CXX=x86_64-w64-mingw32-g++
 ARGS=(build -platform windows/amd64 -nsis)
 $CLEAN && ARGS=(build -platform windows/amd64 -nsis -clean)
 
-"$WAILS_CMD" "${ARGS[@]}"
+echo "Building Windows binary with CGO_ENABLED=$CGO_ENABLED CC=$CC CXX=$CXX"
 "$WAILS_CMD" "${ARGS[@]}"
 
 echo "Artifacts in build/bin/"
