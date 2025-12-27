@@ -1,7 +1,6 @@
 # Build directories
 build/
 frontend/dist/
-docs/
 
 # IDE
 .idea/
