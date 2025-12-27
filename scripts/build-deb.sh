@@ -18,12 +18,12 @@ if [[ -z "$VERSION" ]]; then
   fi
 fi
 
-# Debian 版本必须以数字开头；若是 dev-xxxx 则转为 0.0.0+dev-xxxx
+# Debian 版本必须以数字开头；若是 dev 开头则转为 0.0.0+dev 格式
 DEB_VERSION="$VERSION"
 if [[ ! $DEB_VERSION =~ ^[0-9] ]]; then
   DEB_VERSION="0.0.0+${DEB_VERSION}"
 fi
-# 仅保留允许的字符集 A-Za-z0-9.+-~，其他替换为 '-'
+# 替换不允许的字符：仅保留 A-Za-z0-9.+-~，其他替换为 '-'
 DEB_VERSION=$(echo "$DEB_VERSION" | sed 's/[^A-Za-z0-9.+-~]/-/g')
 
 PKG_NAME="${APP_NAME}_${DEB_VERSION}_amd64"

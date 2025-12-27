@@ -46,19 +46,22 @@ jobs:
         run: |
           chmod +x scripts/build-deb.sh scripts/build-rpm.sh scripts/windows/build-windows.sh
 
-      - name: Derive version (tag -> release, main -> dev from latest tag)
+      - name: Derive version (tag -> release, main -> x.y.(z+1)-dev.date.hash)
         id: version
         run: |
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            REF_NAME="${GITHUB_REF_NAME}"
-            VERSION="${REF_NAME#v}"
+            VERSION="${GITHUB_REF_NAME#v}"
           else
             LATEST_TAG=$(git tag --list 'v*' --sort=-v:refname | head -n1)
             BASE_VER=${LATEST_TAG#v}
             if [[ -z "$BASE_VER" || "$BASE_VER" == "$LATEST_TAG" ]]; then BASE_VER="0.0.0"; fi
+            # Increment patch version (z+1)
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$BASE_VER"
+            PATCH=$((PATCH + 1))
+            NEXT_VER="${MAJOR}.${MINOR}.${PATCH}"
             DATE=$(date -u +%Y%m%d)
             HASH=${GITHUB_SHA::7}
-            VERSION="${BASE_VER}~dev-${DATE}-${HASH}"
+            VERSION="${NEXT_VER}-dev.${DATE}.${HASH}"
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
       
@@ -101,6 +104,8 @@ jobs:
           APP_VERSION: ${{ steps.version.outputs.version }}
           VITE_APP_VERSION: ${{ steps.version.outputs.version }}
         run: |
+          # Ensure frontend is fresh before Windows build
+          cd frontend && pnpm install && pnpm build && cd ..
           bash scripts/windows/build-windows.sh -c
 
       - name: Upload Artifacts
@@ -121,19 +126,22 @@ jobs:
       - name: Fetch tags
         run: git fetch --tags --force --prune
 
-      - name: Derive version (tag -> release, main -> dev from latest tag)
+      - name: Derive version (tag -> release, main -> x.y.(z+1)-dev.date.hash)
         id: version
         run: |
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            REF_NAME="${GITHUB_REF_NAME}"
-            VERSION="${REF_NAME#v}"
+            VERSION="${GITHUB_REF_NAME#v}"
           else
             LATEST_TAG=$(git tag --list 'v*' --sort=-v:refname | head -n1)
             BASE_VER=${LATEST_TAG#v}
             if [[ -z "$BASE_VER" || "$BASE_VER" == "$LATEST_TAG" ]]; then BASE_VER="0.0.0"; fi
+            # Increment patch version (z+1)
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$BASE_VER"
+            PATCH=$((PATCH + 1))
+            NEXT_VER="${MAJOR}.${MINOR}.${PATCH}"
             DATE=$(date -u +%Y%m%d)
             HASH=${GITHUB_SHA::7}
-            VERSION="${BASE_VER}~dev-${DATE}-${HASH}"
+            VERSION="${NEXT_VER}-dev.${DATE}.${HASH}"
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
@@ -201,9 +209,13 @@ jobs:
             LATEST_TAG=$(git tag --list 'v*' --sort=-v:refname | head -n1)
             BASE_VER=${LATEST_TAG#v}
             if [[ -z "$BASE_VER" || "$BASE_VER" == "$LATEST_TAG" ]]; then BASE_VER="0.0.0"; fi
+            # Increment patch version (z+1)
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$BASE_VER"
+            PATCH=$((PATCH + 1))
+            NEXT_VER="${MAJOR}.${MINOR}.${PATCH}"
             DATE=$(date -u +%Y%m%d)
             HASH=${GITHUB_SHA::7}
-            VERSION="${BASE_VER}~dev-${DATE}-${HASH}"
+            VERSION="${NEXT_VER}-dev.${DATE}.${HASH}"
             TAG="dev-latest"
             PRERELEASE=true
             NAME="Dev ${VERSION}"

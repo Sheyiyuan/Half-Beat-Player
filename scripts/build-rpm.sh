@@ -63,16 +63,15 @@ EOF
 
 # Derive RPM-friendly version/release
 RPM_VERSION="$APP_VERSION"
-# Base version must start with digit and use dots; take prefix before ~ or + if present
-RPM_BASE="${RPM_VERSION%%[~+]*}"
+# For x.y.z-dev.date.hash or x.y.z-other, extract base (x.y.z) and iteration (dev.date.hash or other)
+RPM_BASE="${RPM_VERSION%%-*}"  # Extract part before first dash
 if [[ ! $RPM_BASE =~ ^[0-9] ]]; then RPM_BASE="0.0.0"; fi
 RPM_BASE=$(echo "$RPM_BASE" | sed 's/[^0-9.]/./g')
 if [[ -z "$RPM_BASE" ]]; then RPM_BASE="0.0.0"; fi
-# Iteration from remainder after ~ or + (if any)
-RPM_ITER=${RPM_VERSION#${RPM_BASE}}
-RPM_ITER=${RPM_ITER##[~+.\-]}
-RPM_ITER=${RPM_ITER//-/.}
-RPM_ITER=$(echo "$RPM_ITER" | sed 's/[^A-Za-z0-9.]/./g')
+# Iteration is everything after the base (remove leading dash)
+RPM_ITER="${RPM_VERSION#${RPM_BASE}}"
+RPM_ITER="${RPM_ITER#-}"  # Remove leading dash
+RPM_ITER=$(echo "$RPM_ITER" | sed 's/[^A-Za-z0-9.]/./g')  # Replace illegal chars with dots
 if [[ -z "$RPM_ITER" ]]; then RPM_ITER="1"; fi
 
 # Build RPM via fpm
