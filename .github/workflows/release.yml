@@ -1,0 +1,168 @@
+name: Build & Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+jobs:
+  build-linux-windows:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.x'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install pnpm
+        run: npm i -g pnpm
+
+      - name: Install build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq dpkg-dev libgtk-3-dev libwebkit2gtk-4.0-dev icoutils imagemagick nsis gcc-mingw-w64-x86-64 ruby ruby-dev rubygems rpm
+          sudo gem install --no-document fpm
+
+      - name: Install Wails CLI
+        run: |
+          go install github.com/wailsapp/wails/v2/cmd/wails@latest
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+      - name: Make scripts executable
+        run: |
+          chmod +x scripts/build-deb.sh scripts/build-rpm.sh scripts/windows/build-windows.sh
+
+      - name: Derive version (tag -> release, main -> dev-date)
+        id: version
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            REF_NAME="${GITHUB_REF_NAME}"
+            VERSION="${REF_NAME#v}"
+          else
+            VERSION="dev-$(date -u +%Y%m%d)"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+      
+      - name: Frontend build (inject version)
+        env:
+          VITE_APP_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          cd frontend
+          pnpm install
+          pnpm build
+
+      - name: Build Linux binary (inject version)
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
+          VITE_APP_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          wails build -clean -platform linux/amd64
+
+      - name: Package Debian .deb
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
+          VITE_APP_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          bash scripts/build-deb.sh
+        shell: bash
+
+      - name: Package RPM
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
+          VITE_APP_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          bash scripts/build-rpm.sh
+        shell: bash
+
+      - name: Build Windows (cross-compile + NSIS)
+        env:
+          CGO_ENABLED: '1'
+          CC: x86_64-w64-mingw32-gcc
+          CXX: x86_64-w64-mingw32-g++
+          APP_VERSION: ${{ steps.version.outputs.version }}
+          VITE_APP_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          bash scripts/windows/build-windows.sh -c
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tomorin-player-${{ steps.version.outputs.version }}
+          path: |
+            build/deb/*.deb
+            build/rpm/*.rpm
+            build/bin/*.exe
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Derive version (tag -> release, main -> dev-date)
+        id: version
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            REF_NAME="${GITHUB_REF_NAME}"
+            VERSION="${REF_NAME#v}"
+          else
+            VERSION="dev-$(date -u +%Y%m%d)"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.x'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install pnpm
+        run: npm i -g pnpm
+
+      - name: Install tooling
+        run: |
+          brew install jq create-dmg || true
+
+      - name: Install Wails CLI
+        run: |
+          go install github.com/wailsapp/wails/v2/cmd/wails@latest
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+
+      - name: Make scripts executable
+        run: chmod +x scripts/build-macos.sh
+
+      - name: Frontend build (inject version)
+        env:
+          VITE_APP_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          cd frontend
+          pnpm install
+          pnpm build
+
+      - name: Build macOS (universal)
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
+          VITE_APP_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          scripts/build-macos.sh -c
+
+      - name: Upload Artifacts (macOS)
+        uses: actions/upload-artifact@v4
+        with:
+          name: tomorin-player-macos-${{ steps.version.outputs.version }}
+          path: |
+            build/bin/*.dmg
+            build/bin/*.app

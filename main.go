@@ -91,12 +91,10 @@ func run() error {
 			}
 		},
 		OnShutdown: func(ctx context.Context) {
+			log.Println("OnShutdown called")
 			// Stop audio proxy on app shutdown
 			_ = audioProxy.Stop()
 		},
 		Bind: []interface{}{backend},
-		Debug: options.Debug{
-			OpenInspectorOnStartup: true,
-		},
 	})
 }

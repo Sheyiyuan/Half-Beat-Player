@@ -2,7 +2,7 @@
  * 应用常量定义
  */
 
-export const APP_VERSION = '1.1.0';
+export const APP_VERSION = (import.meta as any).env?.VITE_APP_VERSION || 'dev';
 
 export const DEFAULT_THEMES = [
     {

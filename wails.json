@@ -30,5 +30,25 @@
             ]
         }
     },
-    "platform": "darwin"
+    "platform": "linux",
+    "linux": {
+        "icon": "assets/icons/appicon.png"
+    },
+    "windows": {
+        "icon": "build/windows/icon.ico",
+        "info": {
+            "productVersion": "${APP_VERSION}",
+            "productName": "Tomorin Player",
+            "companyName": "Sheyiyuan",
+            "copyright": "Copyright © 2025 Sheyiyuan",
+            "comments": "基于 B站 API 的音乐播放器"
+        }
+    },
+    "info": {
+        "productVersion": "${APP_VERSION}",
+        "productName": "Tomorin Player",
+        "companyName": "Sheyiyuan",
+        "copyright": "Copyright © 2025 Sheyiyuan",
+        "comments": "基于 B站 API 的音乐播放器"
+    }
 }

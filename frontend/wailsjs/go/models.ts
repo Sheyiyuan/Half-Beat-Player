@@ -99,18 +99,6 @@ export namespace models {
 	        this.cover = source["cover"];
 	    }
 	}
-	export class ExitAction {
-	    action: string;
-	
-	    static createFrom(source: any = {}) {
-	        return new ExitAction(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.action = source["action"];
-	    }
-	}
 	export class SongRef {
 	    id: number;
 	    favoriteId: string;
@@ -207,7 +195,6 @@ export namespace models {
 	    defaultVolume: number;
 	    themes: string;
 	    currentThemeId: string;
-	    exitBehavior: string;
 	    updatedAt: time.Time;
 	
 	    static createFrom(source: any = {}) {
@@ -221,7 +208,6 @@ export namespace models {
 	        this.defaultVolume = source["defaultVolume"];
 	        this.themes = source["themes"];
 	        this.currentThemeId = source["currentThemeId"];
-	        this.exitBehavior = source["exitBehavior"];
 	        this.updatedAt = this.convertValues(source["updatedAt"], time.Time);
 	    }
 	
@@ -533,18 +519,6 @@ export namespace services {
 	        this.face = source["face"];
 	        this.level = source["level"];
 	        this.vip_type = source["vip_type"];
-	    }
-	}
-	export class WindowManager {
-	
-	
-	    static createFrom(source: any = {}) {
-	        return new WindowManager(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	
 	    }
 	}
 
