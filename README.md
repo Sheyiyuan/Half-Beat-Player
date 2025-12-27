@@ -8,11 +8,7 @@
 
 _使用 Wails v2 构建的跨平台桌面应用_
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Wails](https://img.shields.io/badge/Wails-v2.11-DF0039?logo=wails&logoColor=white)](https://wails.io)
-[![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go&logoColor=white)](https://golang.org)
-[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)[![Wails](https://img.shields.io/badge/Wails-v2.11-DF0039?logo=wails&logoColor=white)](https://wails.io)[![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go&logoColor=white)](https://golang.org)[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev)[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 
 [功能特性](#功能特性) • [开发环境](#开发环境) • [打包构建](#打包构建) • [项目结构](#项目结构)
 
@@ -23,7 +19,9 @@ _使用 Wails v2 构建的跨平台桌面应用_
 ## 简介
 <div align="center">
 
-Tomorin Player 是一款功能丰富的音乐播放器，支持 B站扫码登录、BV 号解析、歌单管理等功能。采用现代化技术栈构建，提供流畅的用户体验。
+Tomorin Player 是一款轻量的的音乐播放器。采用现代化技术栈构建，提供流畅的用户体验。
+
+支持 B 站扫码登录、BV 号解析、收藏夹导入、歌单管理等功能。
 
 </div>
 
@@ -40,7 +38,23 @@ Tomorin Player 是一款功能丰富的音乐播放器，支持 B站扫码登录
 - 无需依赖 yt-dlp，直接使用 B站 API
 - 本地数据库存储，离线可用
 
-> 本项目受到 [Azusa Player](https://github.com/kenmingwang/azusa-player) 的启发
+--- 
+
+<div align="center">
+
+这个项目的灵感来自于 [Azusa Player](https://github.com/kenmingwang/azusa-player)，起因是开发者需要一个能够去掉b站视频片头片尾的播放器，于是便有了这个项目。
+
+开发者个人能力有限，本项目大部分代码使用 AI 生成，可能会有较多的bug，欢迎提 issue 或者 PR。
+
+本项目主要是自用，提出的需求不一定会被采纳，但是如果有什么问题或者建议，也欢迎提 issue 或者 PR。
+
+项目在 Linux 和 MacOS 平台上测试通过，Windows 平台尚未测试。
+
+所有平台自动构建的安装包均不保证可用性，建议参考下文的构建方法自行构建。
+
+如果这个项目对你有帮助，请给一个 Star！
+
+</div>
 
 ---
 
@@ -313,12 +327,24 @@ tomorin/
 
 ## 更新日志
 
-### v1.0.0 (2024-12-01)
+
+### v1.1.0 (2024-12-20)
+
+**已知问题修复**
+- ✅ BV 号解析失败问题修复
+- ✅ 页面样式完整性提升
+- ✅ 登录状态检查完善
+
+**功能增强**
+- ✅ 支持播放模式切换（列表/随机/单曲）
+- ✅ 优化内置主题
+
+### v1.0.0 (2024-12-19)
 
 **初始版本功能**
 - ✅ 完全去除 yt-dlp，改用官方 B站 API
 - ✅ 支持扫码登录，展示头像与用户名并持久化
-- ✅ BV 号解析与音频播放（含分 P 选择与裁剪）
+- ✅ BV 号解析与音频播放
 - ✅ 歌单管理：创建、编辑、删除、导入我的收藏
 - ✅ 主题系统：浅色/深色切换，支持自定义主题
 - ✅ 本地缓存与播放设置（跳过片头/片尾）
@@ -329,47 +355,9 @@ tomorin/
 - ✅ 后端错误信息完善，前端登录态检查补充
 - ✅ 前后端接口统一，保证基础流程可用
 
-### v1.1.0 (2024-12-20)
-
-**后端重构**
-- ✅ 将 service.go 分解为 11 个专业化域文件，提高代码可维护性
-    - `download.go` - 下载管理逻辑
-    - `favorites.go` - 歌单/收藏夹管理
-    - `songs.go` - 歌曲库管理
-    - `settings.go` - 设置管理
-    - `login.go` - 用户登录认证
-    - `bili_play.go` - B站音频播放相关
-    - `bili_favorite.go` - B站个人收藏导入
-    - `search.go` - 搜索功能
-    - `playlist.go` - 播放列表管理
-    - `lyrics.go` - 歌词管理
-    - `library.go` - 媒体库相关
-- ✅ 实现模块化错误处理和数据验证
-- ✅ 完整的单元测试覆盖（11 个测试模块）
-
-**前端类型安全**
-- ✅ 解决 TypeScript 严格模式类型错误
-    - 添加 Song/Favorite 类型转换函数
-    - 修复 protobuf Time 类型与字符串的不兼容
-    - 完善 UserInfo 字段映射
-- ✅ 前端 TypeScript 编译通过（0 errors）
-- ✅ 完整的类型覆盖确保运行时安全
-
-**已知问题修复**
-- ✅ BV 号解析失败问题修复
-- ✅ 页面样式完整性提升
-- ✅ 登录状态检查完善
 
 ## 许可证
 
-MIT License
+[MIT License](LICENSE)
 
----
 
-<div align="center">
-
-**Made with love by Sheyiyuan**
-
-如果这个项目对你有帮助，请给一个 Star！
-
-</div>
