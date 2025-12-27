@@ -39,6 +39,9 @@ export const useAppHandlers = (config: {
     openModal: (name: any) => void;
     setConfirmDeleteFavId: (id: string | null) => void;
 
+    // 我的收藏导入
+    myFavoriteImport?: { clearCollections?: () => void };
+
     // 跳过区间处理
     skipIntervalHandler: any;
 
@@ -291,6 +294,8 @@ export const useAppHandlers = (config: {
         try {
             localStorage.removeItem("tomorin.userInfo");
         } catch { }
+        // 清空我的收藏夹列表缓存
+        config.myFavoriteImport?.clearCollections?.();
         setUserInfo(null);
         notifications.show({
             title: "已清除登录缓存",

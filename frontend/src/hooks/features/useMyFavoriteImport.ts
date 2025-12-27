@@ -101,6 +101,14 @@ export function useMyFavoriteImport({ themeColor, songs, onStatusChange }: UseMy
     }, [selectedCollectionId, importFromFid]);
 
     /**
+     * 清空收藏夹列表（用于退出登陆或登陆状态变化）
+     */
+    const clearCollections = useCallback(() => {
+        setMyCollections([]);
+        setSelectedCollectionId(null);
+    }, []);
+
+    /**
      * 初始化时自动获取收藏夹列表
      */
     useEffect(() => {
@@ -119,5 +127,6 @@ export function useMyFavoriteImport({ themeColor, songs, onStatusChange }: UseMy
         setSelectedCollectionId,
         fetchMyCollections,
         importSelectedCollection,
+        clearCollections,
     };
 }

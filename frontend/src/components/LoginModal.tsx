@@ -17,12 +17,13 @@ export default function LoginModal({ opened, onClose, onLoginSuccess }: LoginMod
     const [isPolling, setIsPolling] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     const [statusMessage, setStatusMessage] = useState("");
+    const [isExpired, setIsExpired] = useState(false);
 
     const generateQR = async () => {
         try {
             setIsLoading(true);
             setErrorMessage("");
-            setStatusMessage("正在生成二维码...");
+            setIsExpired(false);
 
             const result = await Services.GenerateLoginQR();
 
@@ -42,7 +43,6 @@ export default function LoginModal({ opened, onClose, onLoginSuccess }: LoginMod
                 setQrUrl(qrDataUrl);
                 setQrcodeKey(result.qrcode_key);
                 setExpireAt(new Date(result.expire_at));
-                setStatusMessage("请使用哔哩哔哩app扫描二维码登录");
 
                 // 自动开始轮询
                 startPolling(result.qrcode_key);
@@ -59,7 +59,6 @@ export default function LoginModal({ opened, onClose, onLoginSuccess }: LoginMod
 
     const startPolling = (key: string) => {
         setIsPolling(true);
-        setStatusMessage("等待扫描...");
 
         const pollInterval = setInterval(async () => {
             try {
@@ -68,13 +67,10 @@ export default function LoginModal({ opened, onClose, onLoginSuccess }: LoginMod
                 if (result.loggedIn) {
                     clearInterval(pollInterval);
                     setIsPolling(false);
-                    setStatusMessage("登录成功！");
                     setTimeout(() => {
                         onLoginSuccess();
                         onClose();
                     }, 500);
-                } else if (result.message) {
-                    setStatusMessage(result.message);
                 }
             } catch (error: any) {
                 console.error("轮询登录状态错误:", error);
@@ -87,9 +83,7 @@ export default function LoginModal({ opened, onClose, onLoginSuccess }: LoginMod
         setTimeout(() => {
             clearInterval(pollInterval);
             setIsPolling(false);
-            if (!errorMessage) {
-                setStatusMessage("二维码已过期，请重新生成");
-            }
+            setIsExpired(true);
         }, 30000);
     };
 
@@ -103,11 +97,11 @@ export default function LoginModal({ opened, onClose, onLoginSuccess }: LoginMod
         <Modal
             opened={opened}
             onClose={onClose}
-            title="哔哩哔哩登录"
+            title="B站二维码登录"
             centered
             size="sm"
-            closeOnEscape={!isPolling}
-            closeOnClickOutside={!isPolling}
+            closeOnEscape={true}
+            closeOnClickOutside={true}
         >
             <Stack gap="md">
                 {errorMessage && (
@@ -118,50 +112,56 @@ export default function LoginModal({ opened, onClose, onLoginSuccess }: LoginMod
 
                 {qrUrl ? (
                     <div style={{ textAlign: "center" }}>
-                        <img
-                            src={qrUrl}
-                            alt="二维码"
+                        {/* 二维码容器，过期时添加模糊效果 */}
+                        <div
                             style={{
-                                maxWidth: "100%",
-                                height: "auto",
-                                border: "1px solid #ccc",
-                                borderRadius: "4px",
+                                position: "relative",
+                                display: "inline-block",
+                                width: "100%",
                             }}
-                        />
-                        <Text size="sm" c="dimmed" mt="sm">
-                            {statusMessage}
+                        >
+                            <img
+                                src={qrUrl}
+                                alt="二维码"
+                                style={{
+                                    maxWidth: "100%",
+                                    height: "auto",
+                                    border: "1px solid #ccc",
+                                    borderRadius: "4px",
+                                    filter: isExpired ? "blur(8px)" : "none",
+                                    opacity: isExpired ? 0.6 : 1,
+                                    transition: "all 0.3s ease",
+                                }}
+                            />
+                            {/* 过期时显示刷新按钮覆盖在二维码上 */}
+                            {isExpired && (
+                                <div
+                                    style={{
+                                        position: "absolute",
+                                        top: "50%",
+                                        left: "50%",
+                                        transform: "translate(-50%, -50%)",
+                                    }}
+                                >
+                                    <Button
+                                        onClick={generateQR}
+                                        loading={isLoading}
+                                        size="md"
+                                    >
+                                        点击刷新
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                        <Text size="sm" c="dimmed" mt="md">
+                            请使用 B站 APP 扫描二维码
                         </Text>
-                        {isPolling && (
-                            <Group justify="center" mt="sm">
-                                <Loader size="sm" />
-                            </Group>
-                        )}
-                        {expireAt && !isPolling && (
-                            <Text size="xs" c="dimmed" mt="sm">
-                                二维码将在 {Math.max(0, Math.round((expireAt.getTime() - Date.now()) / 1000))} 秒后过期
-                            </Text>
-                        )}
                     </div>
                 ) : (
                     <Group justify="center">
                         <Loader size="lg" />
                     </Group>
                 )}
-
-                <Group justify="flex-end">
-                    <Button
-                        variant="light"
-                        onClick={onClose}
-                        disabled={isPolling}
-                    >
-                        关闭
-                    </Button>
-                    {(!isPolling || errorMessage) && (
-                        <Button onClick={generateQR} loading={isLoading}>
-                            {errorMessage ? "重新生成" : "刷新二维码"}
-                        </Button>
-                    )}
-                </Group>
             </Stack>
         </Modal>
     );

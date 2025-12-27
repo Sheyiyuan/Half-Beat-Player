@@ -146,7 +146,9 @@ export const useFavoriteActions = ({
 
                 // 处理导入我的收藏夹
                 if (mode === "importMine") {
-                    if (!isLoggedIn) {
+                    // 动态检查登陆状态，而不仅依赖传入的 isLoggedIn
+                    const loggedIn = await Services.IsLoggedIn();
+                    if (!loggedIn) {
                         notifications.show({ title: "需要登录", message: "", color: "blue" });
                         openModal("loginModal");
                         return;

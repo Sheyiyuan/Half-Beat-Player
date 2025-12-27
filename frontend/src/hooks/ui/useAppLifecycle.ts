@@ -170,9 +170,9 @@ export const useAppLifecycle = ({
 
                 const loggedIn = await Services.IsLoggedIn();
                 setIsLoggedIn(loggedIn);
-                if (!loggedIn) {
-                    openModal("loginModal");
-                } else {
+                // 仅记录登陆状态，不自动弹出登陆模态框
+                // 需要登陆时由具体功能模块在操作时主动弹出
+                if (loggedIn) {
                     try {
                         const info = await Services.GetUserInfo();
                         setUserInfo(info);

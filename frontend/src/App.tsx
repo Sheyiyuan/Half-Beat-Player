@@ -503,6 +503,9 @@ const App: React.FC = () => {
         playNext,
     });
 
+    // ========== 设置弹窗动作 ==========
+    const myFavoriteImport = favoriteActions.myFavoriteImport;
+
     // ========== 应用级 Handler 聚合（来自 useAppHandlers Hook）==========
     const handlers = useAppHandlers({
         // 主题编辑器
@@ -533,6 +536,8 @@ const App: React.FC = () => {
         setImportFid,
         openModal,
         setConfirmDeleteFavId,
+        // 我的收藏导入
+        myFavoriteImport,
         // 跳过区间处理
         skipIntervalHandler,
         // 歌曲更新
@@ -614,6 +619,12 @@ const App: React.FC = () => {
         handleClearAllCache,
         handleConfirmBVAdd,
     } = handlers;
+
+    // 包装 handleLoginSuccess，在登陆成功后也清空收藏夹列表
+    const onLoginSuccess = async () => {
+        myFavoriteImport.clearCollections?.();
+        await handleLoginSuccess();
+    };
 
     const { topBarProps, mainLayoutProps, controlsPanelProps } = useAppPanelsProps({
         userInfo,
@@ -704,10 +715,6 @@ const App: React.FC = () => {
         };
     }, [backgroundWithOpacity, backgroundImageUrl]);
 
-    // ========== 设置弹窗动作 ==========
-
-    const myFavoriteImport = favoriteActions.myFavoriteImport;
-
     const appModalsProps: AppModalsProps = {
         modals,
         themes,
@@ -777,7 +784,7 @@ const App: React.FC = () => {
         editingFavName,
         onEditingFavNameChange: setEditingFavName,
         onSaveEditFavorite: handleSaveEditFavorite,
-        onLoginSuccess: handleLoginSuccess,
+        onLoginSuccess: onLoginSuccess,
         onClearLoginCache: handleClearLoginCache,
         onClearThemeCache: handleClearThemeCache,
         onOpenDownloadsFolder: handleOpenDownloadsFolder,

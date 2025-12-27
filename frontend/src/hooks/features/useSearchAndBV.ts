@@ -135,22 +135,7 @@ export const useSearchAndBV = ({
             let sortedResults: Song[] = [];
 
             try {
-                const loggedIn = await Services.IsLoggedIn();
-                setIsLoggedIn(loggedIn);
-                if (!loggedIn) {
-                    notifications.update({
-                        id: toastId,
-                        title: "需要登录",
-                        message: "请先通过扫码登录",
-                        color: "blue",
-                        loading: false,
-                        autoClose: 3000,
-                    });
-                    openModal("loginModal");
-                    setGlobalSearchTerm("");
-                    return;
-                }
-
+                // BV 号解析不需要登陆，B站 API 是公开的
                 const searchResults = await Services.SearchBVID(bvid);
                 sortedResults = [...searchResults].sort((a, b) => {
                     const aRemote = !a.id || a.id.trim() === "";
