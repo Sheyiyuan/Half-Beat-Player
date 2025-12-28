@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	"tomorin-player/internal/models"
+	"half-beat-player/internal/models"
 )
 
 // GetMyFavoriteCollections 获取当前登录用户的收藏夹列表

@@ -47,7 +47,7 @@ export const useSkipIntervalHandler = ({
 
         // 4. 立即写入 localStorage 缓存
         try {
-            const cacheKey = `tomorin.song.${updated.id}`;
+            const cacheKey = `half-beat.song.${updated.id}`;
             localStorage.setItem(cacheKey, JSON.stringify({
                 skipStartTime: updated.skipStartTime,
                 skipEndTime: updated.skipEndTime,

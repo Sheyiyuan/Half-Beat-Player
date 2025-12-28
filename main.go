@@ -7,10 +7,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"tomorin-player/internal/db"
-	"tomorin-player/internal/models"
-	"tomorin-player/internal/proxy"
-	"tomorin-player/internal/services"
+	"half-beat-player/internal/db"
+	"half-beat-player/internal/models"
+	"half-beat-player/internal/proxy"
+	"half-beat-player/internal/services"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/logger"
@@ -37,7 +37,7 @@ func resolveDataDir() string {
 		return filepath.Join("app_data")
 	}
 
-	dir := filepath.Join(configDir, "Tomorin Player", "app_data")
+	dir := filepath.Join(configDir, "half-beat", "app_data")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		// Fallback to relative directory if creation fails
 		return filepath.Join("app_data")
@@ -48,7 +48,7 @@ func resolveDataDir() string {
 
 func run() error {
 	dataDir := resolveDataDir()
-	dbPath := filepath.Join(dataDir, "tomorin.db")
+	dbPath := filepath.Join(dataDir, "half-beat.db")
 
 	gormDB, err := db.Open(dbPath, func(gdb *gorm.DB) error {
 		// 标准迁移
@@ -76,7 +76,7 @@ func run() error {
 	audioProxy = proxy.NewAudioProxy(9999, backend.GetHTTPClient(), dataDir)
 
 	return wails.Run(&options.App{
-		Title:  "Tomorin Player",
+		Title:  "half-beat",
 		Width:  1280,
 		Height: 800,
 		AssetServer: &assetserver.Options{

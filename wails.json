@@ -1,13 +1,13 @@
 {
     "$schema": "https://wails.io/schemas/config.v2.json",
-    "name": "Tomorin Player",
+    "name": "half-beat",
     "description": "更好的 bilibili 音乐播放器",
     "author": {
         "name": "Sheyiyuan",
         "email": "sheyiyuantan90@qq.com"
     },
     "version": "2",
-    "outputfilename": "tomorin-player",
+    "outputfilename": "half-beat",
     "build": {
         "frontend": {
             "dir": "frontend",
@@ -38,7 +38,7 @@
         "icon": "build/windows/icon.ico",
         "info": {
             "productVersion": "${APP_VERSION}",
-            "productName": "Tomorin Player",
+            "productName": "half-beat",
             "companyName": "Sheyiyuan",
             "copyright": "Copyright © 2025 Sheyiyuan",
             "comments": "基于 B站 API 的音乐播放器"
@@ -46,7 +46,7 @@
     },
     "info": {
         "productVersion": "${APP_VERSION}",
-        "productName": "Tomorin Player",
+        "productName": "half-beat",
         "companyName": "Sheyiyuan",
         "copyright": "Copyright © 2025 Sheyiyuan",
         "comments": "基于 B站 API 的音乐播放器"

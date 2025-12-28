@@ -41,7 +41,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         >
             <Stack gap="md">
                 <Text fw={600}>软件信息</Text>
-                <Text>Tomorin Player v{appVersion}</Text>
+                <Text>half-beat v{appVersion}</Text>
                 <Text size="sm" c="dimmed">更好的 bilibili 音乐播放器</Text>
 
                 <Text fw={600} mt="sm">缓存</Text>

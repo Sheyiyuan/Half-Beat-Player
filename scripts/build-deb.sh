@@ -5,7 +5,7 @@ set -euo pipefail
 # Usage: scripts/build-deb.sh [VERSION]
 # If VERSION is omitted, tries to read from frontend/package.json
 
-APP_NAME="tomorin-player"
+APP_NAME="half-beat"
 # 优先使用环境变量 APP_VERSION；其次命令行参数；最后从 frontend/package.json 读取
 VERSION=${APP_VERSION:-${1:-}}
 
@@ -72,19 +72,19 @@ install -m 0644 assets/icons/appicon-256.png "${DEB_DIR}/usr/share/icons/hicolor
 install -m 0644 assets/icons/appicon-256.png "${DEB_DIR}/usr/share/pixmaps/${APP_NAME}.png"
 
 # Generate desktop entry on the fly (avoid missing template path in CI)
-cat > "${DEB_DIR}/usr/share/applications/tomorin-player.desktop" << 'EOF'
+cat > "${DEB_DIR}/usr/share/applications/half-beat.desktop" << 'EOF'
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Tomorin Player
+Name=half-beat
 Comment=更好的 bilibili 音乐播放器
-Exec=tomorin-player
-Icon=tomorin-player
+Exec=half-beat
+Icon=half-beat
 Categories=AudioVideo;Audio;Player;
 Terminal=false
 StartupNotify=true
 EOF
-chmod 0644 "${DEB_DIR}/usr/share/applications/tomorin-player.desktop"
+chmod 0644 "${DEB_DIR}/usr/share/applications/half-beat.desktop"
 
 cat > "${DEB_DIR}/DEBIAN/control" << EOF
 Package: ${APP_NAME}

@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="assets/icons/appicon-256.png" alt="Tomorin Player Icon" width="120" height="120" />
+<img src="assets/icons/appicon-256.png" alt="Half Beat Player Icon" width="120" height="120" />
 
-# Tomorin Player
+# Half Beat Player
 
-**基于 B站 API 的音乐播放器**
+**基于 B站 API 的音乐播放器，实现电脑上的「听视频」自由**
 
 _使用 Wails v2 构建的跨平台桌面应用_
 
@@ -20,7 +20,7 @@ _使用 Wails v2 构建的跨平台桌面应用_
 
 <div align="center">
 
-Tomorin Player 是一款轻量的的音乐播放器。采用现代化技术栈构建，提供流畅的用户体验。
+half-beat 是一款轻量的的音乐播放器。采用现代化技术栈构建，提供流畅的用户体验。
 
 支持 B 站扫码登录、BV 号解析、收藏夹导入、歌单管理等功能。
 

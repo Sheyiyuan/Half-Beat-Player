@@ -47,15 +47,15 @@ trap 'mv -f "$BACKUP_WAILS_JSON" wails.json 2>/dev/null || true' EXIT
 
 # Optional: create DMG if create-dmg is available
 if command -v create-dmg >/dev/null; then
-  APP_PATH="build/bin/Tomorin Player.app"
-  DMG_PATH="build/bin/Tomorin-Player-${APP_VERSION}.dmg"
+  APP_PATH="build/bin/half-beat.app"
+  DMG_PATH="build/bin/half-beat-${APP_VERSION}.dmg"
   create-dmg \
-    --volname "Tomorin Player" \
+    --volname "half-beat" \
     --window-pos 200 120 \
     --window-size 800 400 \
     --icon-size 100 \
-    --icon "Tomorin Player.app" 200 190 \
-    --hide-extension "Tomorin Player.app" \
+    --icon "half-beat.app" 200 190 \
+    --hide-extension "half-beat.app" \
     --app-drop-link 600 185 \
     "$DMG_PATH" \
     "$APP_PATH" || true

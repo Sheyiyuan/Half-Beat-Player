@@ -91,8 +91,8 @@ export const useSettingsPersistence = ({
                 await persistSettings({});
             } catch { }
             try {
-                localStorage.removeItem("tomorin.userInfo");
-                localStorage.removeItem("tomorin.customThemes");
+                localStorage.removeItem("half-beat.userInfo");
+                localStorage.removeItem("half-beat.customThemes");
             } catch { }
         };
         window.addEventListener("beforeunload", handleBeforeUnload);

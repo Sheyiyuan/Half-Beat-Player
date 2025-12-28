@@ -1,4 +1,4 @@
-# Tomorin Player - Debian/Ubuntu 打包指南
+# half-beat - Debian/Ubuntu 打包指南
 
 本项目提供脚本化的 Debian 打包流程，所有版本号均由环境变量或 Tag 注入。
 
@@ -42,7 +42,7 @@ scripts/build-deb.sh
 ## 安装测试
 
 ```bash
-sudo dpkg -i build/deb/tomorin-player_1.2.3_amd64.deb
+sudo dpkg -i build/deb/half-beat_1.2.3_amd64.deb
 # 如有依赖问题：
 sudo apt-get install -f
 ```
@@ -57,8 +57,8 @@ sudo apt-get install -f
 
 ```bash
 # 查看控制信息
-dpkg-deb -I build/deb/tomorin-player_1.2.3_amd64.deb
+dpkg-deb -I build/deb/half-beat_1.2.3_amd64.deb
 # 列出文件
-dpkg-deb -c build/deb/tomorin-player_1.2.3_amd64.deb
+dpkg-deb -c build/deb/half-beat_1.2.3_amd64.deb
 ```
 

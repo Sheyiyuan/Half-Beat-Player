@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"tomorin-player/internal/models"
+	"half-beat-player/internal/models"
 )
 
 // PlayInfo holds resolved playback info.

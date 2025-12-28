@@ -1,9 +1,9 @@
-# Tomorin Player - Windows 安装与运行
+# half-beat - Windows 安装与运行
 
 ## 安装方式
 
-- 安装程序（推荐）：下载并运行 `Tomorin Player-amd64-installer.exe`
-- 绿色版：下载并直接运行 `tomorin-player.exe`
+- 安装程序（推荐）：下载并运行 `half-beat-amd64-installer.exe`
+- 绿色版：下载并直接运行 `half-beat.exe`
 
 ## 系统要求
 
@@ -35,7 +35,7 @@
 
 ```cmd
 cd <安装目录>
-tomorin-player.exe
+half-beat.exe
 ```
 
 ## 开发/构建说明（给开发者）

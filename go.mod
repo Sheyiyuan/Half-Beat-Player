@@ -1,4 +1,4 @@
-module tomorin-player
+module half-beat-player
 
 go 1.22.0
 

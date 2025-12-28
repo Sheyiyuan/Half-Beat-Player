@@ -1,4 +1,4 @@
-# Tomorin Player - macOS 构建与安装
+# half-beat - macOS 构建与安装
 
 ## 系统要求
 - macOS 12+（Intel/Apple Silicon）
@@ -21,7 +21,7 @@ scripts/build-macos.sh -c
 脚本行为：
 - 使用 `APP_VERSION`/`VITE_APP_VERSION` 注入版本
 - 执行 `wails build -platform darwin/universal`
-- 如安装了 `create-dmg`，会尝试生成 DMG：`build/bin/Tomorin-Player-<version>.dmg`
+- 如安装了 `create-dmg`，会尝试生成 DMG：`build/bin/half-beat-<version>.dmg`
 
 ## 安装
 - `.app` 直接拖入 `/Applications`

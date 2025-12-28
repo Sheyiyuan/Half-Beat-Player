@@ -1,8 +1,8 @@
-# Tomorin Player - GitHub Copilot 指令
+# half-beat - GitHub Copilot 指令
 
 ## 项目概述
 
-**Tomorin Player** 是一个基于 B站 API 的音乐播放器，采用 Wails 框架构建桌面应用。
+**half-beat** 是一个基于 B站 API 的音乐播放器，采用 Wails 框架构建桌面应用。
 
 - **语言**: Go (后端) + TypeScript/React (前端)
 - **框架**: Wails v2, React 18, Mantine v8

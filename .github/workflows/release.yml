@@ -111,7 +111,7 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: tomorin-player-${{ steps.version.outputs.version }}
+          name: half-beat-${{ steps.version.outputs.version }}
           path: |
             build/deb/*.deb
             build/rpm/*.rpm
@@ -188,7 +188,7 @@ jobs:
       - name: Upload Artifacts (macOS)
         uses: actions/upload-artifact@v4
         with:
-          name: tomorin-player-macos-${{ steps.version.outputs.version }}
+          name: half-beat-macos-${{ steps.version.outputs.version }}
           path: |
             build/bin/*.dmg
             build/bin/*.app

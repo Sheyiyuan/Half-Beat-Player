@@ -23,7 +23,7 @@ export const useLoginHandlers = ({ closeModal, setUserInfo, setStatus }: UseLogi
                 vipType: (info as any).vip_type || (info as any).vipType || 0,
             };
             setUserInfo(mappedInfo);
-            localStorage.setItem('tomorin.userInfo', JSON.stringify(mappedInfo));
+            localStorage.setItem('half-beat.userInfo', JSON.stringify(mappedInfo));
             setStatus(`已登录: ${mappedInfo.username}`);
             notifications.show({
                 title: '登录成功',

@@ -3,9 +3,9 @@
  */
 
 export const STORAGE_KEYS = {
-    USER_INFO: 'tomorin.userInfo',
-    CUSTOM_THEMES: 'tomorin.customThemes',
-    SONG_CACHE_PREFIX: 'tomorin.song.',
+    USER_INFO: 'half-beat.userInfo',
+    CUSTOM_THEMES: 'half-beat.customThemes',
+    SONG_CACHE_PREFIX: 'half-beat.song.',
 } as const;
 
 export const storage = {

@@ -35,7 +35,7 @@ export const TopBar: React.FC<TopBarProps> = ({
     const handleLogout = async () => {
         try {
             await Services.Logout();
-            localStorage.removeItem("tomorin.userInfo");
+            localStorage.removeItem("half-beat.userInfo");
             onLogout();
             notifications.show({
                 title: "已退出",

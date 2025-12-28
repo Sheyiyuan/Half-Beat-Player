@@ -13,24 +13,24 @@
 ### Windows
 - **架构**: amd64
 - **产物**: `.exe` 可执行文件
-- **位置**: `artifacts/tomorin-windows-amd64/`
+- **位置**: `artifacts/half-beat-windows-amd64/`
 
 ### macOS
 - **架构**: amd64 (Intel), arm64 (Apple Silicon)
 - **产物**: `.dmg` 安装镜像
 - **位置**: 
-  - `artifacts/tomorin-macos-darwin-amd64/`
-  - `artifacts/tomorin-macos-darwin-arm64/`
+  - `artifacts/half-beat-macos-darwin-amd64/`
+  - `artifacts/half-beat-macos-darwin-arm64/`
 
 ### Linux
 - **架构**: amd64, arm64
 - **产物**: 
-  - 二进制文件 (`tomorin-player`)
+  - 二进制文件 (`half-beat`)
   - DEB 安装包 (Debian/Ubuntu)
   - RPM 安装包 (RHEL/Fedora/openSUSE)
 - **位置**:
-  - `artifacts/tomorin-linux-linux-amd64/`
-  - `artifacts/tomorin-linux-linux-arm64/`
+  - `artifacts/half-beat-linux-linux-amd64/`
+  - `artifacts/half-beat-linux-linux-arm64/`
 
 ## 发布流程
 

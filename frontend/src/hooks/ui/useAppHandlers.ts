@@ -292,7 +292,7 @@ export const useAppHandlers = (config: {
             await Services.Logout();
         } catch { }
         try {
-            localStorage.removeItem("tomorin.userInfo");
+            localStorage.removeItem("half-beat.userInfo");
         } catch { }
         // 清空我的收藏夹列表缓存
         config.myFavoriteImport?.clearCollections?.();
@@ -306,7 +306,7 @@ export const useAppHandlers = (config: {
 
     const handleClearThemeCache = () => {
         try {
-            localStorage.removeItem("tomorin.customThemes");
+            localStorage.removeItem("half-beat.customThemes");
             saveCachedCustomThemes([]);
         } catch { }
         notifications.show({

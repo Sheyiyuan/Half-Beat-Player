@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"tomorin-player/internal/models"
+	"half-beat-player/internal/models"
 
 	"gorm.io/gorm"
 )

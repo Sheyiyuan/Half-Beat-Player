@@ -79,7 +79,7 @@ export const useAppLifecycle = ({
         }
 
         try {
-            const cachedUserInfo = localStorage.getItem("tomorin.userInfo");
+            const cachedUserInfo = localStorage.getItem("half-beat.userInfo");
             if (cachedUserInfo) {
                 setUserInfo(JSON.parse(cachedUserInfo));
             }
@@ -94,7 +94,7 @@ export const useAppLifecycle = ({
                     Services.GetUserInfo()
                         .then((info) => {
                             setUserInfo(info);
-                            localStorage.setItem("tomorin.userInfo", JSON.stringify(info));
+                            localStorage.setItem("half-beat.userInfo", JSON.stringify(info));
                         })
                         .catch((err) => console.warn("自动获取用户信息失败:", err));
                 }
@@ -177,7 +177,7 @@ export const useAppLifecycle = ({
                     try {
                         const info = await Services.GetUserInfo();
                         setUserInfo(info);
-                        localStorage.setItem("tomorin.userInfo", JSON.stringify(info));
+                        localStorage.setItem("half-beat.userInfo", JSON.stringify(info));
                     } catch (e) {
                         console.warn("获取用户信息失败:", e);
                     }
@@ -196,7 +196,7 @@ export const useAppLifecycle = ({
 
                 const songsWithCache = convertSongs(songList).map((song) => {
                     try {
-                        const cacheKey = `tomorin.song.${song.id}`;
+                        const cacheKey = `half-beat.song.${song.id}`;
                         const cached = localStorage.getItem(cacheKey);
                         if (cached) {
                             const cacheData = JSON.parse(cached);

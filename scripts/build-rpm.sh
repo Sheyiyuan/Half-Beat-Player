@@ -5,7 +5,7 @@ set -euo pipefail
 # Usage: APP_VERSION=1.2.3 scripts/build-rpm.sh
 # Requirements: fpm, rpm, jq, wails, ImageMagick (for icon resize), gtk/webkit dev packages
 
-APP_NAME="tomorin-player"
+APP_NAME="half-beat"
 APP_VERSION=${APP_VERSION:-}
 
 if [[ -z "$APP_VERSION" ]]; then
@@ -59,10 +59,10 @@ cat > "$ROOT/usr/share/applications/${APP_NAME}.desktop" <<'EOF'
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Tomorin Player
+Name=half-beat
 Comment=更好的 bilibili 音乐播放器
-Exec=tomorin-player
-Icon=tomorin-player
+Exec=half-beat
+Icon=half-beat
 Categories=AudioVideo;Audio;Player;
 Terminal=false
 StartupNotify=true

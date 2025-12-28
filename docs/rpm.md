@@ -1,4 +1,4 @@
-# Tomorin Player - RPM 打包指南
+# half-beat - RPM 打包指南
 
 ## 目标
 为基于 RPM 的发行版（如 Fedora / openSUSE）生成安装包。版本号由 `APP_VERSION` 环境变量（或 `frontend/package.json`）注入。
@@ -29,7 +29,7 @@ scripts/build-rpm.sh
 - 优先使用 `APP_VERSION`，否则读取 `frontend/package.json`
 - 注入 `VITE_APP_VERSION`，调用 `wails build -platform linux/amd64`
 - 使用 fpm 生成 RPM：输出目录 `build/rpm`
-- 安装路径：`/usr/bin/tomorin-player`，图标放入 hicolor 与 pixmaps
+- 安装路径：`/usr/bin/half-beat`，图标放入 hicolor 与 pixmaps
 
 ## 依赖声明
 - `gtk3`
@@ -37,11 +37,11 @@ scripts/build-rpm.sh
 
 ## 验证
 ```bash
-rpm -qlp build/rpm/tomorin-player-*.rpm
+rpm -qlp build/rpm/half-beat-*.rpm
 ```
 
 ## 安装
 ```bash
-sudo rpm -ivh build/rpm/tomorin-player-*.rpm
+sudo rpm -ivh build/rpm/half-beat-*.rpm
 ```
 

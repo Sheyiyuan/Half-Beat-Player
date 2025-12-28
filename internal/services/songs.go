@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"tomorin-player/internal/models"
+	"half-beat-player/internal/models"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
