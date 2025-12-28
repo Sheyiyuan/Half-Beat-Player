@@ -1,21 +1,24 @@
 package services
 
 import (
-    "net"
-    "net/http"
-    "net/http/cookiejar"
-    "os"
-    "time"
+	"context"
+	"net"
+	"net/http"
+	"net/http/cookiejar"
+	"os"
+	"time"
 
-    "gorm.io/gorm"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
+	"gorm.io/gorm"
 )
 
 // Service exposes backend operations to the Wails frontend.
 type Service struct {
-    db         *gorm.DB
-    cookieJar  http.CookieJar
-    httpClient *http.Client
-    dataDir    string // 数据目录用于存储 cookie
+	db         *gorm.DB
+	cookieJar  http.CookieJar
+	httpClient *http.Client
+	dataDir    string // 数据目录用于存储 cookie
+	appCtx     context.Context
 }
 
 func NewService(db *gorm.DB, dataDir string) *Service {
@@ -56,5 +59,46 @@ func NewService(db *gorm.DB, dataDir string) *Service {
 }
 
 func (s *Service) GetHTTPClient() *http.Client {
-    return s.httpClient
+	return s.httpClient
+}
+
+func (s *Service) SetAppContext(ctx context.Context) {
+	s.appCtx = ctx
+}
+
+// 窗口控制方法
+func (s *Service) MinimiseWindow() {
+	if s.appCtx != nil {
+		runtime.WindowMinimise(s.appCtx)
+	}
+}
+
+func (s *Service) MaximizeWindow() {
+	if s.appCtx != nil {
+		runtime.WindowMaximise(s.appCtx)
+	}
+}
+
+func (s *Service) UnmaximizeWindow() {
+	if s.appCtx != nil {
+		runtime.WindowUnmaximise(s.appCtx)
+	}
+}
+
+func (s *Service) IsWindowMaximized() bool {
+	if s.appCtx != nil {
+		return runtime.WindowIsMaximised(s.appCtx)
+	}
+	return false
+}
+
+func (s *Service) CloseWindow() {
+	if s.appCtx != nil {
+		runtime.Quit(s.appCtx)
+	}
+}
+
+func (s *Service) DragWindow() {
+	// 无边框窗口的拖拽由前端 CSS 处理（-webkit-app-region: drag）
+	// 这个方法只是占位，实际拖拽逻辑在 TopBar.tsx 中通过 CSS 实现
 }

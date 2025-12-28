@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { ActionIcon, Button, Group, Text } from "@mantine/core";
 import { Palette, Search, Settings as SettingsIcon } from "lucide-react";
 import { notifications } from "@mantine/notifications";
 import * as Services from "../../wailsjs/go/services/Service";
 import { useThemeContext } from "../context";
+import { WindowControls } from "./WindowControls";
 
 interface UserInfo {
     username: string;
@@ -32,6 +33,33 @@ export const TopBar: React.FC<TopBarProps> = ({
 }) => {
     const { state: themeState } = useThemeContext();
     const { themeColor } = themeState;
+    const dragAreaRef = useRef<HTMLDivElement>(null);
+
+    // 实现窗口拖拽功能
+    useEffect(() => {
+        const dragArea = dragAreaRef.current;
+        if (!dragArea) return;
+
+        const handleMouseDown = (e: MouseEvent) => {
+            // 检查点击是否在可拖拽区域（hitokoto 文本区域）
+            if ((e.target as HTMLElement).closest(".window-control")) {
+                return;
+            }
+            if ((e.target as HTMLElement).closest("button") || (e.target as HTMLElement).closest("[role='button']")) {
+                return;
+            }
+
+            // 调用后端拖拽方法
+            Services.DragWindow();
+        };
+
+        dragArea.addEventListener("mousedown", handleMouseDown);
+
+        return () => {
+            dragArea.removeEventListener("mousedown", handleMouseDown);
+        };
+    }, []);
+
     const handleLogout = async () => {
         try {
             await Services.Logout();
@@ -52,21 +80,37 @@ export const TopBar: React.FC<TopBarProps> = ({
     };
 
     return (
-        <Group justify="space-between" align="center">
-            <ActionIcon
-                variant="default"
-                size="lg"
-                onClick={onSearchClick}
-                title="搜索视频 (BV 号或链接)"
+        <Group justify="space-between" align="center" style={{ minHeight: "52px", padding: "8px 12px", flex: "0 0 auto" }} wrap="nowrap">
+            <div style={{ flex: 0 }}>
+                <ActionIcon
+                    variant="default"
+                    size="lg"
+                    onClick={onSearchClick}
+                    title="搜索视频 (BV 号或链接)"
+                >
+                    <Search size={16} />
+                </ActionIcon>
+            </div>
+
+            <div
+                ref={dragAreaRef}
+                style={{
+                    flex: 1,
+                    textAlign: "center",
+                    cursor: "grab",
+                    userSelect: "none",
+                    WebkitUserSelect: "none",
+                    WebkitAppRegion: "drag" as any,
+                }}
             >
-                <Search size={16} />
-            </ActionIcon>
-            <Text size="sm" c="dimmed" style={{ textAlign: "center", flex: 1 }}>
-                {hitokoto}
-            </Text>
-            <Group gap="xs">
+                <Text size="sm" c="dimmed" style={{ textAlign: "center" }}>
+                    {hitokoto}
+                </Text>
+            </div>
+
+            <Group gap="xs" style={{ flex: 0 }} wrap="nowrap">
                 {userInfo ? (
-                    <Group gap="xs">
+                    <Group gap="xs" wrap="nowrap">
                         <img
                             src={userInfo.face}
                             alt={userInfo.username}
@@ -116,6 +160,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 >
                     <SettingsIcon size={16} />
                 </ActionIcon>
+                <WindowControls />
             </Group>
         </Group>
     );

@@ -76,15 +76,17 @@ func run() error {
 	audioProxy = proxy.NewAudioProxy(9999, backend.GetHTTPClient(), dataDir)
 
 	return wails.Run(&options.App{
-		Title:  "half-beat",
-		Width:  1280,
-		Height: 800,
+		Title:      "half-beat",
+		Width:      1280,
+		Height:     800,
+		Frameless:  true,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
 		Logger:           logger.NewDefaultLogger(),
 		BackgroundColour: &options.RGBA{R: 30, G: 30, B: 30, A: 1},
 		OnStartup: func(ctx context.Context) {
+			backend.SetAppContext(ctx)
 			// Start audio proxy on app startup
 			if err := audioProxy.Start(); err != nil {
 				log.Printf("Failed to start audio proxy: %v", err)

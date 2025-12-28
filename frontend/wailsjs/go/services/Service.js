@@ -10,6 +10,10 @@ export function ClearLibrary() {
   return window['go']['services']['Service']['ClearLibrary']();
 }
 
+export function CloseWindow() {
+  return window['go']['services']['Service']['CloseWindow']();
+}
+
 export function CreateStreamSource(arg1, arg2, arg3) {
   return window['go']['services']['Service']['CreateStreamSource'](arg1, arg2, arg3);
 }
@@ -40,6 +44,10 @@ export function DeleteUnreferencedSongs() {
 
 export function DownloadSong(arg1) {
   return window['go']['services']['Service']['DownloadSong'](arg1);
+}
+
+export function DragWindow() {
+  return window['go']['services']['Service']['DragWindow']();
 }
 
 export function ExportData() {
@@ -114,6 +122,10 @@ export function IsSongDownloaded(arg1) {
   return window['go']['services']['Service']['IsSongDownloaded'](arg1);
 }
 
+export function IsWindowMaximized() {
+  return window['go']['services']['Service']['IsWindowMaximized']();
+}
+
 export function ListFavorites() {
   return window['go']['services']['Service']['ListFavorites']();
 }
@@ -124,6 +136,14 @@ export function ListSongs() {
 
 export function Logout() {
   return window['go']['services']['Service']['Logout']();
+}
+
+export function MaximizeWindow() {
+  return window['go']['services']['Service']['MaximizeWindow']();
+}
+
+export function MinimiseWindow() {
+  return window['go']['services']['Service']['MinimiseWindow']();
 }
 
 export function OpenAudioCacheFolder() {
@@ -182,8 +202,16 @@ export function Seed() {
   return window['go']['services']['Service']['Seed']();
 }
 
+export function SetAppContext(arg1) {
+  return window['go']['services']['Service']['SetAppContext'](arg1);
+}
+
 export function SetCurrentTheme(arg1) {
   return window['go']['services']['Service']['SetCurrentTheme'](arg1);
+}
+
+export function UnmaximizeWindow() {
+  return window['go']['services']['Service']['UnmaximizeWindow']();
 }
 
 export function UpdateTheme(arg1) {

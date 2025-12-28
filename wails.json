@@ -32,7 +32,8 @@
     },
     "platform": "linux",
     "linux": {
-        "icon": "assets/icons/appicon.png"
+        "icon": "assets/icons/appicon.png",
+        "windowIsTranslucent": false
     },
     "windows": {
         "icon": "build/windows/icon.ico",

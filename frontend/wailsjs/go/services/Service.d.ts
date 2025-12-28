@@ -4,10 +4,13 @@ import {time} from '../models';
 import {models} from '../models';
 import {services} from '../models';
 import {http} from '../models';
+import {context} from '../models';
 
 export function ClearAudioCache():Promise<void>;
 
 export function ClearLibrary():Promise<void>;
+
+export function CloseWindow():Promise<void>;
 
 export function CreateStreamSource(arg1:string,arg2:string,arg3:time.Time):Promise<string>;
 
@@ -24,6 +27,8 @@ export function DeleteTheme(arg1:string):Promise<void>;
 export function DeleteUnreferencedSongs():Promise<number>;
 
 export function DownloadSong(arg1:string):Promise<string>;
+
+export function DragWindow():Promise<void>;
 
 export function ExportData():Promise<services.ExportData>;
 
@@ -61,11 +66,17 @@ export function IsLoggedIn():Promise<boolean>;
 
 export function IsSongDownloaded(arg1:string):Promise<boolean>;
 
+export function IsWindowMaximized():Promise<boolean>;
+
 export function ListFavorites():Promise<Array<models.Favorite>>;
 
 export function ListSongs():Promise<Array<models.Song>>;
 
 export function Logout():Promise<void>;
+
+export function MaximizeWindow():Promise<void>;
+
+export function MinimiseWindow():Promise<void>;
 
 export function OpenAudioCacheFolder():Promise<void>;
 
@@ -95,7 +106,11 @@ export function SearchLocalSongs(arg1:string):Promise<Array<models.Song>>;
 
 export function Seed():Promise<void>;
 
+export function SetAppContext(arg1:context.Context):Promise<void>;
+
 export function SetCurrentTheme(arg1:string):Promise<void>;
+
+export function UnmaximizeWindow():Promise<void>;
 
 export function UpdateTheme(arg1:models.Theme):Promise<void>;
 
