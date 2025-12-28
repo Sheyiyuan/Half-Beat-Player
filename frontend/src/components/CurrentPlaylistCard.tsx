@@ -5,6 +5,7 @@ import { Favorite, Song } from "../types";
 
 export type CurrentPlaylistCardProps = {
     panelBackground: string;
+    panelStyles: React.CSSProperties;
     currentFav: Favorite | null;
     currentFavSongs: Song[];
     currentSongId?: string | null;
@@ -25,6 +26,7 @@ export type CurrentPlaylistCardProps = {
 
 const CurrentPlaylistCard: React.FC<CurrentPlaylistCardProps> = ({
     panelBackground,
+    panelStyles,
     currentFav,
     currentFavSongs,
     currentSongId,
@@ -52,7 +54,7 @@ const CurrentPlaylistCard: React.FC<CurrentPlaylistCardProps> = ({
         : currentFavSongs;
 
     return (
-        <Card flex={1} shadow="sm" padding="md" radius="md" withBorder miw={0} h="100%" style={{ minHeight: 0, backgroundColor: panelBackground, display: "flex", flexDirection: "column" }}>
+        <Card flex={1} shadow="sm" padding="md" withBorder miw={0} h="100%" className="glass-panel" style={{ ...panelStyles, minHeight: 0, backgroundColor: panelBackground, display: "flex", flexDirection: "column" }}>
             <Group justify="space-between" mb="sm">
                 <Text fw={600} size="sm">{currentFav?.title || "选择歌单"}</Text>
                 <Group gap="xs">

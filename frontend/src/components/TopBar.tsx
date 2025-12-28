@@ -15,21 +15,27 @@ interface UserInfo {
 interface TopBarProps {
     userInfo: UserInfo | null;
     hitokoto: string;
+    panelBackground: string;
+    panelStyles: React.CSSProperties;
     onSearchClick: () => void;
     onThemeClick: () => void;
     onSettingsClick: () => void;
     onLoginClick: () => void;
     onLogout: () => void;
+    windowControlsPos?: string;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
     userInfo,
     hitokoto,
+    panelBackground,
+    panelStyles,
     onSearchClick,
     onThemeClick,
     onSettingsClick,
     onLoginClick,
     onLogout,
+    windowControlsPos = 'right',
 }) => {
     const { state: themeState } = useThemeContext();
     const { themeColor } = themeState;
@@ -80,8 +86,22 @@ export const TopBar: React.FC<TopBarProps> = ({
     };
 
     return (
-        <Group justify="space-between" align="center" style={{ minHeight: "52px", padding: "8px 12px", flex: "0 0 auto" }} wrap="nowrap">
-            <div style={{ flex: 0 }}>
+        <Group
+            justify="space-between"
+            align="center"
+            className="glass-panel"
+            style={{
+                ...panelStyles,
+                minHeight: "52px",
+                padding: "8px 12px",
+                flex: "0 0 auto",
+                backgroundColor: panelBackground,
+                border: "1px solid var(--mantine-color-default-border)",
+            }}
+            wrap="nowrap"
+        >
+            <div style={{ flex: 0, display: "flex", alignItems: "center", gap: "4px" }}>
+                {windowControlsPos === 'left' && <WindowControls />}
                 <ActionIcon
                     variant="default"
                     size="lg"
@@ -100,8 +120,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                     cursor: "grab",
                     userSelect: "none",
                     WebkitUserSelect: "none",
-                    WebkitAppRegion: "drag" as any,
-                }}
+                } as React.CSSProperties}
             >
                 <Text size="sm" c="dimmed" style={{ textAlign: "center" }}>
                     {hitokoto}
@@ -138,6 +157,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                     <Button
                         size="xs"
                         variant="light"
+                        color={themeColor}
                         onClick={onLoginClick}
                         title="登录 B 站账号以获取高质量音频"
                     >
@@ -160,7 +180,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 >
                     <SettingsIcon size={16} />
                 </ActionIcon>
-                <WindowControls />
+                {windowControlsPos === 'right' && <WindowControls />}
             </Group>
         </Group>
     );

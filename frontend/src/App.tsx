@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Box, useMantineColorScheme } from "@mantine/core";
+import { Box, useMantineColorScheme, MantineProvider, createTheme } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import * as Services from "../wailsjs/go/services/Service";
 import { Favorite, LyricMapping, PlayerSetting, Song, Theme } from "./types";
@@ -54,11 +54,11 @@ const App: React.FC = () => {
     const { state: themeState, actions: themeActions } = useThemeContext();
     const {
         themes, currentThemeId, themeColor, backgroundColor, backgroundOpacity,
-        backgroundImageUrl, panelColor, panelOpacity, computedColorScheme,
+        backgroundImageUrl, backgroundBlur, panelColor, panelOpacity, panelBlur, panelRadius, componentRadius, coverRadius, windowControlsPos, computedColorScheme,
     } = themeState;
     const {
         setThemes, setCurrentThemeId, setThemeColor, setBackgroundColor,
-        setBackgroundOpacity, setBackgroundImageUrl, setPanelColor, setPanelOpacity,
+        setBackgroundOpacity, setBackgroundImageUrl, setBackgroundBlur, setPanelColor, setPanelOpacity, setPanelBlur, setPanelRadius, setComponentRadius, setCoverRadius, setWindowControlsPos,
         applyTheme, setBackgroundImageUrlSafe,
     } = themeActions;
 
@@ -136,8 +136,14 @@ const App: React.FC = () => {
     const [backgroundColorDraft, setBackgroundColorDraft] = useState<string>(computedColorScheme === "dark" ? "#0b1021" : "#f8fafc");
     const [backgroundOpacityDraft, setBackgroundOpacityDraft] = useState<number>(1);
     const [backgroundImageUrlDraft, setBackgroundImageUrlDraft] = useState<string>("");
+    const [backgroundBlurDraft, setBackgroundBlurDraft] = useState<number>(0);
     const [panelOpacityDraft, setPanelOpacityDraft] = useState<number>(0.92);
     const [panelColorDraft, setPanelColorDraft] = useState<string>("#ffffff");
+    const [panelBlurDraft, setPanelBlurDraft] = useState<number>(0);
+    const [panelRadiusDraft, setPanelRadiusDraft] = useState<number>(8);
+    const [componentRadiusDraft, setComponentRadiusDraft] = useState<number>(8);
+    const [coverRadiusDraft, setCoverRadiusDraft] = useState<number>(8);
+    const [windowControlsPosDraft, setWindowControlsPosDraft] = useState<string>("right");
     const [savingTheme, setSavingTheme] = useState(false);
 
     // ========== 提前定义的辅助函数 ==========
@@ -154,6 +160,11 @@ const App: React.FC = () => {
 
     // 应用主题到 UI（并跳过一次持久化防抖）
     const applyThemeToUi = useCallback((theme: Theme) => {
+        const backgroundBlurValue = theme.backgroundBlur ?? 0;
+        const panelBlurValue = theme.panelBlur ?? 0;
+        const panelRadiusValue = theme.panelRadius ?? 8;
+        const windowControlsPosValue = theme.windowControlsPos ?? 'right';
+
         setCurrentThemeId(theme.id);
         if (theme.colorScheme) {
             setColorScheme(theme.colorScheme as "light" | "dark");
@@ -163,9 +174,15 @@ const App: React.FC = () => {
         setBackgroundColor(theme.backgroundColor);
         setBackgroundOpacity(theme.backgroundOpacity);
         setBackgroundImageUrlSafe(theme.backgroundImage);
+        setBackgroundBlur(backgroundBlurValue);
         setPanelColor(theme.panelColor);
         setPanelOpacity(theme.panelOpacity);
-    }, [setCurrentThemeId, setColorScheme, setThemeColor, setBackgroundColor, setBackgroundOpacity, setBackgroundImageUrlSafe, setPanelColor, setPanelOpacity]);
+        setPanelBlur(panelBlurValue);
+        setPanelRadius(panelRadiusValue);
+        setComponentRadius(theme.componentRadius ?? 8);
+        setCoverRadius(theme.coverRadius ?? 8);
+        setWindowControlsPos(windowControlsPosValue);
+    }, [setCurrentThemeId, setColorScheme, setThemeColor, setBackgroundColor, setBackgroundOpacity, setBackgroundImageUrlSafe, setPanelColor, setPanelOpacity, setBackgroundBlur, setPanelBlur, setPanelRadius, setComponentRadius, setCoverRadius, setWindowControlsPos]);
 
     // 主题缓存辅助函数（提前定义，避免 TDZ）
     const saveCachedCustomThemes = useCallback((themesToCache: Theme[]) => {
@@ -233,20 +250,40 @@ const App: React.FC = () => {
         setThemes,
         defaultThemes: DEFAULT_THEMES,
         currentThemeId,
-        themeColorDraft,
         computedColorScheme,
         saveCachedCustomThemes,
         applyThemeToUi,
         getCustomThemesFromState,
+        editingThemeId,
         setEditingThemeId,
+        newThemeName,
         setNewThemeName,
+        colorSchemeDraft,
         setColorSchemeDraft,
+        themeColorDraft,
         setThemeColorDraft,
+        backgroundColorDraft,
         setBackgroundColorDraft,
+        backgroundOpacityDraft,
         setBackgroundOpacityDraft,
+        backgroundImageUrlDraft,
         setBackgroundImageUrlDraftSafe,
+        backgroundBlurDraft,
+        setBackgroundBlurDraft,
+        panelColorDraft,
         setPanelColorDraft,
+        panelOpacityDraft,
         setPanelOpacityDraft,
+        panelBlurDraft,
+        setPanelBlurDraft,
+        panelRadiusDraft,
+        setPanelRadiusDraft,
+        componentRadiusDraft,
+        setComponentRadiusDraft,
+        coverRadiusDraft,
+        setCoverRadiusDraft,
+        windowControlsPosDraft,
+        setWindowControlsPosDraft,
         setSavingTheme,
         openModal,
         closeModal,
@@ -425,6 +462,16 @@ const App: React.FC = () => {
     // 播放区间相关派生值（从 useAudioInterval hook 获取）
     const maxSkipLimit = duration > 0 ? duration : 1;
 
+    // ========== Effect: 当主题改变时同步 Mantine 颜色方案 ==========
+    useEffect(() => {
+        if (!themes.length || !currentThemeId) return;
+
+        const currentTheme = themes.find(t => t.id === currentThemeId);
+        if (currentTheme && currentTheme.colorScheme) {
+            setColorScheme(currentTheme.colorScheme as "light" | "dark");
+        }
+    }, [currentThemeId, themes, setColorScheme]);
+
     useAppLifecycle({
         userInfo,
         setUserInfo,
@@ -472,12 +519,17 @@ const App: React.FC = () => {
 
     // toRgba 已移至 useUiDerived
 
-    const { backgroundWithOpacity, panelBackground, themeColorLight } = useUiDerived({
+    const { backgroundWithOpacity, panelBackground, themeColorLight, panelStyles, componentRadius: derivedComponentRadius, coverRadius: derivedCoverRadius } = useUiDerived({
         themeColor,
         backgroundColor,
         backgroundOpacity,
+        backgroundImageUrl,
         panelColor,
         panelOpacity,
+        panelBlur,
+        panelRadius,
+        componentRadius,
+        coverRadius,
     });
 
     // 音频事件处理由 useAudioEvents Hook 统一管理
@@ -520,8 +572,13 @@ const App: React.FC = () => {
         backgroundColorDraft,
         backgroundOpacityDraft,
         backgroundImageUrlDraft,
+        backgroundBlurDraft,
         panelColorDraft,
         panelOpacityDraft,
+        panelBlurDraft,
+        panelRadiusDraft,
+        componentRadiusDraft,
+        windowControlsPosDraft,
         setBackgroundImageUrlDraftSafe,
         // 收藏夹操作
         favoriteActions,
@@ -649,8 +706,10 @@ const App: React.FC = () => {
         panelOpacity,
         setUserInfo,
         setStatus,
+        windowControlsPos,
         currentSong,
         panelBackground,
+        panelStyles,
         computedColorScheme: (computedColorScheme === "auto" ? "light" : computedColorScheme) as "light" | "dark",
         placeholderCover: PLACEHOLDER_COVER,
         maxSkipLimit,
@@ -702,6 +761,7 @@ const App: React.FC = () => {
         volume,
         changeVolume,
         songsCount: songs.length,
+        coverRadius: derivedCoverRadius,
     });
 
     const filteredSongs = songs.filter((s) =>
@@ -710,14 +770,22 @@ const App: React.FC = () => {
 
     const backgroundStyle = useMemo(() => {
         return {
-            overflow: "hidden",
             backgroundColor: backgroundWithOpacity,
             backgroundImage: backgroundImageUrl ? `url(${backgroundImageUrl})` : undefined,
             backgroundSize: "cover",
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
+            backgroundAttachment: "fixed" as const,
+            filter: backgroundBlur > 0 ? `blur(${backgroundBlur}px)` : undefined,
+            transform: "none", // 移除缩放，避免错位
         };
-    }, [backgroundWithOpacity, backgroundImageUrl]);
+    }, [backgroundWithOpacity, backgroundImageUrl, backgroundBlur]);
+
+    // 动态生成 Mantine 主题以支持圆角调整
+    const mantineTheme = useMemo(() => createTheme({
+        defaultRadius: derivedComponentRadius,
+        // 也可以在这里覆盖其他全局样式
+    }), [derivedComponentRadius]);
 
     // ========== 设置弹窗动作 ==========
 
@@ -734,8 +802,14 @@ const App: React.FC = () => {
         backgroundColorDraft,
         backgroundOpacityDraft,
         backgroundImageUrlDraft,
+        backgroundBlurDraft,
         panelColorDraft,
         panelOpacityDraft,
+        panelBlurDraft,
+        panelRadiusDraft,
+        componentRadiusDraft,
+        coverRadiusDraft,
+        windowControlsPosDraft,
         savingTheme,
         fileDraftInputRef,
         favorites,
@@ -777,9 +851,15 @@ const App: React.FC = () => {
         onBackgroundColorChange: setBackgroundColorDraft,
         onBackgroundOpacityChange: setBackgroundOpacityDraft,
         onBackgroundImageChange: setBackgroundImageUrlDraftSafe,
+        onBackgroundBlurChange: setBackgroundBlurDraft,
         onClearBackgroundImage: handleClearBackgroundImageDraft,
         onPanelColorChange: setPanelColorDraft,
         onPanelOpacityChange: setPanelOpacityDraft,
+        onPanelBlurChange: setPanelBlurDraft,
+        onPanelRadiusChange: setPanelRadiusDraft,
+        onComponentRadiusChange: setComponentRadiusDraft,
+        onCoverRadiusChange: setCoverRadiusDraft,
+        onWindowControlsPosChange: setWindowControlsPosDraft,
         onSubmitTheme: handleSubmitTheme,
         onCancelThemeEdit: handleCloseThemeEditor,
         onBackgroundFileChange: handleBackgroundFileDraft,
@@ -826,22 +906,30 @@ const App: React.FC = () => {
     };
 
     return (
-        <Box
-            h="100vh"
-            w="100vw"
-            style={{
-                ...backgroundStyle,
-                backgroundAttachment: 'fixed',  // 固定背景不滚动
-            }}
-        >
-            <AppModals {...appModalsProps} />
+        <MantineProvider theme={mantineTheme}>
+            <Box h="100vh" w="100vw" style={{ position: "relative", overflow: "hidden", backgroundColor: "transparent" }}>
+                {/* 背景层 */}
+                <Box
+                    style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        zIndex: -1,
+                        ...backgroundStyle,
+                    }}
+                />
 
-            <AppPanels
-                topBarProps={topBarProps}
-                mainLayoutProps={mainLayoutProps as any}
-                controlsPanelProps={controlsPanelProps as any}
-            />
-        </Box>
+                <AppModals {...appModalsProps} />
+
+                <AppPanels
+                    topBarProps={topBarProps}
+                    mainLayoutProps={mainLayoutProps as any}
+                    controlsPanelProps={controlsPanelProps as any}
+                />
+            </Box>
+        </MantineProvider>
     );
 };
 

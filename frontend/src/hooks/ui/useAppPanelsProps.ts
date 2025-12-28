@@ -22,10 +22,12 @@ interface UseAppPanelsPropsParams {
     panelOpacity: number;
     setUserInfo: (val: any) => void;
     setStatus: (val: string) => void;
+    windowControlsPos?: string;
 
     // MainLayout deps
     currentSong: Song | null;
     panelBackground: string;
+    panelStyles: React.CSSProperties;
     computedColorScheme: "light" | "dark";
     placeholderCover: string;
     maxSkipLimit: number;
@@ -79,6 +81,7 @@ interface UseAppPanelsPropsParams {
     volume: number;
     changeVolume: (val: number) => void;
     songsCount: number;
+    coverRadius?: number;
 }
 
 export const useAppPanelsProps = (params: UseAppPanelsPropsParams) => {
@@ -102,8 +105,10 @@ export const useAppPanelsProps = (params: UseAppPanelsPropsParams) => {
             panelOpacity,
             setUserInfo,
             setStatus,
+            windowControlsPos,
             currentSong,
             panelBackground,
+            panelStyles,
             computedColorScheme,
             placeholderCover,
             maxSkipLimit,
@@ -160,6 +165,9 @@ export const useAppPanelsProps = (params: UseAppPanelsPropsParams) => {
         const topBarProps = {
             userInfo,
             hitokoto,
+            panelBackground,
+            panelStyles,
+            windowControlsPos,
             onSearchClick: () => {
                 setGlobalSearchTerm("");
                 openModal("globalSearchModal");
@@ -184,6 +192,7 @@ export const useAppPanelsProps = (params: UseAppPanelsPropsParams) => {
         const mainLayoutProps = {
             currentSong,
             panelBackground,
+            panelStyles,
             themeColor,
             computedColorScheme,
             placeholderCover,
@@ -239,6 +248,7 @@ export const useAppPanelsProps = (params: UseAppPanelsPropsParams) => {
             onDeleteFavorite: handleDeleteFavorite,
             onToggleConfirmDelete: setConfirmDeleteFavId,
             confirmDeleteFavId,
+            coverRadius: params.coverRadius,
         } as const;
 
         const controlsPanelProps = {
@@ -267,6 +277,8 @@ export const useAppPanelsProps = (params: UseAppPanelsPropsParams) => {
             changeVolume,
             songsCount,
             panelBackground,
+            panelStyles,
+            coverRadius: params.coverRadius,
         } as const;
 
         return { topBarProps, mainLayoutProps, controlsPanelProps } as const;

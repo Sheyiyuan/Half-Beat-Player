@@ -9,11 +9,13 @@ body {
     width: 100%;
     height: 100%;
     font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: transparent !important;
 }
 
 #root {
     width: 100%;
     height: 100%;
+    background-color: transparent !important;
 }
 
 /* 窗口拖拽区域样式 */
@@ -30,6 +32,41 @@ a {
     -webkit-app-region: no-drag;
 }
 
+/* 兼容性毛玻璃方案 */
+.glass-panel {
+    position: relative;
+    overflow: hidden;
+    background-color: transparent !important;
+}
+
+.glass-panel::before {
+    content: "";
+    position: absolute;
+    /* 使用负边距并配合父级 overflow: hidden 来消除模糊边缘的白边，而不使用 scale */
+    top: -40px;
+    left: -40px;
+    right: -40px;
+    bottom: -40px;
+    z-index: -1;
+    /* 背景镜像 */
+    background-image: var(--glass-bg-image);
+    background-attachment: fixed;
+    background-size: cover;
+    background-position: center;
+    /* 模糊效果 */
+    filter: blur(var(--glass-blur));
+    opacity: var(--glass-opacity);
+}
+
+/* 遮罩层，用于提供颜色感 */
+.glass-panel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-color: var(--glass-panel-color);
+}
+
 @keyframes scroll {
     0% {
         transform: translateX(0);
@@ -38,4 +75,50 @@ a {
     100% {
         transform: translateX(-100%);
     }
+}
+
+/* 模糊效果支持类 */
+.blur-none {
+    filter: blur(0px);
+}
+
+.blur-xs {
+    filter: blur(2px);
+}
+
+.blur-sm {
+    filter: blur(4px);
+}
+
+.blur-md {
+    filter: blur(6px);
+}
+
+.blur-lg {
+    filter: blur(12px);
+}
+
+.blur-xl {
+    filter: blur(16px);
+}
+
+.blur-2xl {
+    filter: blur(24px);
+}
+
+.blur-3xl {
+    filter: blur(32px);
+}
+
+/* 背景图片模糊支持 */
+.bg-blur-light {
+    backdrop-filter: blur(8px);
+}
+
+.bg-blur-medium {
+    backdrop-filter: blur(16px);
+}
+
+.bg-blur-heavy {
+    backdrop-filter: blur(24px);
 }

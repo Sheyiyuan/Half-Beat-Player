@@ -130,13 +130,9 @@ export const useAppLifecycle = ({
                     Services.SetCurrentTheme(targetTheme.id).catch((err) => console.warn("SetCurrentTheme fallback failed", err));
                 }
 
+                // 只设置当前主题 ID，ThemeContext 中的 Effect 会自动应用主题的所有字段
                 setCurrentThemeId(targetTheme.id);
-                setThemeColor(targetTheme.themeColor);
-                setBackgroundColor(targetTheme.backgroundColor);
-                setBackgroundOpacity(targetTheme.backgroundOpacity);
-                setBackgroundImageUrlSafe(targetTheme.backgroundImage);
-                setPanelColor(targetTheme.panelColor);
-                setPanelOpacity(targetTheme.panelOpacity);
+
                 // 设置加载完成，允许后续持久化
                 skipPersistRef.current = false;
                 settingsLoadedRef.current = true;

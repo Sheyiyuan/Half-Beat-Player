@@ -18,9 +18,19 @@ export const useAppHandlers = (config: {
     backgroundColorDraft: string;
     backgroundOpacityDraft: number;
     backgroundImageUrlDraft: string;
+    backgroundBlurDraft: number;
     panelColorDraft: string;
     panelOpacityDraft: number;
+    panelBlurDraft: number;
+    panelRadiusDraft: number;
+    componentRadiusDraft: number;
+    windowControlsPosDraft: string;
     setBackgroundImageUrlDraftSafe: (url: string) => void;
+    setBackgroundBlurDraft?: (blur: number) => void;
+    setPanelBlurDraft?: (blur: number) => void;
+    setPanelRadiusDraft?: (radius: number) => void;
+    setComponentRadiusDraft?: (radius: number) => void;
+    setWindowControlsPosDraft?: (pos: string) => void;
 
     // 收藏夹操作
     favoriteActions: any;
@@ -90,8 +100,13 @@ export const useAppHandlers = (config: {
         backgroundColorDraft,
         backgroundOpacityDraft,
         backgroundImageUrlDraft,
+        backgroundBlurDraft,
         panelColorDraft,
         panelOpacityDraft,
+        panelBlurDraft,
+        panelRadiusDraft,
+        componentRadiusDraft,
+        windowControlsPosDraft,
         setBackgroundImageUrlDraftSafe,
         favoriteActions,
         editingFavId,
@@ -138,18 +153,7 @@ export const useAppHandlers = (config: {
     const handleEditTheme = themeEditor.editTheme;
     const handleDeleteTheme = themeEditor.deleteTheme;
     const handleCreateThemeClick = themeEditor.createThemeClick;
-    const handleSubmitTheme = () =>
-        themeEditor.submitTheme(
-            editingThemeId,
-            newThemeName,
-            colorSchemeDraft,
-            themeColorDraft,
-            backgroundColorDraft,
-            backgroundOpacityDraft,
-            backgroundImageUrlDraft,
-            panelColorDraft,
-            panelOpacityDraft
-        );
+    const handleSubmitTheme = () => themeEditor.submitTheme();
     const handleCloseThemeEditor = themeEditor.closeThemeEditor;
     const handleClearBackgroundImageDraft = () => setBackgroundImageUrlDraftSafe("");
     const handleBackgroundFileDraft = (e: React.ChangeEvent<HTMLInputElement>) => {

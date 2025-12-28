@@ -4,6 +4,7 @@ import { Favorite, Song } from "../types";
 
 export type FavoriteListCardProps = {
     panelBackground: string;
+    panelStyles: React.CSSProperties;
     favorites: Favorite[];
     selectedFavId: string | null;
     onSelectFavorite: (id: string) => void;
@@ -21,6 +22,7 @@ export type FavoriteListCardProps = {
 
 const FavoriteListCard: React.FC<FavoriteListCardProps> = ({
     panelBackground,
+    panelStyles,
     favorites,
     selectedFavId,
     onSelectFavorite,
@@ -36,7 +38,7 @@ const FavoriteListCard: React.FC<FavoriteListCardProps> = ({
     themeColor,
 }) => {
     return (
-        <Card shadow="sm" padding="md" radius="md" w={300} withBorder h="100%" style={{ display: "flex", flexDirection: "column", minHeight: 0, backgroundColor: panelBackground }}>
+        <Card shadow="sm" padding="md" w={300} withBorder h="100%" className="glass-panel" style={{ ...panelStyles, display: "flex", flexDirection: "column", minHeight: 0, backgroundColor: panelBackground }}>
             <Group justify="space-between" mb="sm">
                 <Text fw={600} size="sm">我的歌单</Text>
                 <Button size="xs" variant="light" color={themeColor} onClick={onCreateFavorite}>+ 新建</Button>
