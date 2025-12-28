@@ -465,28 +465,28 @@ func (s *Service) GetPlayHistory() (PlayHistory, error) {
 
 // OpenDatabaseFile opens the database file in the system file manager.
 func (s *Service) OpenDatabaseFile() error {
-	dbPath := filepath.Join(s.dataDir, "half-beat.db")
-	if _, err := os.Stat(dbPath); err != nil {
-		return fmt.Errorf("数据库文件不存在: %w", err)
+	dbDir := s.dataDir
+	if _, err := os.Stat(dbDir); err != nil {
+		return fmt.Errorf("数据库目录不存在: %w", err)
 	}
 
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "darwin":
-		// macOS: 使用 open 打开包含文件的文件夹
-		cmd = exec.Command("open", "-R", dbPath)
+		// macOS: 使用 open 打开文件夹
+		cmd = exec.Command("open", dbDir)
 	case "linux":
-		// Linux: 使用文件管理器打开文件所在目录
-		cmd = exec.Command("xdg-open", filepath.Dir(dbPath))
+		// Linux: 使用文件管理器打开文件夹
+		cmd = exec.Command("xdg-open", dbDir)
 	case "windows":
-		// Windows: 使用 explorer 选中文件
-		cmd = exec.Command("explorer", "/select,"+dbPath)
+		// Windows: 使用 explorer 打开文件夹
+		cmd = exec.Command("explorer", dbDir)
 	default:
 		return fmt.Errorf("不支持的操作系统: %s", runtime.GOOS)
 	}
 
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("打开数据库文件失败: %w", err)
+		return fmt.Errorf("打开数据库目录失败: %w", err)
 	}
 	return nil
 }
