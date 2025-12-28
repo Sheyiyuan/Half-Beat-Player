@@ -102,3 +102,17 @@ func (s *Service) DragWindow() {
 	// 无边框窗口的拖拽由前端 CSS 处理（-webkit-app-region: drag）
 	// 这个方法只是占位，实际拖拽逻辑在 TopBar.tsx 中通过 CSS 实现
 }
+
+// 最小化到托盘（隐藏窗口）
+func (s *Service) MinimizeToTray() {
+	if s.appCtx != nil {
+		runtime.WindowHide(s.appCtx)
+	}
+}
+
+// 直接退出应用
+func (s *Service) QuitApp() {
+	if s.appCtx != nil {
+		runtime.Quit(s.appCtx)
+	}
+}

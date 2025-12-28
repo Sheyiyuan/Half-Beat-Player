@@ -1,19 +1,18 @@
 import React from "react";
-import { Button, Group, Modal, Stack, Text, Select } from "@mantine/core";
+import { Button, Group, Modal, Stack, Text } from "@mantine/core";
+import { SettingsExitBehavior } from "./SettingsExitBehavior";
 
 interface SettingsModalProps {
     opened: boolean;
     themeColor: string;
     appVersion: string | number;
     cacheSize: number;
-    exitBehavior: string;
     onClose: () => void;
     onClearLoginCache: () => void;
     onClearThemeCache: () => void;
     onOpenDownloadsFolder: () => void;
     onClearMusicCache: () => void;
     onClearAllCache: () => void;
-    onExitBehaviorChange: (value: string) => void;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -21,14 +20,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     themeColor,
     appVersion,
     cacheSize,
-    exitBehavior,
     onClose,
     onClearLoginCache,
     onClearThemeCache,
     onOpenDownloadsFolder,
     onClearMusicCache,
     onClearAllCache,
-    onExitBehaviorChange,
 }) => {
     return (
         <Modal
@@ -53,17 +50,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     <Button color={themeColor} onClick={onClearAllCache}>清除所有缓存</Button>
                 </Group>
 
-                <Text fw={600} mt="sm">退出行为</Text>
-                <Select
-                    value={exitBehavior}
-                    onChange={(value) => value && onExitBehaviorChange(value)}
-                    data={[
-                        { value: 'ask', label: '询问我' },
-                        { value: 'minimize', label: '最小化到系统托盘' },
-                        { value: 'quit', label: '直接退出应用' },
-                    ]}
-                    description="设置点击关闭按钮时的行为（仅限Linux）"
-                />
+                <Text fw={600} mt="sm">窗口设置</Text>
+                <SettingsExitBehavior />
             </Stack>
         </Modal>
     );

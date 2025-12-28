@@ -78,6 +78,8 @@ export function MaximizeWindow():Promise<void>;
 
 export function MinimiseWindow():Promise<void>;
 
+export function MinimizeToTray():Promise<void>;
+
 export function OpenAudioCacheFolder():Promise<void>;
 
 export function OpenDownloadedFile(arg1:string):Promise<void>;
@@ -85,6 +87,8 @@ export function OpenDownloadedFile(arg1:string):Promise<void>;
 export function OpenDownloadsFolder():Promise<void>;
 
 export function PollLogin(arg1:string):Promise<services.LoginPollResponse>;
+
+export function QuitApp():Promise<void>;
 
 export function ResolveBiliAudio(arg1:string):Promise<models.BiliAudio>;
 

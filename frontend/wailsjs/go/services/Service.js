@@ -146,6 +146,10 @@ export function MinimiseWindow() {
   return window['go']['services']['Service']['MinimiseWindow']();
 }
 
+export function MinimizeToTray() {
+  return window['go']['services']['Service']['MinimizeToTray']();
+}
+
 export function OpenAudioCacheFolder() {
   return window['go']['services']['Service']['OpenAudioCacheFolder']();
 }
@@ -160,6 +164,10 @@ export function OpenDownloadsFolder() {
 
 export function PollLogin(arg1) {
   return window['go']['services']['Service']['PollLogin'](arg1);
+}
+
+export function QuitApp() {
+  return window['go']['services']['Service']['QuitApp']();
 }
 
 export function ResolveBiliAudio(arg1) {
