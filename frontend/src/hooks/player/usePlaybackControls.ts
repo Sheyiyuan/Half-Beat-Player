@@ -46,7 +46,22 @@ export const usePlaybackControls = ({
     const playNext = useCallback(() => {
         if (queue.length === 0) return;
 
-        console.log('[playNext] 当前播放模式:', playMode);
+        console.log('[playNext] 当前播放模式:', playMode, '队列长度:', queue.length);
+
+        // 特殊处理：播放列表只有一首歌时，无论什么模式都应该重播当前歌曲
+        if (queue.length === 1) {
+            console.log('[playNext] 列表只有一首歌，重播当前歌曲');
+            setCurrentIndex(0);
+            const song = queue[0];
+            if (song.id) {
+                playbackRetryRef.current.delete(song.id);
+                isHandlingErrorRef?.current.delete(song.id);
+            }
+            setCurrentSong(song);
+            setIsPlaying(true);
+            playSong(song, queue);
+            return;
+        }
 
         let nextIdx: number;
 
@@ -86,22 +101,39 @@ export const usePlaybackControls = ({
      * 播放上一首
      */
     const playPrev = useCallback(() => {
-        if (queue.length > 0) {
-            let prevIdx = currentIndex - 1;
-            if (prevIdx < 0) prevIdx = queue.length - 1;
-            setCurrentIndex(prevIdx);
-            const prevSong = queue[prevIdx];
-            // 清除新歌曲的重试计数和错误处理标记（用户手动切歌）
-            if (prevSong.id) {
-                playbackRetryRef.current.delete(prevSong.id);
-                isHandlingErrorRef?.current.delete(prevSong.id);
+        if (queue.length === 0) return;
+
+        console.log('[playPrev] 当前播放模式:', playMode, '队列长度:', queue.length);
+
+        // 特殊处理：播放列表只有一首歌时，直接重播
+        if (queue.length === 1) {
+            console.log('[playPrev] 列表只有一首歌，重播当前歌曲');
+            setCurrentIndex(0);
+            const song = queue[0];
+            if (song.id) {
+                playbackRetryRef.current.delete(song.id);
+                isHandlingErrorRef?.current.delete(song.id);
             }
-            setCurrentSong(prevSong);
-            // 自动播放上一首
+            setCurrentSong(song);
             setIsPlaying(true);
-            playSong(prevSong, queue);
+            playSong(song, queue);
+            return;
         }
-    }, [currentIndex, queue, setCurrentIndex, setCurrentSong, setIsPlaying, playSong, playbackRetryRef]);
+
+        let prevIdx = currentIndex - 1;
+        if (prevIdx < 0) prevIdx = queue.length - 1;
+        setCurrentIndex(prevIdx);
+        const prevSong = queue[prevIdx];
+        // 清除新歌曲的重试计数和错误处理标记（用户手动切歌）
+        if (prevSong.id) {
+            playbackRetryRef.current.delete(prevSong.id);
+            isHandlingErrorRef?.current.delete(prevSong.id);
+        }
+        setCurrentSong(prevSong);
+        // 自动播放上一首
+        setIsPlaying(true);
+        playSong(prevSong, queue);
+    }, [currentIndex, queue, setCurrentIndex, setCurrentSong, setIsPlaying, playSong, playbackRetryRef, isHandlingErrorRef]);
 
     /**
      * 切换播放/暂停

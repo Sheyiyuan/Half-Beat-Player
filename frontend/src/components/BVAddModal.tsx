@@ -1,5 +1,5 @@
 import React from "react";
-import { AspectRatio, Button, Group, Image, Modal, NumberInput, RangeSlider, Select, Stack, Text, TextInput } from "@mantine/core";
+import { AspectRatio, Button, Group, Image, Modal, NumberInput, RangeSlider, Select, Stack, Text, TextInput, ScrollArea } from "@mantine/core";
 import type { Favorite } from "../types";
 
 interface BVPreview {
@@ -103,9 +103,11 @@ const BVAddModal: React.FC<BVAddModalProps> = ({
             styles={modalStyles}
             className="normal-panel"
         >
-            {bvPreview ? (
-                <Stack gap="md">
-                    <AspectRatio ratio={16 / 9} w="100%">
+            <ScrollArea type="auto" style={{ maxHeight: "70vh", height: "70vh" }}>
+                {bvPreview ? (
+                    <div style={{ paddingRight: 16 }}>
+                        <Stack gap="md">
+                    <AspectRatio ratio={16 / 9} w="100%" mah={240}>
                         {bvPreview.bvid ? (
                             <iframe
                                 title="bilibili-preview"
@@ -218,9 +220,11 @@ const BVAddModal: React.FC<BVAddModalProps> = ({
                         </Button>
                     </Group>
                 </Stack>
-            ) : (
-                <Text c={derived?.textColorSecondary}>暂无预览数据</Text>
-            )}
+                    </div>
+                ) : (
+                    <Text c={derived?.textColorSecondary}>暂无预览数据</Text>
+                )}
+            </ScrollArea>
         </Modal>
     );
 };

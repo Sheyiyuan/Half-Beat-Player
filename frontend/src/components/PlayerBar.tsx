@@ -211,7 +211,6 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
                             onClick={togglePlay}
                             disabled={!currentSong?.streamUrl}
                             title={isPlaying ? "暂停" : "播放"}
-                            style={controlStyles}
                         >
                             {isPlaying ? <Pause size={18} /> : <Play size={18} />}
                         </ActionIcon>
@@ -273,7 +272,6 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
                                 onClick={onManageDownload}
                                 title="管理下载文件"
                                 disabled={!currentSong}
-                                style={controlStyles}
                             >
                                 <Download size={16} />
                             </ActionIcon>

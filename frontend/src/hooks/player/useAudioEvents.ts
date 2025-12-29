@@ -170,18 +170,27 @@ export const useAudioEvents = ({
         const onTime = () => {
             const t = audio.currentTime;
             const { start, end } = intervalRef.current;
+
             if (t < start) {
+                // 如果播放时间早于区间起点，调整回起点
                 audio.currentTime = start;
                 setProgress(start);
                 return;
             }
+
             if (t > end) {
-                audio.pause();
-                setIsPlaying(false);
+                // 播放到区间末尾：重置位置，暂停，并触发 ended 事件来处理播放模式
+                // 但要保持用户设置的播放意图（通过 onEnded 中的 playMode 逻辑）
                 audio.currentTime = start;
                 setProgress(end);
+                audio.pause();
+
+                // 触发 ended 事件让 onEnded 处理器根据播放模式决定下一步动作
+                // 这样可以正确处理单曲循环、列表循环、随机等模式
+                audio.dispatchEvent(new Event('ended'));
                 return;
             }
+
             setProgress(t);
         };
 

@@ -99,9 +99,9 @@ const SongDetailCard: React.FC<SongDetailCardProps> = ({
                     <Stack gap="md" pb="sm">
                         <Box
                             w="100%"
-                            h={135}
                             bg={controlBackground || (computedColorScheme === "dark" ? "dark.6" : "gray.2")}
                             style={{
+                                aspectRatio: "4 / 3",
                                 borderRadius: coverRadius,
                                 display: "flex",
                                 alignItems: "center",
@@ -113,9 +113,10 @@ const SongDetailCard: React.FC<SongDetailCardProps> = ({
                         >
                             <Image
                                 src={song.cover || placeholderCover}
-                                h={135}
+                                w="100%"
+                                h="100%"
                                 radius={coverRadius}
-                                fit="contain"
+                                fit="cover"
                             />
                         </Box>
 
