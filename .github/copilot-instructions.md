@@ -304,3 +304,108 @@ const handleCopyJson = useCallback(() => {
 | 字段显示为 `undefined` | 初始化时遗漏了新字段 | 检查所有初始化点（state、default values、Context value） |
 
 **最易出错的地方**：参数解构！每次在新的函数/组件中使用新字段都必须从参数中显式解构。
+## 🔄 前端重构进行中（2025年12月29日启动）
+
+> 📌 **重要**：前端代码进行结构性重构，目标是精简 App.tsx（1103 行 → <500 行）、统一状态管理（3 个 Context → 1 个）、重组 Hook 体系（30+ 导入 → 5-8 导入）
+
+### 重构目标
+1. **App.tsx 精简**：从 1103 行精简到 <500 行
+2. **状态管理统一**：合并 AppContext、ThemeContext、ModalContext 为单一 AppStore
+3. **Hook 体系优化**：将 13 个播放器 Hook 合并为 4 个核心 Hook
+4. **Props 规范化**：使用 Store 对象替代 Props Drilling
+5. **组件结构清晰**：按功能分组（modals/、layouts/、cards/）
+
+### 重构阶段计划
+- **阶段 1**（1-2 天）：创建统一状态管理（AppStore + AppContext + useAppStore）
+- **阶段 2**（1-2 天）：合并和重组 Hook 体系
+- **阶段 3**（1 天）：精简 App.tsx
+- **阶段 4**（1 天）：重新组织组件文件结构
+- **阶段 5**（1 天）：Props 规范化和类型完善
+- **阶段 6**（1 天）：验证、测试和优化
+
+### 详细指南
+📖 **完整重构指南**：见 [FRONTEND_REFACTOR_GUIDE.md](../FRONTEND_REFACTOR_GUIDE.md)
+
+### 关键代码路径变化
+重构前后的关键文件变化：
+
+**创建的新文件**：
+- `frontend/src/store/types.ts` - Store 类型定义
+- `frontend/src/context/AppContext.tsx` - 统一的 AppContext（改造现有）
+- `frontend/src/hooks/useAppStore.ts` - 单一数据入口 Hook
+- `frontend/src/hooks/ui/useAppInitialize.ts` - 应用初始化 Hook
+- `frontend/src/hooks/player/usePlayer.ts` - 合并的播放器 Hook
+- `frontend/src/hooks/player/usePlaylist.ts` - 合并的歌单 Hook
+- `frontend/src/hooks/player/useAudio.ts` - 合并的音频 Hook
+- `frontend/src/types/store.ts` - Store 类型（独立管理）
+- `frontend/src/types/components.ts` - 组件 Props 类型（独立管理）
+- `frontend/src/components/modals/` - 模态框分组
+- `frontend/src/components/layouts/` - 布局分组
+- `frontend/src/components/cards/` - 卡片分组
+
+**删除的旧文件**（被新 Hook 替代）：
+- `frontend/src/hooks/player/useAudioPlayer.ts`
+- `frontend/src/hooks/player/usePlaylist.ts` (重写)
+- `frontend/src/hooks/player/usePlaylistActions.ts`
+- `frontend/src/hooks/player/usePlaylistPersistence.ts`
+- `frontend/src/hooks/player/useAudioEvents.ts`
+- `frontend/src/hooks/player/useAudioInterval.ts`
+- `frontend/src/hooks/player/useAudioSourceManager.ts`
+- `frontend/src/hooks/player/usePlaySong.ts`
+- `frontend/src/hooks/player/usePlaybackControls.ts`
+- `frontend/src/hooks/player/useSkipIntervalHandler.ts`
+- `frontend/src/hooks/player/usePlayModes.ts`
+
+**改造的重点文件**：
+- `frontend/src/App.tsx` - 从 1103 行精简到 <500 行
+- `frontend/src/context/AppContext.tsx` - 从分散的 useContext 改造为统一的 Store 提供者
+- `frontend/src/main.tsx` - 添加 AppProvider 包装
+- `frontend/src/components/AppModals.tsx` - 接收 Store 对象而非 50+ props
+- `frontend/src/components/AppPanels.tsx` - 同上
+
+### 新的数据流
+重构后的单向数据流（Flux 风格）：
+
+```
+┌─────────────────────────────────────┐
+│        useAppStore Hook             │
+│  (单一数据入口，所有组件都用它)      │
+└────────────┬────────────────────────┘
+             │
+             ├─ store 对象
+             │  ├─ player 状态
+             │  ├─ theme 状态
+             │  ├─ modals 状态
+             │  ├─ ui 状态
+             │  └─ data 状态
+             │
+             └─ actions 对象
+                ├─ 播放器操作
+                ├─ 主题操作
+                ├─ 模态框操作
+                ├─ UI 操作
+                └─ 数据操作
+```
+
+### 重构检查清单
+在本文档持续更新重构进度：
+
+**已完成**：
+- [x] 评估现有代码结构
+- [x] 制定重构方案
+- [x] 创建重构指南文档
+
+**进行中**：
+- [ ] 阶段 1：创建 Store + Context
+- [ ] 阶段 2：合并 Hook
+- [ ] 阶段 3：精简 App.tsx
+- [ ] 阶段 4：重组组件
+- [ ] 阶段 5：类型完善
+- [ ] 阶段 6：验证优化
+
+### 重构期间的开发提示
+- 每完成一个阶段，立即提交 Git（含清晰的 commit message）
+- 每次修改后运行 `pnpm build` 确保构建成功
+- 每次修改后运行 `wails dev` 验证功能
+- 如遇到问题，参考 [FRONTEND_REFACTOR_GUIDE.md](../FRONTEND_REFACTOR_GUIDE.md) 的常见陷阱部分
+- 重构完成后**必须更新此文档**，更新内容应移至"重构后的项目架构"部分
