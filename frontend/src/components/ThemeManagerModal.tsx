@@ -8,6 +8,7 @@ export type ThemeManagerModalProps = {
     themes: Theme[];
     currentThemeId: string | null;
     onSelectTheme: (theme: Theme) => void;
+    onViewTheme: (theme: Theme) => void;
     onEditTheme: (theme: Theme) => void;
     onDeleteTheme: (id: string) => void | Promise<void>;
     onCreateTheme: () => void;
@@ -22,6 +23,7 @@ const ThemeManagerModal: React.FC<ThemeManagerModalProps> = ({
     themes,
     currentThemeId,
     onSelectTheme,
+    onViewTheme,
     onEditTheme,
     onDeleteTheme,
     onCreateTheme,
@@ -74,6 +76,15 @@ const ThemeManagerModal: React.FC<ThemeManagerModalProps> = ({
                                     onClick={() => onSelectTheme(theme)}
                                 >
                                     {currentThemeId === theme.id ? "已选" : "选择"}
+                                </Button>
+                                <Button
+                                    size="xs"
+                                    variant="light"
+                                    color={theme.themeColor}
+                                    radius={derived?.componentRadius}
+                                    onClick={() => onViewTheme(theme)}
+                                >
+                                    详情
                                 </Button>
                                 {!theme.isReadOnly && (
                                     <Button

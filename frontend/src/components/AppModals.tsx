@@ -1,7 +1,7 @@
 import React from "react";
 import { Modal, Stack, TextInput, Group, Button } from "@mantine/core";
 import ThemeManagerModal from "./ThemeManagerModal";
-import ThemeEditorModal from "./ThemeEditorModal";
+import ThemeDetailModal from "./ThemeDetailModal";
 import AddToFavoriteModal from "./AddToFavoriteModal";
 import PlaylistModal from "./PlaylistModal";
 import LoginModal from "./LoginModal";
@@ -21,6 +21,7 @@ export interface AppModalsProps {
     modals: {
         themeModal: boolean;
         themeEditorModal: boolean;
+        themeDetailModal: boolean;
         addFavoriteModal: boolean;
         playlistModal: boolean;
         editFavModal: boolean;
@@ -106,6 +107,7 @@ export interface AppModalsProps {
     // handlers
     closeModal: (name: keyof AppModalsProps["modals"]) => void;
     onSelectTheme: (theme: Theme) => void;
+    onViewTheme: (theme: Theme) => void;
     onEditTheme: (theme: Theme) => void;
     onDeleteTheme: (id: string) => void | Promise<void>;
     onCreateTheme: () => void;
@@ -258,6 +260,7 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
         selectedMyCollectionId,
         closeModal,
         onSelectTheme,
+        onViewTheme,
         onEditTheme,
         onDeleteTheme,
         onCreateTheme,
@@ -344,6 +347,7 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
                 themes={themes}
                 currentThemeId={currentThemeId}
                 onSelectTheme={onSelectTheme}
+                onViewTheme={onViewTheme}
                 onEditTheme={onEditTheme}
                 onDeleteTheme={onDeleteTheme}
                 onCreateTheme={onCreateTheme}
@@ -352,7 +356,7 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
                 derived={derived}
             />
 
-            <ThemeEditorModal
+            <ThemeDetailModal
                 opened={modals.themeEditorModal}
                 onClose={onCancelThemeEdit}
                 onCancel={onCancelThemeEdit}
@@ -412,6 +416,70 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
                 savingTheme={savingTheme}
                 fileInputRef={fileDraftInputRef}
                 onBackgroundFileChange={onBackgroundFileChange}
+                isReadOnly={false}
+            />
+
+            <ThemeDetailModal
+                opened={modals.themeDetailModal}
+                onClose={() => closeModal("themeDetailModal")}
+                onCancel={() => closeModal("themeDetailModal")}
+                editingThemeId={editingThemeId}
+                newThemeName={newThemeName}
+                onNameChange={onThemeNameChange}
+                themeColorDraft={themeColorDraft}
+                onThemeColorChange={onThemeColorChange}
+                backgroundColorDraft={backgroundColorDraft}
+                onBackgroundColorChange={onBackgroundColorChange}
+                backgroundOpacityDraft={backgroundOpacityDraft}
+                onBackgroundOpacityChange={onBackgroundOpacityChange}
+                backgroundImageUrlDraft={backgroundImageUrlDraft}
+                onBackgroundImageChange={onBackgroundImageChange}
+                backgroundBlurDraft={backgroundBlurDraft}
+                onBackgroundBlurChange={onBackgroundBlurChange}
+                onClearBackgroundImage={onClearBackgroundImage}
+                panelColorDraft={panelColorDraft}
+                onPanelColorChange={onPanelColorChange}
+                panelOpacityDraft={panelOpacityDraft}
+                onPanelOpacityChange={onPanelOpacityChange}
+                panelBlurDraft={panelBlurDraft}
+                onPanelBlurChange={onPanelBlurChange}
+                panelRadiusDraft={panelRadiusDraft}
+                onPanelRadiusChange={onPanelRadiusChange}
+                controlColorDraft={controlColorDraft}
+                onControlColorChange={onControlColorChange}
+                controlOpacityDraft={controlOpacityDraft}
+                onControlOpacityChange={onControlOpacityChange}
+                controlBlurDraft={controlBlurDraft}
+                onControlBlurChange={onControlBlurChange}
+                textColorPrimaryDraft={textColorPrimaryDraft}
+                onTextColorPrimaryChange={onTextColorPrimaryChange}
+                textColorSecondaryDraft={textColorSecondaryDraft}
+                onTextColorSecondaryChange={onTextColorSecondaryChange}
+                favoriteCardColorDraft={favoriteCardColorDraft}
+                onFavoriteCardColorChange={onFavoriteCardColorChange}
+                cardOpacityDraft={cardOpacityDraft}
+                onCardOpacityChange={onCardOpacityChange}
+                modalRadiusDraft={modalRadiusDraft}
+                onModalRadiusChange={onModalRadiusChange}
+                notificationRadiusDraft={notificationRadiusDraft}
+                onNotificationRadiusChange={onNotificationRadiusChange}
+                componentRadiusDraft={componentRadiusDraft}
+                onComponentRadiusChange={onComponentRadiusChange}
+                coverRadiusDraft={coverRadiusDraft}
+                onCoverRadiusChange={onCoverRadiusChange}
+                modalColorDraft={modalColorDraft}
+                onModalColorChange={onModalColorChange}
+                modalOpacityDraft={modalOpacityDraft}
+                onModalOpacityChange={onModalOpacityChange}
+                modalBlurDraft={modalBlurDraft}
+                onModalBlurChange={onModalBlurChange}
+                windowControlsPosDraft={windowControlsPosDraft}
+                onWindowControlsPosChange={onWindowControlsPosChange}
+                onSubmit={onSubmitTheme}
+                savingTheme={savingTheme}
+                fileInputRef={fileDraftInputRef}
+                onBackgroundFileChange={onBackgroundFileChange}
+                isReadOnly={true}
             />
 
             <AddToFavoriteModal

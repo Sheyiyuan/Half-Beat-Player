@@ -162,6 +162,7 @@ export const useAppHandlers = (config: {
 
     // ========== 主题处理 ==========
     const handleSelectTheme = themeEditor.selectTheme;
+    const handleViewTheme = themeEditor.viewTheme;
     const handleEditTheme = themeEditor.editTheme;
     const handleDeleteTheme = themeEditor.deleteTheme;
     const handleCreateThemeClick = themeEditor.createThemeClick;
@@ -398,6 +399,7 @@ export const useAppHandlers = (config: {
     return {
         // 主题
         handleSelectTheme,
+        handleViewTheme,
         handleEditTheme,
         handleDeleteTheme,
         handleCreateThemeClick,

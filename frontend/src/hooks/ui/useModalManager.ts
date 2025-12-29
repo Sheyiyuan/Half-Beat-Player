@@ -4,6 +4,7 @@ export interface ModalStates {
     loginModal: boolean;
     themeModal: boolean;
     themeEditorModal: boolean;
+    themeDetailModal: boolean;
     settingsModal: boolean;
     addFavoriteModal: boolean;
     playlistModal: boolean;
@@ -24,6 +25,7 @@ export const useModalManager = () => {
         loginModal: false,
         themeModal: false,
         themeEditorModal: false,
+        themeDetailModal: false,
         settingsModal: false,
         addFavoriteModal: false,
         playlistModal: false,

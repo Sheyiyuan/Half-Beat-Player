@@ -55,6 +55,8 @@
 - 扫码登录与用户信息同步。
 - 歌单管理与 BV 号解析。
 - 基础 UI 框架与主题系统。
+- **主题详情编辑器**: 支持 GUI 和 JSON 两种模式切换，JSON 模式包含完整的类型验证。
+- **主题查看功能**: 内置主题支持只读查看。
 
 ### 🛠️ 进行中 / 待办
 - [ ] **系统集成**: 实现 Linux MPRIS2 和 Windows SMTC 媒体控制。
@@ -62,7 +64,52 @@
 - [ ] **日志系统**: 建立后端日志记录机制。
 - [ ] **缓存优化**: 改进音频流和封面的本地缓存。
 
+## 主题编辑功能（最新更新）
+
+### 组件架构
+- **ThemeDetailModal** (`frontend/src/components/ThemeDetailModal.tsx`): 新的主题详情组件，支持两种模式
+  - GUI 模式: 使用 Mantine 组件进行可视化编辑（滑块、颜色选择器等）
+  - JSON 模式: 直接编辑 JSON 配置，包含实时验证
+  - 两种模式完全等价，修改会自动同步
+
+- **ThemeManagerModal** (`frontend/src/components/ThemeManagerModal.tsx`): 主题管理界面
+  - 新增"详情"按钮：所有主题都可以查看详情
+  - 内置主题显示为只读（无编辑/删除按钮）
+  - 自定义主题显示编辑/删除按钮
+
+### 关键功能
+1. **双模式编辑**
+   - GUI 模式：用户友好的可视化编辑
+   - JSON 模式：高级用户可直接编辑 JSON
+   - Tab 切换时自动同步数据
+
+2. **JSON 类型检查**（保存前强制检查）
+   - 验证所有必需字段存在
+   - 颜色值必须是有效的十六进制格式 (#RRGGBB)
+   - 数值字段检查范围（如不透明度 0-1，模糊 0-50px 等）
+   - 枚举字段验证（如 windowControlsPos: 'left'|'right'|'hidden'）
+   - 错误信息在 JSON 模式下即时显示
+
+3. **只读模式**
+   - 内置主题和已加载的主题可以查看详情
+   - 所有输入字段禁用
+   - 仅展示"关闭"按钮
+   - JSON 模式下文本区域禁用编辑
+
+### 使用流程
+1. 打开主题管理器
+2. 点击任何主题的"详情"按钮
+3. 选择 GUI 或 JSON 模式编辑
+4. JSON 模式下修改后点击"应用 JSON 配置"
+5. 点击"保存"（编辑模式）或"关闭"（查看模式）
+
+### 相关 Hook 和处理
+- `useThemeEditor`: 主题编辑逻辑，新增 `viewTheme` 方法
+- `useModalManager`: 新增 `themeDetailModal` 状态
+- `useAppHandlers`: 新增 `handleViewTheme` 处理函数
+
 ## 交互建议
 - 在处理 UI 问题时，优先考虑 Mantine 的组件属性。
 - 在处理后端逻辑时，注意 Wails 运行时的 context 生命周期。
 - 涉及 B站 API 时，参考 `internal/services/` 中已有的请求模式。
+- JSON 验证需要保证所有颜色值都是有效的十六进制格式，所有数值都在指定范围内。

@@ -344,9 +344,40 @@ export const useThemeEditor = ({
         setNewThemeName("");
     }, [closeModal, setEditingThemeId, setNewThemeName]);
 
+    const viewTheme = useCallback((theme: Theme) => {
+        setEditingThemeId(theme.id);
+        setNewThemeName(theme.name);
+        setThemeColorDraft(theme.themeColor);
+        setBackgroundColorDraft(theme.backgroundColor);
+        setBackgroundOpacityDraft(theme.backgroundOpacity);
+        setBackgroundImageUrlDraftSafe(theme.backgroundImage);
+        setBackgroundBlurDraft(theme.backgroundBlur || 0);
+        setPanelColorDraft(theme.panelColor);
+        setPanelOpacityDraft(theme.panelOpacity);
+        setPanelBlurDraft(theme.panelBlur ?? 0);
+        setPanelRadiusDraft(theme.panelRadius ?? 8);
+        setControlColorDraft(theme.controlColor || theme.panelColor);
+        setControlOpacityDraft(theme.controlOpacity ?? 1);
+        setControlBlurDraft(theme.controlBlur ?? 0);
+        setTextColorPrimaryDraft(theme.textColorPrimary || '#1a1b1e');
+        setTextColorSecondaryDraft(theme.textColorSecondary || '#909296');
+        setFavoriteCardColorDraft(theme.favoriteCardColor || theme.panelColor);
+        setCardOpacityDraft(theme.cardOpacity ?? 1);
+        setModalRadiusDraft(theme.modalRadius ?? 8);
+        setNotificationRadiusDraft(theme.notificationRadius ?? 8);
+        setComponentRadiusDraft(theme.componentRadius ?? 8);
+        setCoverRadiusDraft(theme.coverRadius ?? 8);
+        setModalColorDraft(theme.modalColor || theme.panelColor);
+        setModalOpacityDraft(theme.modalOpacity ?? 1);
+        setModalBlurDraft(theme.modalBlur ?? 0);
+        setWindowControlsPosDraft(theme.windowControlsPos || 'right');
+        openModal("themeDetailModal");
+    }, [setEditingThemeId, setNewThemeName, setThemeColorDraft, setBackgroundColorDraft, setBackgroundOpacityDraft, setBackgroundImageUrlDraftSafe, setBackgroundBlurDraft, setPanelColorDraft, setPanelOpacityDraft, setPanelBlurDraft, setPanelRadiusDraft, setControlColorDraft, setControlOpacityDraft, setControlBlurDraft, setTextColorPrimaryDraft, setTextColorSecondaryDraft, setFavoriteCardColorDraft, setCardOpacityDraft, setModalRadiusDraft, setNotificationRadiusDraft, setComponentRadiusDraft, setCoverRadiusDraft, setModalColorDraft, setModalOpacityDraft, setModalBlurDraft, setWindowControlsPosDraft, openModal]);
+
     return {
         selectTheme,
         editTheme,
+        viewTheme,
         deleteTheme,
         createThemeClick,
         submitTheme,

@@ -717,6 +717,7 @@ const App: React.FC = () => {
 
     const {
         handleSelectTheme,
+        handleViewTheme,
         handleEditTheme,
         handleDeleteTheme,
         handleCreateThemeClick,
@@ -972,6 +973,7 @@ const App: React.FC = () => {
         selectedMyCollectionId: myFavoriteImport.selectedCollectionId,
         closeModal,
         onSelectTheme: handleSelectTheme,
+        onViewTheme: handleViewTheme,
         onEditTheme: handleEditTheme,
         onDeleteTheme: handleDeleteTheme,
         onCreateTheme: handleCreateThemeClick,
