@@ -65,6 +65,8 @@ interface UseThemeEditorProps {
     setModalBlurDraft: (blur: number) => void;
     windowControlsPosDraft: string;
     setWindowControlsPosDraft: (pos: string) => void;
+    colorSchemeDraft: string;
+    setColorSchemeDraft: (scheme: string) => void;
     setSavingTheme: (saving: boolean) => void;
     openModal: (name: keyof ModalStates) => void;
     closeModal: (name: keyof ModalStates) => void;
@@ -131,6 +133,8 @@ export const useThemeEditor = ({
     setModalBlurDraft,
     windowControlsPosDraft,
     setWindowControlsPosDraft,
+    colorSchemeDraft,
+    setColorSchemeDraft,
     setSavingTheme,
     openModal,
     closeModal,
@@ -144,32 +148,33 @@ export const useThemeEditor = ({
     const editTheme = useCallback((theme: Theme) => {
         setEditingThemeId(theme.id);
         setNewThemeName(theme.name);
-        setThemeColorDraft(theme.themeColor);
-        setBackgroundColorDraft(theme.backgroundColor);
-        setBackgroundOpacityDraft(theme.backgroundOpacity);
-        setBackgroundImageUrlDraftSafe(theme.backgroundImage);
+        setThemeColorDraft(theme.themeColor || '#1f77f0');
+        setBackgroundColorDraft(theme.backgroundColor || '#0a0e27');
+        setBackgroundOpacityDraft(theme.backgroundOpacity ?? 1);
+        setBackgroundImageUrlDraftSafe(theme.backgroundImage || '');
         setBackgroundBlurDraft(theme.backgroundBlur || 0);
-        setPanelColorDraft(theme.panelColor);
-        setPanelOpacityDraft(theme.panelOpacity);
+        setPanelColorDraft(theme.panelColor || '#1a1f3a');
+        setPanelOpacityDraft(theme.panelOpacity ?? 0.6);
         setPanelBlurDraft(theme.panelBlur ?? 0);
         setPanelRadiusDraft(theme.panelRadius ?? 8);
-        setControlColorDraft(theme.controlColor || theme.panelColor);
+        setControlColorDraft(theme.controlColor || theme.panelColor || '#2a2f4a');
         setControlOpacityDraft(theme.controlOpacity ?? 1);
         setControlBlurDraft(theme.controlBlur ?? 0);
-        setTextColorPrimaryDraft(theme.textColorPrimary || '#1a1b1e');
+        setTextColorPrimaryDraft(theme.textColorPrimary || '#ffffff');
         setTextColorSecondaryDraft(theme.textColorSecondary || '#909296');
-        setFavoriteCardColorDraft(theme.favoriteCardColor || theme.panelColor);
-        setCardOpacityDraft(theme.cardOpacity ?? 1);
+        setFavoriteCardColorDraft(theme.favoriteCardColor || theme.panelColor || '#2a2f4a');
+        setCardOpacityDraft(theme.cardOpacity ?? 0.5);
         setModalRadiusDraft(theme.modalRadius ?? 8);
         setNotificationRadiusDraft(theme.notificationRadius ?? 8);
-        setComponentRadiusDraft(theme.componentRadius ?? 8);
-        setCoverRadiusDraft(theme.coverRadius ?? 8);
-        setModalColorDraft(theme.modalColor || theme.panelColor);
-        setModalOpacityDraft(theme.modalOpacity ?? 1);
-        setModalBlurDraft(theme.modalBlur ?? 0);
+        setComponentRadiusDraft(theme.componentRadius ?? 6);
+        setCoverRadiusDraft(theme.coverRadius ?? 4);
+        setModalColorDraft(theme.modalColor || theme.panelColor || '#1a1f3a');
+        setModalOpacityDraft(theme.modalOpacity ?? 0.95);
+        setModalBlurDraft(theme.modalBlur ?? 10);
         setWindowControlsPosDraft(theme.windowControlsPos || 'right');
+        setColorSchemeDraft(theme.colorScheme || 'dark');
         openModal("themeEditorModal");
-    }, [setEditingThemeId, setNewThemeName, setThemeColorDraft, setBackgroundColorDraft, setBackgroundOpacityDraft, setBackgroundImageUrlDraftSafe, setBackgroundBlurDraft, setPanelColorDraft, setPanelOpacityDraft, setPanelBlurDraft, setPanelRadiusDraft, setControlColorDraft, setControlOpacityDraft, setControlBlurDraft, setTextColorPrimaryDraft, setTextColorSecondaryDraft, setFavoriteCardColorDraft, setCardOpacityDraft, setModalRadiusDraft, setNotificationRadiusDraft, setComponentRadiusDraft, setCoverRadiusDraft, setModalColorDraft, setModalOpacityDraft, setModalBlurDraft, setWindowControlsPosDraft, openModal]);
+    }, [setEditingThemeId, setNewThemeName, setThemeColorDraft, setBackgroundColorDraft, setBackgroundOpacityDraft, setBackgroundImageUrlDraftSafe, setBackgroundBlurDraft, setPanelColorDraft, setPanelOpacityDraft, setPanelBlurDraft, setPanelRadiusDraft, setControlColorDraft, setControlOpacityDraft, setControlBlurDraft, setTextColorPrimaryDraft, setTextColorSecondaryDraft, setFavoriteCardColorDraft, setCardOpacityDraft, setModalRadiusDraft, setNotificationRadiusDraft, setComponentRadiusDraft, setCoverRadiusDraft, setModalColorDraft, setModalOpacityDraft, setModalBlurDraft, setWindowControlsPosDraft, setColorSchemeDraft, openModal]);
 
     const deleteTheme = useCallback(async (id: string) => {
         await Services.DeleteTheme(id);
@@ -206,8 +211,9 @@ export const useThemeEditor = ({
         setModalOpacityDraft(0.92);
         setModalBlurDraft(0);
         setWindowControlsPosDraft("right");
+        setColorSchemeDraft("light");
         openModal("themeEditorModal");
-    }, [setEditingThemeId, setNewThemeName, setThemeColorDraft, setBackgroundColorDraft, setBackgroundOpacityDraft, setBackgroundImageUrlDraftSafe, setBackgroundBlurDraft, setPanelColorDraft, setPanelOpacityDraft, setPanelBlurDraft, setPanelRadiusDraft, setControlColorDraft, setControlOpacityDraft, setControlBlurDraft, setTextColorPrimaryDraft, setTextColorSecondaryDraft, setFavoriteCardColorDraft, setCardOpacityDraft, setModalRadiusDraft, setNotificationRadiusDraft, setComponentRadiusDraft, setCoverRadiusDraft, setModalColorDraft, setModalOpacityDraft, setModalBlurDraft, setWindowControlsPosDraft, openModal, computedColorScheme]);
+    }, [setEditingThemeId, setNewThemeName, setThemeColorDraft, setBackgroundColorDraft, setBackgroundOpacityDraft, setBackgroundImageUrlDraftSafe, setBackgroundBlurDraft, setPanelColorDraft, setPanelOpacityDraft, setPanelBlurDraft, setPanelRadiusDraft, setControlColorDraft, setControlOpacityDraft, setControlBlurDraft, setTextColorPrimaryDraft, setTextColorSecondaryDraft, setFavoriteCardColorDraft, setCardOpacityDraft, setModalRadiusDraft, setNotificationRadiusDraft, setComponentRadiusDraft, setCoverRadiusDraft, setModalColorDraft, setModalOpacityDraft, setModalBlurDraft, setWindowControlsPosDraft, setColorSchemeDraft, openModal, computedColorScheme]);
 
     const submitTheme = useCallback(async () => {
         setSavingTheme(true);
@@ -219,45 +225,56 @@ export const useThemeEditor = ({
             autoClose: false,
         });
         try {
+            // 构建主题数据对象
+            const themeData = {
+                themeColor: themeColorDraft,
+                backgroundColor: backgroundColorDraft,
+                backgroundOpacity: backgroundOpacityDraft,
+                ...(backgroundImageUrlDraft ? { backgroundImage: backgroundImageUrlDraft } : {}),
+                backgroundBlur: backgroundBlurDraft,
+                panelColor: panelColorDraft,
+                panelOpacity: panelOpacityDraft,
+                panelBlur: panelBlurDraft,
+                panelRadius: panelRadiusDraft,
+                controlColor: controlColorDraft,
+                controlOpacity: controlOpacityDraft,
+                controlBlur: controlBlurDraft,
+                textColorPrimary: textColorPrimaryDraft,
+                textColorSecondary: textColorSecondaryDraft,
+                favoriteCardColor: favoriteCardColorDraft,
+                cardOpacity: cardOpacityDraft,
+                componentRadius: componentRadiusDraft,
+                modalRadius: modalRadiusDraft,
+                notificationRadius: notificationRadiusDraft,
+                coverRadius: coverRadiusDraft,
+                modalColor: modalColorDraft,
+                modalOpacity: modalOpacityDraft,
+                modalBlur: modalBlurDraft,
+                windowControlsPos: windowControlsPosDraft,
+                colorScheme: colorSchemeDraft,
+            };
+
             if (editingThemeId) {
                 const editingTheme = themes.find((t: Theme) => t.id === editingThemeId);
                 const updatedTheme: Theme = {
                     id: editingThemeId,
                     name: newThemeName || "未命名主题",
-                    themeColor: themeColorDraft,
-                    backgroundColor: backgroundColorDraft,
-                    backgroundOpacity: backgroundOpacityDraft,
-                    backgroundImage: backgroundImageUrlDraft,
-                    backgroundBlur: backgroundBlurDraft,
-                    panelColor: panelColorDraft,
-                    panelOpacity: panelOpacityDraft,
-                    panelBlur: panelBlurDraft,
-                    panelRadius: panelRadiusDraft,
-                    controlColor: controlColorDraft,
-                    controlOpacity: controlOpacityDraft,
-                    controlBlur: controlBlurDraft,
-                    textColorPrimary: textColorPrimaryDraft,
-                    textColorSecondary: textColorSecondaryDraft,
-                    favoriteCardColor: favoriteCardColorDraft,
-                    cardOpacity: cardOpacityDraft,
-                    componentRadius: componentRadiusDraft,
-                    modalRadius: modalRadiusDraft,
-                    notificationRadius: notificationRadiusDraft,
-                    coverRadius: coverRadiusDraft,
-                    modalColor: modalColorDraft,
-                    modalOpacity: modalOpacityDraft,
-                    modalBlur: modalBlurDraft,
-                    windowControlsPos: windowControlsPosDraft,
+                    data: JSON.stringify(themeData),
                     isDefault: editingTheme?.isDefault || false,
                     isReadOnly: false,
                 };
                 await Services.UpdateTheme(updatedTheme);
+                // 解析数据用于前端显示
+                const displayTheme: Theme = {
+                    ...updatedTheme,
+                    ...themeData,
+                };
                 const currentCustomThemes = getCustomThemesFromState(themes);
-                const nextCustom = currentCustomThemes.map((t: Theme) => (t.id === editingThemeId ? updatedTheme : t));
+                const nextCustom = currentCustomThemes.map((t: Theme) => (t.id === editingThemeId ? displayTheme : t));
                 saveCachedCustomThemes(nextCustom);
                 setThemes([...defaultThemes, ...nextCustom]);
                 if (currentThemeId === editingThemeId) {
-                    applyThemeToUi(updatedTheme);
+                    applyThemeToUi(displayTheme);
                 }
                 notifications.update({
                     id: toastId,
@@ -271,36 +288,18 @@ export const useThemeEditor = ({
                 const newTheme: Theme = {
                     id: "",
                     name: newThemeName || "未命名主题",
-                    themeColor: themeColorDraft,
-                    backgroundColor: backgroundColorDraft,
-                    backgroundOpacity: backgroundOpacityDraft,
-                    backgroundImage: backgroundImageUrlDraft,
-                    backgroundBlur: backgroundBlurDraft,
-                    panelColor: panelColorDraft,
-                    panelOpacity: panelOpacityDraft,
-                    panelBlur: panelBlurDraft,
-                    panelRadius: panelRadiusDraft,
-                    controlColor: controlColorDraft,
-                    controlOpacity: controlOpacityDraft,
-                    controlBlur: controlBlurDraft,
-                    textColorPrimary: textColorPrimaryDraft,
-                    textColorSecondary: textColorSecondaryDraft,
-                    favoriteCardColor: favoriteCardColorDraft,
-                    cardOpacity: cardOpacityDraft,
-                    componentRadius: componentRadiusDraft,
-                    modalRadius: modalRadiusDraft,
-                    notificationRadius: notificationRadiusDraft,
-                    coverRadius: coverRadiusDraft,
-                    modalColor: modalColorDraft,
-                    modalOpacity: modalOpacityDraft,
-                    modalBlur: modalBlurDraft,
-                    windowControlsPos: windowControlsPosDraft,
+                    data: JSON.stringify(themeData),
                     isDefault: false,
                     isReadOnly: false,
                 };
                 const createdTheme = await Services.CreateTheme(newTheme);
+                // 解析数据用于前端显示
+                const displayTheme: Theme = {
+                    ...createdTheme,
+                    ...themeData,
+                };
                 const currentCustomThemes = getCustomThemesFromState(themes);
-                const nextCustom = [...currentCustomThemes, createdTheme];
+                const nextCustom = [...currentCustomThemes, displayTheme];
                 saveCachedCustomThemes(nextCustom);
                 setThemes([...defaultThemes, ...nextCustom]);
                 notifications.update({
@@ -347,32 +346,33 @@ export const useThemeEditor = ({
     const viewTheme = useCallback((theme: Theme) => {
         setEditingThemeId(theme.id);
         setNewThemeName(theme.name);
-        setThemeColorDraft(theme.themeColor);
-        setBackgroundColorDraft(theme.backgroundColor);
-        setBackgroundOpacityDraft(theme.backgroundOpacity);
-        setBackgroundImageUrlDraftSafe(theme.backgroundImage);
+        setThemeColorDraft(theme.themeColor || '#1f77f0');
+        setBackgroundColorDraft(theme.backgroundColor || '#0a0e27');
+        setBackgroundOpacityDraft(theme.backgroundOpacity ?? 1);
+        setBackgroundImageUrlDraftSafe(theme.backgroundImage || '');
         setBackgroundBlurDraft(theme.backgroundBlur || 0);
-        setPanelColorDraft(theme.panelColor);
-        setPanelOpacityDraft(theme.panelOpacity);
+        setPanelColorDraft(theme.panelColor || '#1a1f3a');
+        setPanelOpacityDraft(theme.panelOpacity ?? 0.6);
         setPanelBlurDraft(theme.panelBlur ?? 0);
         setPanelRadiusDraft(theme.panelRadius ?? 8);
-        setControlColorDraft(theme.controlColor || theme.panelColor);
+        setControlColorDraft(theme.controlColor || theme.panelColor || '#2a2f4a');
         setControlOpacityDraft(theme.controlOpacity ?? 1);
         setControlBlurDraft(theme.controlBlur ?? 0);
-        setTextColorPrimaryDraft(theme.textColorPrimary || '#1a1b1e');
+        setTextColorPrimaryDraft(theme.textColorPrimary || '#ffffff');
         setTextColorSecondaryDraft(theme.textColorSecondary || '#909296');
-        setFavoriteCardColorDraft(theme.favoriteCardColor || theme.panelColor);
-        setCardOpacityDraft(theme.cardOpacity ?? 1);
+        setFavoriteCardColorDraft(theme.favoriteCardColor || theme.panelColor || '#2a2f4a');
+        setCardOpacityDraft(theme.cardOpacity ?? 0.5);
         setModalRadiusDraft(theme.modalRadius ?? 8);
         setNotificationRadiusDraft(theme.notificationRadius ?? 8);
-        setComponentRadiusDraft(theme.componentRadius ?? 8);
-        setCoverRadiusDraft(theme.coverRadius ?? 8);
-        setModalColorDraft(theme.modalColor || theme.panelColor);
-        setModalOpacityDraft(theme.modalOpacity ?? 1);
-        setModalBlurDraft(theme.modalBlur ?? 0);
+        setComponentRadiusDraft(theme.componentRadius ?? 6);
+        setCoverRadiusDraft(theme.coverRadius ?? 4);
+        setModalColorDraft(theme.modalColor || theme.panelColor || '#1a1f3a');
+        setModalOpacityDraft(theme.modalOpacity ?? 0.95);
+        setModalBlurDraft(theme.modalBlur ?? 10);
         setWindowControlsPosDraft(theme.windowControlsPos || 'right');
+        setColorSchemeDraft(theme.colorScheme || 'dark');
         openModal("themeDetailModal");
-    }, [setEditingThemeId, setNewThemeName, setThemeColorDraft, setBackgroundColorDraft, setBackgroundOpacityDraft, setBackgroundImageUrlDraftSafe, setBackgroundBlurDraft, setPanelColorDraft, setPanelOpacityDraft, setPanelBlurDraft, setPanelRadiusDraft, setControlColorDraft, setControlOpacityDraft, setControlBlurDraft, setTextColorPrimaryDraft, setTextColorSecondaryDraft, setFavoriteCardColorDraft, setCardOpacityDraft, setModalRadiusDraft, setNotificationRadiusDraft, setComponentRadiusDraft, setCoverRadiusDraft, setModalColorDraft, setModalOpacityDraft, setModalBlurDraft, setWindowControlsPosDraft, openModal]);
+    }, [setEditingThemeId, setNewThemeName, setThemeColorDraft, setBackgroundColorDraft, setBackgroundOpacityDraft, setBackgroundImageUrlDraftSafe, setBackgroundBlurDraft, setPanelColorDraft, setPanelOpacityDraft, setPanelBlurDraft, setPanelRadiusDraft, setControlColorDraft, setControlOpacityDraft, setControlBlurDraft, setTextColorPrimaryDraft, setTextColorSecondaryDraft, setFavoriteCardColorDraft, setCardOpacityDraft, setModalRadiusDraft, setNotificationRadiusDraft, setComponentRadiusDraft, setCoverRadiusDraft, setModalColorDraft, setModalOpacityDraft, setModalBlurDraft, setWindowControlsPosDraft, setColorSchemeDraft, openModal]);
 
     return {
         selectTheme,

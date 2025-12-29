@@ -44,8 +44,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             radius={derived?.componentRadius}
             styles={{
                 content: {
-                    ...panelStyles,
-                    backgroundColor: derived?.panelBackground,
+                    backgroundColor: derived?.modalBackground,
                     color: derived?.textColorPrimary,
                 },
                 header: {

@@ -63,6 +63,7 @@ export interface AppModalsProps {
     modalOpacityDraft: number;
     modalBlurDraft: number;
     windowControlsPosDraft: string;
+    colorSchemeDraft: string;
     savingTheme: boolean;
     fileDraftInputRef: React.RefObject<HTMLInputElement>;
 
@@ -137,6 +138,7 @@ export interface AppModalsProps {
     onModalOpacityChange: (v: number) => void;
     onModalBlurChange: (v: number) => void;
     onWindowControlsPosChange: (v: string) => void;
+    onColorSchemeChange: (v: string) => void;
     onSubmitTheme: () => Promise<void>;
     onCancelThemeEdit: () => void;
     onBackgroundFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -228,6 +230,7 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
         modalOpacityDraft,
         modalBlurDraft,
         windowControlsPosDraft,
+        colorSchemeDraft,
         savingTheme,
         fileDraftInputRef,
         favorites,
@@ -290,6 +293,7 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
         onModalOpacityChange,
         onModalBlurChange,
         onWindowControlsPosChange,
+        onColorSchemeChange,
         onSubmitTheme,
         onCancelThemeEdit,
         onBackgroundFileChange,
@@ -412,6 +416,8 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
                 onModalBlurChange={onModalBlurChange}
                 windowControlsPosDraft={windowControlsPosDraft}
                 onWindowControlsPosChange={onWindowControlsPosChange}
+                colorSchemeDraft={colorSchemeDraft}
+                onColorSchemeChange={onColorSchemeChange}
                 onSubmit={onSubmitTheme}
                 savingTheme={savingTheme}
                 fileInputRef={fileDraftInputRef}
@@ -475,6 +481,8 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
                 onModalBlurChange={onModalBlurChange}
                 windowControlsPosDraft={windowControlsPosDraft}
                 onWindowControlsPosChange={onWindowControlsPosChange}
+                colorSchemeDraft={colorSchemeDraft}
+                onColorSchemeChange={onColorSchemeChange}
                 onSubmit={onSubmitTheme}
                 savingTheme={savingTheme}
                 fileInputRef={fileDraftInputRef}

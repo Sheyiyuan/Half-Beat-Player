@@ -5,7 +5,6 @@ import * as Services from "../wailsjs/go/services/Service";
 import { Favorite, LyricMapping, PlayerSetting, Song, Theme } from "./types";
 import AppPanels from "./components/AppPanels";
 import AppModals, { AppModalsProps } from "./components/AppModals";
-import { getColorSchemeFromBackground } from "./utils/color";
 
 // Hooks
 import { useAudioPlayer, usePlaylist, useAudioInterval, usePlaylistActions, useSkipIntervalHandler, useDownloadManager, useAudioEvents, usePlaybackControls, usePlaylistPersistence, useAudioSourceManager, usePlaySong, usePlayModes } from "./hooks/player";
@@ -160,6 +159,7 @@ const App: React.FC = () => {
     const [modalOpacityDraft, setModalOpacityDraft] = useState<number>(1);
     const [modalBlurDraft, setModalBlurDraft] = useState<number>(0);
     const [windowControlsPosDraft, setWindowControlsPosDraft] = useState<string>("right");
+    const [colorSchemeDraft, setColorSchemeDraft] = useState<string>("dark");
     const [savingTheme, setSavingTheme] = useState(false);
 
     // ========== 提前定义的辅助函数 ==========
@@ -185,35 +185,38 @@ const App: React.FC = () => {
 
         setCurrentThemeId(theme.id);
         skipPersistRef.current = true;
-        setThemeColor(theme.themeColor);
-        setBackgroundColor(theme.backgroundColor);
-        setBackgroundOpacity(theme.backgroundOpacity);
-        setBackgroundImageUrlSafe(theme.backgroundImage);
+        setThemeColor(theme.themeColor || '#1f77f0');
+        setBackgroundColor(theme.backgroundColor || '#0a0e27');
+        setBackgroundOpacity(theme.backgroundOpacity ?? 1);
+        setBackgroundImageUrlSafe(theme.backgroundImage || '');
         setBackgroundBlur(backgroundBlurValue);
-        setPanelColor(theme.panelColor);
-        setPanelOpacity(theme.panelOpacity);
+        setPanelColor(theme.panelColor || '#1a1f3a');
+        setPanelOpacity(theme.panelOpacity ?? 0.6);
         setPanelBlur(panelBlurValue);
         setPanelRadius(panelRadiusValue);
-        setControlColor(theme.controlColor || theme.panelColor);
+        setControlColor(theme.controlColor || theme.panelColor || '#2a2f4a');
         setControlOpacity(theme.controlOpacity ?? 1);
         setControlBlur(theme.controlBlur ?? 0);
-        setTextColorPrimary(theme.textColorPrimary || '#1a1b1e');
+        setTextColorPrimary(theme.textColorPrimary || '#ffffff');
         setTextColorSecondary(theme.textColorSecondary || '#909296');
-        setFavoriteCardColor(theme.favoriteCardColor || theme.panelColor);
-        setCardOpacity(theme.cardOpacity ?? 1);
+        setFavoriteCardColor(theme.favoriteCardColor || theme.panelColor || '#2a2f4a');
+        setCardOpacity(theme.cardOpacity ?? 0.5);
         setModalRadius(modalRadiusValue);
         setNotificationRadius(notificationRadiusValue);
-        setComponentRadius(theme.componentRadius ?? 8);
-        setCoverRadius(theme.coverRadius ?? 8);
-        setModalColor(theme.modalColor || theme.panelColor);
-        setModalOpacity(theme.modalOpacity ?? 1);
-        setModalBlur(theme.modalBlur ?? 0);
+        setComponentRadius(theme.componentRadius ?? 6);
+        setCoverRadius(theme.coverRadius ?? 4);
+        setModalColor(theme.modalColor || theme.panelColor || '#1a1f3a');
+        setModalOpacity(theme.modalOpacity ?? 0.95);
+        setModalBlur(theme.modalBlur ?? 10);
         setWindowControlsPos(windowControlsPosValue);
+        setColorSchemeDraft(theme.colorScheme || 'dark');
 
-        // 根据面板颜色亮度动态设置 Mantine 颜色方案
-        const colorScheme = getColorSchemeFromBackground(theme.panelColor);
-        setColorScheme(colorScheme);
-    }, [setCurrentThemeId, setColorScheme, setThemeColor, setBackgroundColor, setBackgroundOpacity, setBackgroundImageUrlSafe, setPanelColor, setPanelOpacity, setBackgroundBlur, setPanelBlur, setPanelRadius, setControlColor, setControlOpacity, setControlBlur, setTextColorPrimary, setTextColorSecondary, setFavoriteCardColor, setCardOpacity, setModalRadius, setNotificationRadius, setComponentRadius, setCoverRadius, setModalColor, setModalOpacity, setModalBlur, setWindowControlsPos]);
+        // 使用主题的 colorScheme 字段设置 Mantine 颜色方案
+        const colorScheme = theme.colorScheme || 'dark';
+        if (colorScheme === 'light' || colorScheme === 'dark') {
+            setColorScheme(colorScheme as any);
+        }
+    }, [setCurrentThemeId, setColorScheme, setThemeColor, setBackgroundColor, setBackgroundOpacity, setBackgroundImageUrlSafe, setPanelColor, setPanelOpacity, setBackgroundBlur, setPanelBlur, setPanelRadius, setControlColor, setControlOpacity, setControlBlur, setTextColorPrimary, setTextColorSecondary, setFavoriteCardColor, setCardOpacity, setModalRadius, setNotificationRadius, setComponentRadius, setCoverRadius, setModalColor, setModalOpacity, setModalBlur, setWindowControlsPos, setColorSchemeDraft]);
 
     // 主题缓存辅助函数（提前定义，避免 TDZ）
     const saveCachedCustomThemes = useCallback((themesToCache: Theme[]) => {
@@ -337,6 +340,8 @@ const App: React.FC = () => {
         setModalBlurDraft,
         windowControlsPosDraft,
         setWindowControlsPosDraft,
+        colorSchemeDraft,
+        setColorSchemeDraft,
         setSavingTheme,
         openModal,
         closeModal,
@@ -668,6 +673,7 @@ const App: React.FC = () => {
         cardOpacityDraft,
         componentRadiusDraft,
         windowControlsPosDraft,
+        colorSchemeDraft,
         setBackgroundImageUrlDraftSafe,
         // 收藏夹操作
         favoriteActions,
@@ -1008,6 +1014,8 @@ const App: React.FC = () => {
         onModalOpacityChange: setModalOpacityDraft,
         onModalBlurChange: setModalBlurDraft,
         onWindowControlsPosChange: setWindowControlsPosDraft,
+        colorSchemeDraft,
+        onColorSchemeChange: setColorSchemeDraft,
         onSubmitTheme: handleSubmitTheme,
         onCancelThemeEdit: handleCloseThemeEditor,
         onBackgroundFileChange: handleBackgroundFileDraft,

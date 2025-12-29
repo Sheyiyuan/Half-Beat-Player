@@ -57,6 +57,8 @@
 - 基础 UI 框架与主题系统。
 - **主题详情编辑器**: 支持 GUI 和 JSON 两种模式切换，JSON 模式包含完整的类型验证。
 - **主题查看功能**: 内置主题支持只读查看。
+- **主题 colorScheme 字段**: 支持亮色/暗色主题切换。
+- **禁用按钮样式优化**: 根据亮色/暗色主题自动调整禁用状态下的按钮外观。
 
 ### 🛠️ 进行中 / 待办
 - [ ] **系统集成**: 实现 Linux MPRIS2 和 Windows SMTC 媒体控制。
@@ -131,21 +133,71 @@
 - 在处理后端逻辑时，注意 Wails 运行时的 context 生命周期。
 - 涉及 B站 API 时，参考 `internal/services/` 中已有的请求模式。
 - JSON 验证需要保证所有颜色值都是有效的十六进制格式，所有数值都在指定范围内。
-## 最近更新（亮色主题与动态颜色方案优化）
+## 最近更新（亮色/暗色主题配置恢复 & 禁用按钮样式优化）
 
-### 亮色主题修改
-- **次要文字颜色**: 从 `#909296` 调整为 `#c1c2c5`，提升禁用状态下的可见性
-  - 次要文字（如标签、辅助信息）在亮色背景上更清晰
-  - 禁用状态元素的颜色对比度改善
+### 主题配置系统重构
+- **Backend 层改动** (`internal/models/models.go`):
+  - 将 Theme 模型从 30+ 个类型化字段改为简化的 5 字段设计
+  - 字段: `id`, `name`, `data` (JSON), `isDefault`, `isReadOnly`
+  - 后端不强制验证 schema，允许前端灵活定义配置字段
+  - 优点: 新增字段无需修改数据库迁移脚本
 
-- **禁用状态样式 (CSS)**：在 `index.css` 中添加针对亮色主题的禁用状态优化
-  - Slider 轨道禁用颜色：透明灰色 `rgba(200, 200, 200, 0.4)`
-  - 禁用按钮背景：`#e8e8e8`，文字颜色：`#b0b0b0`
-  - Slider thumb 禁用颜色：`#c1c2c5`
-  - 确保在亮色背景下禁用元素仍有良好的对比度和可见性
+- **Frontend 类型系统** (`frontend/src/types.ts`):
+  - 创建 `convertTheme()` 函数将 JSON data 反序列化为完整的 Theme 对象
+  - Theme 接口扩展 28 个可选字段对应所有配置项
+  - 所有字段都有合理的默认值，避免 undefined 问题
 
-### 动态颜色方案（新增功能）
-- **自动 UI 适配**: 根据面板颜色亮度自动选择 Mantine 亮色或暗色主题
+- **主题序列化/反序列化**:
+  - **保存主题**: `submitTheme()` 中构建完整的 themeData 对象，JSON.stringify 后存储在 data 字段
+  - **加载主题**: `convertTheme()` 解析 data JSON，展平到 Theme 对象供前端使用
+  - **缓存主题**: 本地缓存存储转换后的完整 Theme 对象，避免重复反序列化
+
+### colorScheme 字段（亮色/暗色主题选择）
+- **新增字段**: `colorScheme: 'light' | 'dark'`
+- **默认值**: 'dark'（用户未选择时）
+- **DEFAULT_THEMES**:
+  - 亮色主题: `colorScheme: 'light'`, 亮色背景 #f8fafc, 白色面板
+  - 暗色主题: `colorScheme: 'dark'`, 深色背景 #210b13, 深色面板
+- **Mantine 集成**: 主题应用时根据 colorScheme 调用 `setColorScheme()` 自动切换 Mantine 配色
+- **UI 组件**: ThemeDetailModal/ThemeEditorModal 中使用 SegmentedControl 提供亮/暗选项
+
+### 禁用按钮样式优化（CSS）
+在 `index.css` 中针对亮色/暗色主题区分禁用状态:
+```css
+/* 亮色主题禁用状态 */
+:not([data-mantine-color-scheme="dark"]) button:disabled {
+    background-color: #e8e8e8 !important;
+    color: #b0b0b0 !important;
+}
+
+/* 暗色主题禁用状态 */
+[data-mantine-color-scheme="dark"] button:disabled {
+    background-color: rgba(100, 100, 100, 0.5) !important;
+    color: #888888 !important;
+}
+```
+- 确保禁用元素在两种主题下都有足够的对比度
+- Slider、输入框等原生 Mantine 组件自动适配
+
+### 关键代码路径
+1. **主题应用**: `App.tsx` applyThemeToUi() → setColorScheme() + 25 个状态设置
+2. **主题编辑**: `useThemeEditor.ts` editTheme/submitTheme → JSON 序列化
+3. **主题加载**: `useAppLifecycle.ts` GetThemes() → convertThemes() → 前端渲染
+4. **Context**: `ThemeContext.tsx` 维护 colorScheme 状态 + applyTheme() 处理
+5. **组件**: ThemeDetailModal/ThemeEditorModal 提供 GUI 和 JSON 双模式编辑
+
+### 数据流示例
+```
+用户选择主题 colorScheme='light'
+  → useState(colorSchemeDraft, 'light')
+  → submitTheme() 构建 { colorScheme: 'light', ... 其他字段 }
+  → JSON.stringify() → Theme.data 存储
+  → Backend: CreateTheme/UpdateTheme
+  → Frontend: convertTheme(response) 反序列化
+  → applyTheme() 调用 setColorScheme('light')
+  → Mantine 自动切换亮色配色
+  → CSS 选择器 :not([data-mantine-color-scheme="dark"]) 激活
+```
   - 创建新工具函数 `getColorSchemeFromBackground()` 在 `frontend/src/utils/color.ts`
   - 使用相对亮度公式判断颜色是否为亮色
   - 在应用主题时自动调用 `setColorScheme()` 更新 Mantine 颜色方案
@@ -204,3 +256,51 @@ const handleCopyJson = useCallback(() => {
     <Button color="red">删除</Button>
 </>}
 ```
+
+## ⚠️ 添加新字段时的关键检查清单
+
+**当添加新的主题配置字段（如 `colorScheme`）时，必须在以下所有位置进行修改**，否则会导致 "Can't find variable" 错误：
+
+### 1. 后端模型层
+- [ ] 在 Go 结构体中添加字段（`internal/models/models.go`）
+- [ ] 确保字段有正确的 JSON 标签
+
+### 2. 前端类型定义层
+- [ ] 在 TypeScript 模型中更新（`frontend/wailsjs/go/models.ts`）
+- [ ] 在默认常量中添加字段值（`frontend/src/utils/constants.ts`）
+- [ ] 在业务类型中更新（`frontend/src/types.ts`）
+
+### 3. 状态管理层（Context）
+- [ ] 在 `ThemeState` 接口中添加（`frontend/src/context/ThemeContext.tsx`）
+- [ ] 在 `ThemeActions` 接口中添加 setter 方法
+- [ ] 在 Provider 中初始化状态值
+- [ ] 在 `applyTheme` 函数中处理新字段
+- [ ] 在 Context value 对象中暴露新字段和 setter
+
+### 4. 组件层
+- [ ] 在组件 Props 类型定义中添加（`ThemeDetailModalProps`）
+- [ ] ⚠️ **关键**：在组件函数参数解构中提取字段
+- [ ] 在组件内部逻辑中使用字段
+
+### 5. Hook 层
+- [ ] 在 Hook 配置接口中添加字段定义
+- [ ] ⚠️ **关键**：在 Hook 函数参数解构中添加字段
+- [ ] 在 Hook 内部逻辑中使用字段
+
+### 6. 调用 Hook 的地方
+- [ ] ⚠️ **关键**：在 `App.tsx` 或其他调用处传递实际值
+
+### 7. 模态框组件
+- [ ] 在 `AppModalsProps` 接口中添加
+- [ ] ⚠️ **关键**：在函数参数解构中添加
+- [ ] 将 props 传递给子组件
+
+### 常见错误及解决方案
+
+| 错误 | 原因 | 解决方案 |
+|------|------|---------|
+| `Can't find variable: colorSchemeDraft` | 在组件/Hook 中使用了字段，但参数解构中没有提取 | 检查函数签名和参数解构，添加缺失字段 |
+| `Can't find variable: colorMode` | 使用了已删除的变量或旧变量 | 用新字段替换旧变量引用 |
+| 字段显示为 `undefined` | 初始化时遗漏了新字段 | 检查所有初始化点（state、default values、Context value） |
+
+**最易出错的地方**：参数解构！每次在新的函数/组件中使用新字段都必须从参数中显式解构。

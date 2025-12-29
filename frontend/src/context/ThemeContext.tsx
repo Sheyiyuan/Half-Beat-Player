@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { MantineColorScheme, useComputedColorScheme } from '@mantine/core';
-import { Theme } from '../types';
+import { Theme, convertTheme, convertThemes } from '../types';
 import { DEFAULT_THEMES } from '../utils/constants';
 
 // ========== 类型定义 ==========
@@ -31,6 +31,7 @@ export interface ThemeState {
     modalOpacity: number;
     modalBlur: number;
     windowControlsPos: string;
+    colorScheme: string;
     computedColorScheme: MantineColorScheme;
 }
 
@@ -61,6 +62,7 @@ export interface ThemeActions {
     setModalOpacity: (opacity: number) => void;
     setModalBlur: (blur: number) => void;
     setWindowControlsPos: (pos: string) => void;
+    setColorScheme: (scheme: string) => void;
 
     // 工具方法
     applyTheme: (theme: Theme) => void;
@@ -86,7 +88,8 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         try {
             const saved = localStorage.getItem('half-beat.customThemes');
             if (saved) {
-                return JSON.parse(saved);
+                const cached = JSON.parse(saved) as Theme[];
+                return convertThemes(cached);
             }
         } catch (e) {
             console.warn('[ThemeContext] 读取缓存主题失败:', e);
@@ -108,7 +111,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }, []);
 
     // 优先从 localStorage 读取，否则使用系统偏好
-    const getInitialThemeId = (allThemes: Theme[]): string => {
+    const getInitialThemeId = (allThemes: (Theme | typeof DEFAULT_THEMES[number])[]): string => {
         try {
             const saved = localStorage.getItem('half-beat.currentThemeId');
             if (saved && allThemes.find(t => t.id === saved)) {
@@ -122,34 +125,36 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     };
 
     const initialThemeId = getInitialThemeId(initialThemes);
-    const defaultTheme = initialThemes.find(t => t.id === initialThemeId) || DEFAULT_THEMES.find(t => t.id === "light")!;
+    const defaultThemeObj = initialThemes.find(t => t.id === initialThemeId) || DEFAULT_THEMES.find(t => t.id === "light");
+    const defaultTheme = defaultThemeObj ? convertTheme(defaultThemeObj) : convertTheme(DEFAULT_THEMES[0]);
 
-    const [themes, setThemes] = useState<Theme[]>(initialThemes);
+    const [themes, setThemes] = useState<Theme[]>(convertThemes(initialThemes));
     const [currentThemeId, setCurrentThemeId] = useState<string | null>(defaultTheme.id);
-    const [themeColor, setThemeColor] = useState(defaultTheme.themeColor);
-    const [backgroundColor, setBackgroundColor] = useState(defaultTheme.backgroundColor);
-    const [backgroundOpacity, setBackgroundOpacity] = useState(defaultTheme.backgroundOpacity);
+    const [themeColor, setThemeColor] = useState(defaultTheme.themeColor || '#ffffff');
+    const [backgroundColor, setBackgroundColor] = useState(defaultTheme.backgroundColor || '#ffffff');
+    const [backgroundOpacity, setBackgroundOpacity] = useState(defaultTheme.backgroundOpacity ?? 1);
     const [backgroundImageUrl, setBackgroundImageUrl] = useState(defaultTheme.backgroundImage || "");
-    const [backgroundBlur, setBackgroundBlur] = useState(defaultTheme.backgroundBlur || 0);
-    const [panelColor, setPanelColor] = useState(defaultTheme.panelColor);
-    const [panelOpacity, setPanelOpacity] = useState(defaultTheme.panelOpacity);
+    const [backgroundBlur, setBackgroundBlur] = useState(defaultTheme.backgroundBlur ?? 0);
+    const [panelColor, setPanelColor] = useState(defaultTheme.panelColor || '#ffffff');
+    const [panelOpacity, setPanelOpacity] = useState(defaultTheme.panelOpacity ?? 0.92);
     const [panelBlur, setPanelBlur] = useState(defaultTheme.panelBlur ?? 0);
     const [panelRadius, setPanelRadius] = useState(defaultTheme.panelRadius ?? 8);
-    const [controlColor, setControlColor] = useState(defaultTheme.controlColor || defaultTheme.panelColor);
+    const [controlColor, setControlColor] = useState(defaultTheme.controlColor || '#ffffff');
     const [controlOpacity, setControlOpacity] = useState(defaultTheme.controlOpacity ?? 1);
     const [controlBlur, setControlBlur] = useState(defaultTheme.controlBlur ?? 0);
     const [textColorPrimary, setTextColorPrimary] = useState(defaultTheme.textColorPrimary || "#1a1b1e");
     const [textColorSecondary, setTextColorSecondary] = useState(defaultTheme.textColorSecondary || "#909296");
-    const [favoriteCardColor, setFavoriteCardColor] = useState(defaultTheme.favoriteCardColor || defaultTheme.panelColor);
+    const [favoriteCardColor, setFavoriteCardColor] = useState(defaultTheme.favoriteCardColor || '#ffffff');
     const [cardOpacity, setCardOpacity] = useState(defaultTheme.cardOpacity ?? 1);
     const [componentRadius, setComponentRadius] = useState(defaultTheme.componentRadius ?? 8);
     const [modalRadius, setModalRadius] = useState(defaultTheme.modalRadius ?? 12);
     const [notificationRadius, setNotificationRadius] = useState(defaultTheme.notificationRadius ?? 8);
     const [coverRadius, setCoverRadius] = useState(defaultTheme.coverRadius ?? 8);
-    const [modalColor, setModalColor] = useState(defaultTheme.modalColor || defaultTheme.panelColor);
+    const [modalColor, setModalColor] = useState(defaultTheme.modalColor || '#ffffff');
     const [modalOpacity, setModalOpacity] = useState(defaultTheme.modalOpacity ?? 1);
     const [modalBlur, setModalBlur] = useState(defaultTheme.modalBlur ?? 0);
     const [windowControlsPos, setWindowControlsPos] = useState(defaultTheme.windowControlsPos || "right");
+    const [colorScheme, setColorScheme] = useState(defaultTheme.colorScheme || "dark");
 
     // ========== Actions ==========
 
@@ -159,13 +164,13 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const applyTheme = useCallback((theme: Theme) => {
         if (!theme) return;
 
-        setThemeColor(theme.themeColor);
-        setBackgroundColor(theme.backgroundColor);
-        setBackgroundOpacity(theme.backgroundOpacity);
+        setThemeColor(theme.themeColor || '#ffffff');
+        setBackgroundColor(theme.backgroundColor || '#ffffff');
+        setBackgroundOpacity(theme.backgroundOpacity ?? 1);
         setBackgroundImageUrl(theme.backgroundImage || "");
         setBackgroundBlur(theme.backgroundBlur ?? 0);
-        setPanelColor(theme.panelColor);
-        setPanelOpacity(theme.panelOpacity);
+        setPanelColor(theme.panelColor || '#ffffff');
+        setPanelOpacity(theme.panelOpacity ?? 0.92);
         setPanelBlur(theme.panelBlur ?? 0);
         setPanelRadius(theme.panelRadius ?? 8);
 
@@ -186,6 +191,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setModalOpacity(theme.modalOpacity ?? 1);
         setModalBlur(theme.modalBlur ?? 0);
         setWindowControlsPos(theme.windowControlsPos || "right");
+        setColorScheme(theme.colorScheme || "dark");
         setCurrentThemeId(theme.id);
 
         // 只保存主题 ID 到 localStorage，避免字段污染
@@ -274,6 +280,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             modalOpacity,
             modalBlur,
             windowControlsPos,
+            colorScheme,
             computedColorScheme,
         },
         actions: {
@@ -303,6 +310,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             setModalOpacity,
             setModalBlur,
             setWindowControlsPos,
+            setColorScheme,
             applyTheme,
             setBackgroundImageUrlSafe,
         },

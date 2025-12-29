@@ -1,9 +1,7 @@
 import React, { RefObject, useState, useEffect, useCallback } from "react";
-import { Button, ColorInput, Group, Modal, Slider, Stack, Text, TextInput, Select, Fieldset, Divider, Tabs, Textarea, Alert, Box, ScrollArea } from "@mantine/core";
-import { AlertCircle, Copy, Check } from "lucide-react";
+import { Button, ColorInput, Group, Modal, Slider, Stack, Text, TextInput, Select, Fieldset, Divider, Tabs, Textarea, Alert, Box, ScrollArea, SegmentedControl } from "@mantine/core"; import { AlertCircle, Copy, Check } from "lucide-react";
 import { notifications } from "@mantine/notifications";
 import CodeEditor from "@uiw/react-textarea-code-editor";
-import { getColorSchemeFromBackground } from "../utils/color";
 
 export type ThemeDetailModalProps = {
     opened: boolean;
@@ -61,6 +59,8 @@ export type ThemeDetailModalProps = {
     onModalBlurChange: (value: number) => void;
     windowControlsPosDraft: string;
     onWindowControlsPosChange: (value: string) => void;
+    colorSchemeDraft: string;
+    onColorSchemeChange: (value: string) => void;
     onSubmit: () => Promise<void>;
     savingTheme: boolean;
     fileInputRef: RefObject<HTMLInputElement>;
@@ -76,7 +76,7 @@ interface ThemeObject {
     themeColor: string;
     backgroundColor: string;
     backgroundOpacity: number;
-    backgroundImage: string;
+    backgroundImage?: string;
     backgroundBlur: number;
     panelColor: string;
     panelOpacity: number;
@@ -97,6 +97,7 @@ interface ThemeObject {
     modalOpacity: number;
     modalBlur: number;
     windowControlsPos: string;
+    colorScheme: string;
 }
 
 const ThemeDetailModal: React.FC<ThemeDetailModalProps> = ({
@@ -155,6 +156,8 @@ const ThemeDetailModal: React.FC<ThemeDetailModalProps> = ({
     onModalBlurChange,
     windowControlsPosDraft,
     onWindowControlsPosChange,
+    colorSchemeDraft,
+    onColorSchemeChange,
     onSubmit,
     savingTheme,
     fileInputRef,
@@ -169,15 +172,104 @@ const ThemeDetailModal: React.FC<ThemeDetailModalProps> = ({
     const [jsonText, setJsonText] = useState("");
     const [copied, setCopied] = useState(false);
 
-    // 根据控件背景色判断颜色方案
-    const colorMode = derived?.controlBackground ? getColorSchemeFromBackground(derived.controlBackground) : "dark";
+    // 字段验证规则配置
+    const fieldValidations = {
+        name: { type: 'string', required: true },
+        themeColor: { type: 'color', required: true },
+        backgroundColor: { type: 'color', required: true },
+        backgroundOpacity: { type: 'number', min: 0, max: 1, required: true },
+        backgroundImage: { type: 'string', required: false },
+        backgroundBlur: { type: 'number', min: 0, max: 50, required: true },
+        panelColor: { type: 'color', required: true },
+        panelOpacity: { type: 'number', min: 0.2, max: 1, required: true },
+        panelBlur: { type: 'number', min: 0, max: 30, required: true },
+        panelRadius: { type: 'number', min: 0, max: 32, required: true },
+        controlColor: { type: 'color', required: true },
+        controlOpacity: { type: 'number', min: 0, max: 1, required: true },
+        controlBlur: { type: 'number', min: 0, max: 20, required: true },
+        textColorPrimary: { type: 'color', required: true },
+        textColorSecondary: { type: 'color', required: true },
+        favoriteCardColor: { type: 'color', required: true },
+        cardOpacity: { type: 'number', min: 0, max: 1, required: true },
+        componentRadius: { type: 'number', min: 0, max: 32, required: true },
+        modalRadius: { type: 'number', min: 0, max: 32, required: true },
+        notificationRadius: { type: 'number', min: 0, max: 32, required: true },
+        coverRadius: { type: 'number', min: 0, max: 50, required: true },
+        modalColor: { type: 'color', required: true },
+        modalOpacity: { type: 'number', min: 0, max: 1, required: true },
+        modalBlur: { type: 'number', min: 0, max: 30, required: true },
+        windowControlsPos: { type: 'enum', values: ['left', 'right', 'hidden'], required: true },
+        colorScheme: { type: 'enum', values: ['light', 'dark'], required: true },
+    } as const;
+
+    // 验证整个主题对象
+    const validateThemeObject = (obj: any): string[] => {
+        const errors: string[] = [];
+
+        if (typeof obj !== 'object' || obj === null) {
+            errors.push('JSON 必须是一个对象');
+            return errors;
+        }
+
+        // 检查必需字段和类型
+        for (const [key, rule] of Object.entries(fieldValidations)) {
+            const value = obj[key];
+            const ruleObj = rule as any;
+
+            // 检查必需字段
+            if (ruleObj.required && (value === undefined || value === null || value === '')) {
+                errors.push(`字段 "${key}" 是必需的`);
+                continue;
+            }
+
+            // 可选字段为空时跳过验证
+            if (!ruleObj.required && (value === undefined || value === null || value === '')) {
+                continue;
+            }
+
+            // 字符串类型检查
+            if (ruleObj.type === 'string' && typeof value !== 'string') {
+                errors.push(`字段 "${key}" 必须是字符串类型，当前值：${typeof value}`);
+            }
+
+            // 颜色类型检查
+            if (ruleObj.type === 'color' && (typeof value !== 'string' || !value.match(/^#[0-9a-f]{6}$/i))) {
+                errors.push(`字段 "${key}" 必须是有效的十六进制颜色 (#RRGGBB)，当前值：${value}`);
+            }
+
+            // 数字类型检查
+            if (ruleObj.type === 'number') {
+                if (typeof value !== 'number' || isNaN(value)) {
+                    errors.push(`字段 "${key}" 必须是数字类型，当前值：${value}`);
+                } else {
+                    if (ruleObj.min !== undefined && value < ruleObj.min) {
+                        errors.push(`字段 "${key}" 必须大于等于 ${ruleObj.min}，当前值：${value}`);
+                    }
+                    if (ruleObj.max !== undefined && value > ruleObj.max) {
+                        errors.push(`字段 "${key}" 必须小于等于 ${ruleObj.max}，当前值：${value}`);
+                    }
+                }
+            }
+
+            // 枚举类型检查
+            if (ruleObj.type === 'enum') {
+                if (!ruleObj.values.includes(value)) {
+                    errors.push(`字段 "${key}" 必须是 ${ruleObj.values.join('/')} 之一，当前值：${value}`);
+                }
+            }
+        }
+
+        return errors;
+    };
+
     const buildThemeObject = useCallback((): ThemeObject => ({
         name: newThemeName,
+        colorScheme: colorSchemeDraft,
         themeColor: themeColorDraft,
         backgroundColor: backgroundColorDraft,
         backgroundOpacity: backgroundOpacityDraft,
-        backgroundImage: backgroundImageUrlDraft,
         backgroundBlur: backgroundBlurDraft,
+        ...(backgroundImageUrlDraft ? { backgroundImage: backgroundImageUrlDraft } : {}),
         panelColor: panelColorDraft,
         panelOpacity: panelOpacityDraft,
         panelBlur: panelBlurDraft,
@@ -204,7 +296,8 @@ const ThemeDetailModal: React.FC<ThemeDetailModalProps> = ({
         controlBlurDraft, textColorPrimaryDraft, textColorSecondaryDraft,
         favoriteCardColorDraft, cardOpacityDraft, componentRadiusDraft,
         modalRadiusDraft, notificationRadiusDraft, coverRadiusDraft,
-        modalColorDraft, modalOpacityDraft, modalBlurDraft, windowControlsPosDraft
+        modalColorDraft, modalOpacityDraft, modalBlurDraft,
+        windowControlsPosDraft, colorSchemeDraft
     ]);
 
     // 当打开 Modal 时，初始化 JSON 文本
@@ -260,7 +353,9 @@ const ThemeDetailModal: React.FC<ThemeDetailModalProps> = ({
         onThemeColorChange(jsonObj.themeColor);
         onBackgroundColorChange(jsonObj.backgroundColor);
         onBackgroundOpacityChange(jsonObj.backgroundOpacity);
-        onBackgroundImageChange(jsonObj.backgroundImage);
+        if (jsonObj.backgroundImage) {
+            onBackgroundImageChange(jsonObj.backgroundImage);
+        }
         onBackgroundBlurChange(jsonObj.backgroundBlur);
         onPanelColorChange(jsonObj.panelColor);
         onPanelOpacityChange(jsonObj.panelOpacity);
@@ -281,6 +376,7 @@ const ThemeDetailModal: React.FC<ThemeDetailModalProps> = ({
         onModalOpacityChange(jsonObj.modalOpacity);
         onModalBlurChange(jsonObj.modalBlur);
         onWindowControlsPosChange(jsonObj.windowControlsPos);
+        onColorSchemeChange(jsonObj.colorScheme);
     }, [
         onNameChange, onThemeColorChange, onBackgroundColorChange, onBackgroundOpacityChange,
         onBackgroundImageChange, onBackgroundBlurChange, onPanelColorChange, onPanelOpacityChange,
@@ -288,7 +384,8 @@ const ThemeDetailModal: React.FC<ThemeDetailModalProps> = ({
         onControlBlurChange, onTextColorPrimaryChange, onTextColorSecondaryChange,
         onFavoriteCardColorChange, onCardOpacityChange, onComponentRadiusChange,
         onModalRadiusChange, onNotificationRadiusChange, onCoverRadiusChange,
-        onModalColorChange, onModalOpacityChange, onModalBlurChange, onWindowControlsPosChange
+        onModalColorChange, onModalOpacityChange, onModalBlurChange,
+        onWindowControlsPosChange, onColorSchemeChange
     ]);
 
     // JSON 文本变化处理
@@ -321,33 +418,8 @@ const ThemeDetailModal: React.FC<ThemeDetailModalProps> = ({
         try {
             const parsed = JSON.parse(jsonText);
 
-            // 类型检查
-            const errors: string[] = [];
-            if (typeof parsed.name !== 'string') errors.push("name 必须是字符串");
-            if (typeof parsed.themeColor !== 'string' || !parsed.themeColor.match(/^#[0-9a-f]{6}$/i)) errors.push("themeColor 必须是有效的十六进制颜色");
-            if (typeof parsed.backgroundColor !== 'string' || !parsed.backgroundColor.match(/^#[0-9a-f]{6}$/i)) errors.push("backgroundColor 必须是有效的十六进制颜色");
-            if (typeof parsed.backgroundOpacity !== 'number' || parsed.backgroundOpacity < 0 || parsed.backgroundOpacity > 1) errors.push("backgroundOpacity 必须是 0-1 之间的数字");
-            if (typeof parsed.backgroundImage !== 'string') errors.push("backgroundImage 必须是字符串");
-            if (typeof parsed.backgroundBlur !== 'number' || parsed.backgroundBlur < 0 || parsed.backgroundBlur > 50) errors.push("backgroundBlur 必须是 0-50 之间的数字");
-            if (typeof parsed.panelColor !== 'string' || !parsed.panelColor.match(/^#[0-9a-f]{6}$/i)) errors.push("panelColor 必须是有效的十六进制颜色");
-            if (typeof parsed.panelOpacity !== 'number' || parsed.panelOpacity < 0.2 || parsed.panelOpacity > 1) errors.push("panelOpacity 必须是 0.2-1 之间的数字");
-            if (typeof parsed.panelBlur !== 'number' || parsed.panelBlur < 0 || parsed.panelBlur > 30) errors.push("panelBlur 必须是 0-30 之间的数字");
-            if (typeof parsed.panelRadius !== 'number' || parsed.panelRadius < 0 || parsed.panelRadius > 32) errors.push("panelRadius 必须是 0-32 之间的数字");
-            if (typeof parsed.controlColor !== 'string' || !parsed.controlColor.match(/^#[0-9a-f]{6}$/i)) errors.push("controlColor 必须是有效的十六进制颜色");
-            if (typeof parsed.controlOpacity !== 'number' || parsed.controlOpacity < 0 || parsed.controlOpacity > 1) errors.push("controlOpacity 必须是 0-1 之间的数字");
-            if (typeof parsed.controlBlur !== 'number' || parsed.controlBlur < 0 || parsed.controlBlur > 20) errors.push("controlBlur 必须是 0-20 之间的数字");
-            if (typeof parsed.textColorPrimary !== 'string' || !parsed.textColorPrimary.match(/^#[0-9a-f]{6}$/i)) errors.push("textColorPrimary 必须是有效的十六进制颜色");
-            if (typeof parsed.textColorSecondary !== 'string' || !parsed.textColorSecondary.match(/^#[0-9a-f]{6}$/i)) errors.push("textColorSecondary 必须是有效的十六进制颜色");
-            if (typeof parsed.favoriteCardColor !== 'string' || !parsed.favoriteCardColor.match(/^#[0-9a-f]{6}$/i)) errors.push("favoriteCardColor 必须是有效的十六进制颜色");
-            if (typeof parsed.cardOpacity !== 'number' || parsed.cardOpacity < 0 || parsed.cardOpacity > 1) errors.push("cardOpacity 必须是 0-1 之间的数字");
-            if (typeof parsed.componentRadius !== 'number' || parsed.componentRadius < 0 || parsed.componentRadius > 32) errors.push("componentRadius 必须是 0-32 之间的数字");
-            if (typeof parsed.modalRadius !== 'number' || parsed.modalRadius < 0 || parsed.modalRadius > 32) errors.push("modalRadius 必须是 0-32 之间的数字");
-            if (typeof parsed.notificationRadius !== 'number' || parsed.notificationRadius < 0 || parsed.notificationRadius > 32) errors.push("notificationRadius 必须是 0-32 之间的数字");
-            if (typeof parsed.coverRadius !== 'number' || parsed.coverRadius < 0 || parsed.coverRadius > 50) errors.push("coverRadius 必须是 0-50 之间的数字");
-            if (typeof parsed.modalColor !== 'string' || !parsed.modalColor.match(/^#[0-9a-f]{6}$/i)) errors.push("modalColor 必须是有效的十六进制颜色");
-            if (typeof parsed.modalOpacity !== 'number' || parsed.modalOpacity < 0 || parsed.modalOpacity > 1) errors.push("modalOpacity 必须是 0-1 之间的数字");
-            if (typeof parsed.modalBlur !== 'number' || parsed.modalBlur < 0 || parsed.modalBlur > 30) errors.push("modalBlur 必须是 0-30 之间的数字");
-            if (typeof parsed.windowControlsPos !== 'string' || !['left', 'right', 'hidden'].includes(parsed.windowControlsPos)) errors.push("windowControlsPos 必须是 'left', 'right', 或 'hidden'");
+            // 验证整个对象
+            const errors = validateThemeObject(parsed);
 
             if (errors.length > 0) {
                 setJsonError(errors.join('\n'));
@@ -363,7 +435,6 @@ const ThemeDetailModal: React.FC<ThemeDetailModalProps> = ({
 
     const modalStyles = derived ? {
         content: {
-            ...panelStyles,
             backgroundColor: derived.modalBackground,
             color: derived.textColorPrimary,
         },
@@ -445,6 +516,19 @@ const ThemeDetailModal: React.FC<ThemeDetailModalProps> = ({
                                         styles={inputStyles}
                                         readOnly={isReadOnly}
                                     />
+                                    <Stack gap={2}>
+                                        <Text size="sm" fw={500} c={derived?.textColorPrimary}>颜色方案</Text>
+                                        <SegmentedControl
+                                            value={colorSchemeDraft}
+                                            onChange={(value) => onColorSchemeChange(value)}
+                                            data={[
+                                                { label: '亮色', value: 'light' },
+                                                { label: '暗色', value: 'dark' },
+                                            ]}
+                                            fullWidth
+                                            disabled={isReadOnly}
+                                        />
+                                    </Stack>
                                     <ColorInput
                                         label="主题色"
                                         value={themeColorDraft}
@@ -672,47 +756,6 @@ const ThemeDetailModal: React.FC<ThemeDetailModalProps> = ({
                                 </Stack>
                             </Fieldset>
 
-                            <Fieldset legend="弹窗" variant="unstyled" styles={{ legend: { color: derived?.textColorPrimary, fontWeight: 600 } }}>
-                                <Stack gap="sm">
-                                    <ColorInput
-                                        label="弹窗背景色"
-                                        value={modalColorDraft}
-                                        onChange={onModalColorChange}
-                                        size="sm"
-                                        disallowInput={false}
-                                        format="hex"
-                                        styles={inputStyles}
-                                        readOnly={isReadOnly}
-                                    />
-                                    <Stack gap={2}>
-                                        <Text size="xs" fw={500} c={derived?.textColorPrimary}>弹窗不透明度</Text>
-                                        <Slider
-                                            value={modalOpacityDraft * 100}
-                                            onChange={(v) => onModalOpacityChange(v / 100)}
-                                            min={0}
-                                            max={100}
-                                            step={1}
-                                            label={(v) => `${Math.round(v)}%`}
-                                            color={themeColorDraft}
-                                            disabled={isReadOnly}
-                                        />
-                                    </Stack>
-                                    <Stack gap={2}>
-                                        <Text size="xs" fw={500} c={derived?.textColorPrimary}>弹窗模糊度</Text>
-                                        <Slider
-                                            value={modalBlurDraft}
-                                            onChange={onModalBlurChange}
-                                            min={0}
-                                            max={30}
-                                            step={1}
-                                            label={(v) => `${Math.round(v)}px`}
-                                            color={themeColorDraft}
-                                            disabled={isReadOnly}
-                                        />
-                                    </Stack>
-                                </Stack>
-                            </Fieldset>
-
                             <Fieldset legend="其他设置" variant="unstyled" styles={{ legend: { color: derived?.textColorPrimary, fontWeight: 600 } }}>
                                 <Stack gap="sm">
                                     <Stack gap={2}>
@@ -782,6 +825,19 @@ const ThemeDetailModal: React.FC<ThemeDetailModalProps> = ({
                                         styles={inputStyles}
                                         disabled={isReadOnly}
                                     />
+                                    <Stack gap={2}>
+                                        <Text size="sm" fw={500} c={derived?.textColorPrimary}>颜色方案</Text>
+                                        <SegmentedControl
+                                            value={colorSchemeDraft}
+                                            onChange={(value) => onColorSchemeChange(value)}
+                                            data={[
+                                                { label: '亮色', value: 'light' },
+                                                { label: '暗色', value: 'dark' },
+                                            ]}
+                                            fullWidth
+                                            disabled={isReadOnly}
+                                        />
+                                    </Stack>
                                 </Stack>
                             </Fieldset>
                         </Stack>
@@ -789,33 +845,37 @@ const ThemeDetailModal: React.FC<ThemeDetailModalProps> = ({
                 </Tabs.Panel>
 
                 {/* JSON 模式 */}
-                <Tabs.Panel value="json" pt="md" style={{ display: "flex", flexDirection: "column", height: "600px" }}>
+                <Tabs.Panel value="json" pt="md" style={{ display: "flex", flexDirection: "column", height: "500px" }}>
                     {isReadOnly && (
-                        <Alert icon={<AlertCircle size={16} />} color="blue" title="只读模式" mb="md">
+                        <Alert icon={<AlertCircle size={16} />} color="blue" title="只读模式" mb="md" style={{ flexShrink: 0 }}>
                             这是一个内置主题，无法编辑。查看详情请使用上面的 JSON 配置。
                         </Alert>
                     )}
-                    <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, marginBottom: "md", overflow: "auto", borderRadius: derived?.componentRadius }}>
-                        <label style={{ color: derived?.textColorPrimary, fontSize: "14px", fontWeight: 500, marginBottom: "8px", flexShrink: 0, paddingLeft: "12px", paddingTop: "8px" }}>主题配置 (JSON)</label>
-                        <div style={{ flex: 1, overflow: "auto", backgroundColor: derived?.controlBackground, borderRadius: derived?.componentRadius }}>
-                            <CodeEditor
-                                value={jsonText}
-                                language="json"
-                                placeholder="粘贴或编辑 JSON 配置..."
-                                onChange={(evn) => handleJsonChange(evn.target.value)}
-                                style={{
-                                    width: "100%",
-                                    fontFamily: "monospace",
-                                    fontSize: "14px",
-                                    lineHeight: "1.6",
-                                    backgroundColor: derived?.controlBackground,
-                                    color: derived?.textColorPrimary,
-                                    border: "none"
-                                }}
-                                data-color-mode={colorMode as any}
-                                disabled={isReadOnly}
-                                minHeight={200}
-                            />
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", marginBottom: "md", borderRadius: derived?.componentRadius, minHeight: 0 }}>
+                        <label style={{ color: derived?.textColorPrimary, fontSize: "14px", fontWeight: 500, marginBottom: "8px", paddingLeft: "12px", paddingTop: "8px", flexShrink: 0 }}>主题配置 (JSON)</label>
+                        <div style={{ flex: 1, overflow: "hidden", backgroundColor: derived?.controlBackground, borderRadius: derived?.componentRadius, display: "flex", flexDirection: "column" }}>
+                            <ScrollArea type="auto" style={{ flex: 1 }}>
+                                <div style={{ padding: "8px 12px" }}>
+                                    <CodeEditor
+                                        value={jsonText}
+                                        language="json"
+                                        placeholder="粘贴或编辑 JSON 配置..."
+                                        onChange={(evn) => handleJsonChange(evn.target.value)}
+                                        style={{
+                                            width: "100%",
+                                            fontFamily: "monospace",
+                                            fontSize: "14px",
+                                            lineHeight: "1.5",
+                                            backgroundColor: derived?.controlBackground,
+                                            color: derived?.textColorPrimary,
+                                            border: "none"
+                                        }}
+                                        data-color-mode={colorSchemeDraft === 'light' ? 'light' : 'dark'}
+                                        disabled={isReadOnly}
+                                        minHeight={200}
+                                    />
+                                </div>
+                            </ScrollArea>
                         </div>
                     </div>
                     <Stack gap="md" mt="md" style={{ flexShrink: 0 }}>

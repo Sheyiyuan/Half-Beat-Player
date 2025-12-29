@@ -31,6 +31,7 @@ export const useAppHandlers = (config: {
     cardOpacityDraft: number;
     componentRadiusDraft: number;
     windowControlsPosDraft: string;
+    colorSchemeDraft: string;
     setBackgroundImageUrlDraftSafe: (url: string) => void;
     setBackgroundBlurDraft?: (blur: number) => void;
     setPanelBlurDraft?: (blur: number) => void;
@@ -119,6 +120,7 @@ export const useAppHandlers = (config: {
         cardOpacityDraft,
         componentRadiusDraft,
         windowControlsPosDraft,
+        colorSchemeDraft,
         setBackgroundImageUrlDraftSafe,
         favoriteActions,
         editingFavId,

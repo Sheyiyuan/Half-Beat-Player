@@ -3,7 +3,7 @@ import type { MutableRefObject } from "react";
 import * as Services from "../../../wailsjs/go/services/Service";
 import { DEFAULT_THEMES } from "../../utils/constants";
 import type { Theme, Favorite, Song } from "../../types";
-import { convertSongs, convertFavorites } from "../../types";
+import { convertSongs, convertFavorites, convertThemes } from "../../types";
 import type { ModalStates } from './useModalManager';
 
 interface UseAppLifecycleParams {
@@ -108,8 +108,8 @@ export const useAppLifecycle = ({
 
         Promise.all([Services.GetPlayerSetting(), themesPromise])
             .then(([s, customThemesList]) => {
-                const customThemes = customThemesList || [];
-                saveCachedCustomThemes(customThemes);
+                const convertedThemes = convertThemes(customThemesList || []);
+                saveCachedCustomThemes(convertedThemes);
                 setSetting(s as any);
                 setVolume(s.config?.defaultVolume ?? 0.5);
 
@@ -119,7 +119,7 @@ export const useAppLifecycle = ({
                 const mode = validModes.includes(savedMode) ? savedMode : 'loop';
                 setPlayMode(mode as any);
 
-                const allThemes = [...DEFAULT_THEMES, ...customThemes];
+                const allThemes = [...DEFAULT_THEMES, ...convertedThemes];
                 setThemes(allThemes);
 
                 // 优先从后端配置获取当前主题 ID，如果没有则尝试从 localStorage 获取

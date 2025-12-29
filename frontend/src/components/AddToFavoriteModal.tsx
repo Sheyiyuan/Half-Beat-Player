@@ -23,7 +23,6 @@ const AddToFavoriteModal: React.FC<AddToFavoriteModalProps> = ({ opened, onClose
             overlayProps={{ blur: 10, opacity: 0.35 }}
             styles={{
                 content: {
-                    ...panelStyles,
                     backgroundColor: derived?.modalBackground,
                     color: derived?.textColorPrimary,
                 },

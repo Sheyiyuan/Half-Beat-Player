@@ -91,7 +91,6 @@ const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
             radius={derived?.componentRadius}
             styles={{
                 content: {
-                    ...panelStyles,
                     backgroundColor: derived?.modalBackground,
                     color: derived?.textColorPrimary,
                 },
