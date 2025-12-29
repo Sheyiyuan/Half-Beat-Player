@@ -2,6 +2,8 @@ import React, { RefObject, useState, useEffect, useCallback } from "react";
 import { Button, ColorInput, Group, Modal, Slider, Stack, Text, TextInput, Select, Fieldset, Divider, Tabs, Textarea, Alert, Box, ScrollArea } from "@mantine/core";
 import { AlertCircle, Copy, Check } from "lucide-react";
 import { notifications } from "@mantine/notifications";
+import CodeEditor from "@uiw/react-textarea-code-editor";
+import { getColorSchemeFromBackground } from "../utils/color";
 
 export type ThemeDetailModalProps = {
     opened: boolean;
@@ -167,7 +169,8 @@ const ThemeDetailModal: React.FC<ThemeDetailModalProps> = ({
     const [jsonText, setJsonText] = useState("");
     const [copied, setCopied] = useState(false);
 
-    // 建立 Theme Object 和 JSON 之间的同步
+    // 根据控件背景色判断颜色方案
+    const colorMode = derived?.controlBackground ? getColorSchemeFromBackground(derived.controlBackground) : "dark";
     const buildThemeObject = useCallback((): ThemeObject => ({
         name: newThemeName,
         themeColor: themeColorDraft,
@@ -393,7 +396,9 @@ const ThemeDetailModal: React.FC<ThemeDetailModalProps> = ({
             borderColor: "transparent",
             borderRadius: derived.componentRadius,
             fontFamily: "monospace",
-            fontSize: "12px",
+            fontSize: "14px",
+            lineHeight: "1.6",
+            padding: "12px",
         },
         label: {
             color: derived.textColorPrimary,
@@ -406,10 +411,11 @@ const ThemeDetailModal: React.FC<ThemeDetailModalProps> = ({
             onClose={onClose}
             title={editingThemeId ? "主题详情" : "新建主题"}
             centered
-            size="lg"
+            size="xl"
             radius={derived?.componentRadius}
             styles={modalStyles}
             className="normal-panel"
+            fullScreen={false}
         >
             <input
                 ref={fileInputRef}
@@ -783,37 +789,45 @@ const ThemeDetailModal: React.FC<ThemeDetailModalProps> = ({
                 </Tabs.Panel>
 
                 {/* JSON 模式 */}
-                <Tabs.Panel value="json" pt="md">
-                    <Stack gap="md">
-                        {isReadOnly && (
-                            <Alert icon={<AlertCircle size={16} />} color="blue" title="只读模式">
-                                这是一个内置主题，无法编辑。查看详情请使用上面的 JSON 配置。
-                            </Alert>
-                        )}
-                        <div style={{ position: "relative" }}>
-                            <ScrollArea style={{ height: "500px", marginRight: -16, paddingRight: 16 }}>
-                                <Textarea
-                                    label="主题配置 (JSON)"
-                                    placeholder="粘贴或编辑 JSON 配置..."
-                                    value={jsonText}
-                                    onChange={(e) => handleJsonChange(e.currentTarget.value)}
-                                    minRows={20}
-                                    styles={textareaStyles}
-                                    readOnly={isReadOnly}
-                                />
-                            </ScrollArea>
+                <Tabs.Panel value="json" pt="md" style={{ display: "flex", flexDirection: "column", height: "600px" }}>
+                    {isReadOnly && (
+                        <Alert icon={<AlertCircle size={16} />} color="blue" title="只读模式" mb="md">
+                            这是一个内置主题，无法编辑。查看详情请使用上面的 JSON 配置。
+                        </Alert>
+                    )}
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, marginBottom: "md", overflow: "auto", borderRadius: derived?.componentRadius }}>
+                        <label style={{ color: derived?.textColorPrimary, fontSize: "14px", fontWeight: 500, marginBottom: "8px", flexShrink: 0, paddingLeft: "12px", paddingTop: "8px" }}>主题配置 (JSON)</label>
+                        <div style={{ flex: 1, overflow: "auto", backgroundColor: derived?.controlBackground, borderRadius: derived?.componentRadius }}>
+                            <CodeEditor
+                                value={jsonText}
+                                language="json"
+                                placeholder="粘贴或编辑 JSON 配置..."
+                                onChange={(evn) => handleJsonChange(evn.target.value)}
+                                style={{
+                                    width: "100%",
+                                    fontFamily: "monospace",
+                                    fontSize: "14px",
+                                    lineHeight: "1.6",
+                                    backgroundColor: derived?.controlBackground,
+                                    color: derived?.textColorPrimary,
+                                    border: "none"
+                                }}
+                                data-color-mode={colorMode as any}
+                                disabled={isReadOnly}
+                                minHeight={200}
+                            />
                         </div>
-                        {!isReadOnly && (
-                            <Button
-                                leftSection={copied ? <Check size={16} /> : <Copy size={16} />}
-                                variant="light"
-                                color={themeColorDraft}
-                                onClick={handleCopyJson}
-                                radius={derived?.componentRadius}
-                            >
-                                {copied ? "已复制" : "复制 JSON"}
-                            </Button>
-                        )}
+                    </div>
+                    <Stack gap="md" mt="md" style={{ flexShrink: 0 }}>
+                        <Button
+                            leftSection={copied ? <Check size={16} /> : <Copy size={16} />}
+                            variant="light"
+                            color={themeColorDraft}
+                            onClick={handleCopyJson}
+                            radius={derived?.componentRadius}
+                        >
+                            {copied ? "已复制" : "复制 JSON"}
+                        </Button>
                         {jsonError && (
                             <Alert icon={<AlertCircle size={16} />} color="red" title="JSON 验证错误">
                                 <Box style={{ whiteSpace: "pre-wrap", fontSize: "12px" }}>

@@ -21,7 +21,7 @@ export const DEFAULT_THEMES = [
         controlOpacity: 1,
         controlBlur: 0,
         textColorPrimary: '#1a1b1e',
-        textColorSecondary: '#909296',
+        textColorSecondary: '#c1c2c5',
         favoriteCardColor: '#ffffff',
         cardOpacity: 1,
         componentRadius: 8,

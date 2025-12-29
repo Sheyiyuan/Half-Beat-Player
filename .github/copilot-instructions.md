@@ -131,9 +131,34 @@
 - 在处理后端逻辑时，注意 Wails 运行时的 context 生命周期。
 - 涉及 B站 API 时，参考 `internal/services/` 中已有的请求模式。
 - JSON 验证需要保证所有颜色值都是有效的十六进制格式，所有数值都在指定范围内。
-## 最近更新（UI/UX 优化）
+## 最近更新（亮色主题与动态颜色方案优化）
 
-### ThemeDetailModal 优化
+### 亮色主题修改
+- **次要文字颜色**: 从 `#909296` 调整为 `#c1c2c5`，提升禁用状态下的可见性
+  - 次要文字（如标签、辅助信息）在亮色背景上更清晰
+  - 禁用状态元素的颜色对比度改善
+
+- **禁用状态样式 (CSS)**：在 `index.css` 中添加针对亮色主题的禁用状态优化
+  - Slider 轨道禁用颜色：透明灰色 `rgba(200, 200, 200, 0.4)`
+  - 禁用按钮背景：`#e8e8e8`，文字颜色：`#b0b0b0`
+  - Slider thumb 禁用颜色：`#c1c2c5`
+  - 确保在亮色背景下禁用元素仍有良好的对比度和可见性
+
+### 动态颜色方案（新增功能）
+- **自动 UI 适配**: 根据面板颜色亮度自动选择 Mantine 亮色或暗色主题
+  - 创建新工具函数 `getColorSchemeFromBackground()` 在 `frontend/src/utils/color.ts`
+  - 使用相对亮度公式判断颜色是否为亮色
+  - 在应用主题时自动调用 `setColorScheme()` 更新 Mantine 颜色方案
+  - 主题编辑/详情中的 JSON 编辑器也使用相同的颜色方案判断逻辑
+  - 确保 UI 库内置的控件（如 Slider、Button 等）能根据面板背景自动显示正确的对比度
+
+### 实现细节
+- 颜色判断算法：`brightness = (R*0.299 + G*0.587 + B*0.114) / 1000`，阈值 128
+- 支持处理带透明度的颜色值 (#RRGGBBAA)
+- Mantine 颜色方案切换只需调用 `setColorScheme('light'|'dark')`
+- ThemeDetailModal 中的 JSON 编辑器通过 `getColorSchemeFromBackground()` 动态获取 `colorMode`
+
+## 主题编辑功能（最新更新）
 - **固定高度容器**: GUI 和 JSON 编辑面板都使用 `ScrollArea` 包装，高度固定为 500px
   - `marginRight: -16, paddingRight: 16` 用于处理 ScrollArea 的 margin 问题
   - 保证两种模式的视觉一致性和更好的空间利用

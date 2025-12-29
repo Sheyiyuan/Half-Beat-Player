@@ -16,6 +16,7 @@
         "@mantine/hooks": "^8.3.10",
         "@mantine/notifications": "^8.3.10",
         "@tabler/icons-react": "^3.36.0",
+        "@uiw/react-textarea-code-editor": "^3.1.1",
         "lucide-react": "^0.561.0",
         "qrcode": "^1.5.4",
         "react": "^18.2.0",

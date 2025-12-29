@@ -5,6 +5,7 @@ import * as Services from "../wailsjs/go/services/Service";
 import { Favorite, LyricMapping, PlayerSetting, Song, Theme } from "./types";
 import AppPanels from "./components/AppPanels";
 import AppModals, { AppModalsProps } from "./components/AppModals";
+import { getColorSchemeFromBackground } from "./utils/color";
 
 // Hooks
 import { useAudioPlayer, usePlaylist, useAudioInterval, usePlaylistActions, useSkipIntervalHandler, useDownloadManager, useAudioEvents, usePlaybackControls, usePlaylistPersistence, useAudioSourceManager, usePlaySong, usePlayModes } from "./hooks/player";
@@ -208,6 +209,10 @@ const App: React.FC = () => {
         setModalOpacity(theme.modalOpacity ?? 1);
         setModalBlur(theme.modalBlur ?? 0);
         setWindowControlsPos(windowControlsPosValue);
+
+        // 根据面板颜色亮度动态设置 Mantine 颜色方案
+        const colorScheme = getColorSchemeFromBackground(theme.panelColor);
+        setColorScheme(colorScheme);
     }, [setCurrentThemeId, setColorScheme, setThemeColor, setBackgroundColor, setBackgroundOpacity, setBackgroundImageUrlSafe, setPanelColor, setPanelOpacity, setBackgroundBlur, setPanelBlur, setPanelRadius, setControlColor, setControlOpacity, setControlBlur, setTextColorPrimary, setTextColorSecondary, setFavoriteCardColor, setCardOpacity, setModalRadius, setNotificationRadius, setComponentRadius, setCoverRadius, setModalColor, setModalOpacity, setModalBlur, setWindowControlsPos]);
 
     // 主题缓存辅助函数（提前定义，避免 TDZ）

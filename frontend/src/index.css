@@ -128,3 +128,28 @@ a {
 .bg-blur-heavy {
     backdrop-filter: blur(24px);
 }
+
+/* 亮色主题禁用状态优化 */
+/* Slider 禁用轨道颜色使用透明灰色 */
+.mantine-Slider-track[aria-disabled="true"],
+.mantine-Slider-track:disabled {
+    background-color: rgba(200, 200, 200, 0.4) !important;
+}
+
+/* Mantine 禁用状态文字颜色调浅 */
+[data-disabled="true"] {
+    color: #b0b0b0 !important;
+}
+
+/* 按钮禁用状态背景色 */
+button:disabled,
+[role="button"][aria-disabled="true"] {
+    background-color: #e8e8e8 !important;
+    color: #b0b0b0 !important;
+    opacity: 0.6;
+}
+
+/* Slider thumb 禁用状态 */
+.mantine-Slider-thumb[aria-disabled="true"] {
+    background-color: #c1c2c5 !important;
+}
