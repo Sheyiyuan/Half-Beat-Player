@@ -53,7 +53,6 @@ type SongRef struct {
 type Theme struct {
 	ID                  string  `json:"id"`
 	Name                string  `json:"name"`
-	ColorScheme         string  `json:"colorScheme"` // "light" or "dark"
 	ThemeColor          string  `json:"themeColor"`
 	BackgroundColor     string  `json:"backgroundColor"`
 	BackgroundOpacity   float64 `json:"backgroundOpacity"`
@@ -63,8 +62,20 @@ type Theme struct {
 	PanelOpacity        float64 `json:"panelOpacity"`
 	PanelBlur           float64 `json:"panelBlur"`            // Gaussian blur for panels (0-30)
 	PanelRadius         float64 `json:"panelRadius"`          // Border radius for panels (0-20)
+	ControlColor        string  `json:"controlColor"`        // Color for buttons/inputs
+	ControlOpacity      float64 `json:"controlOpacity"`      // Opacity for buttons/inputs
+	ControlBlur         float64 `json:"controlBlur"`         // Blur for buttons/inputs (0-20)
+	TextColorPrimary    string  `json:"textColorPrimary"`    // Primary text color
+	TextColorSecondary  string  `json:"textColorSecondary"`  // Secondary/dimmed text color
+	FavoriteCardColor   string  `json:"favoriteCardColor"`   // Color for favorite list cards
+	CardOpacity         float64 `json:"cardOpacity"`         // Opacity for cards (0-1)
 	ComponentRadius     float64 `json:"componentRadius"`       // Border radius for components like buttons/inputs (0-32)
+	ModalRadius         float64 `json:"modalRadius"`           // Border radius for modals (0-32)
+	NotificationRadius  float64 `json:"notificationRadius"`    // Border radius for notifications (0-32)
 	CoverRadius         float64 `json:"coverRadius"`           // Border radius for song covers (0-32)
+	ModalColor          string  `json:"modalColor"`            // Color for modal backgrounds
+	ModalOpacity        float64 `json:"modalOpacity"`          // Opacity for modals (0-1)
+	ModalBlur           float64 `json:"modalBlur"`             // Blur radius for modals (0-30)
 	WindowControlsPos   string  `json:"windowControlsPos"`    // Position of window controls: "left", "right", "hidden" (default: "right")
 	IsDefault           bool    `json:"isDefault"`
 	IsReadOnly          bool    `json:"isReadOnly"`

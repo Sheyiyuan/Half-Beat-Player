@@ -122,7 +122,8 @@ export const useAppLifecycle = ({
                 const allThemes = [...DEFAULT_THEMES, ...customThemes];
                 setThemes(allThemes);
 
-                const preferredThemeId = s.config?.currentThemeId || "light";
+                // 优先从后端配置获取当前主题 ID，如果没有则尝试从 localStorage 获取
+                const preferredThemeId = s.config?.currentThemeId || localStorage.getItem('half-beat.currentThemeId') || "light";
                 const targetTheme = allThemes.find((t: Theme) => t.id === preferredThemeId) || allThemes[0] || DEFAULT_THEMES[0];
 
                 // 如果后端记录的主题不存在（例如旧的自定义主题被删除），回退到默认主题并更新后端设置

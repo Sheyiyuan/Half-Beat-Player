@@ -13,6 +13,7 @@ interface ControlsPanelProps {
     intervalLength: number;
     duration: number;
     formatTime: (ms: number) => string;
+    formatTimeWithMs: (ms: number) => string;
     seek: (pos: number) => void;
     playPrev: () => void;
     togglePlay: () => void;
@@ -30,7 +31,12 @@ interface ControlsPanelProps {
     songsCount: number;
     panelBackground: string;
     panelStyles: React.CSSProperties;
+    componentRadius?: number;
     coverRadius?: number;
+    controlBackground?: string;
+    controlStyles?: React.CSSProperties;
+    textColorPrimary?: string;
+    textColorSecondary?: string;
 }
 
 const ControlsPanel: React.FC<ControlsPanelProps> = ({
@@ -43,6 +49,7 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
     intervalLength,
     duration,
     formatTime,
+    formatTimeWithMs,
     seek,
     playPrev,
     togglePlay,
@@ -60,12 +67,19 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
     songsCount,
     panelBackground,
     panelStyles,
+    componentRadius,
     coverRadius,
+    controlBackground,
+    controlStyles,
+    textColorPrimary,
+    textColorSecondary,
 }) => {
     return (
         <Paper
             shadow="sm"
-            p="md"
+            px="md"
+            pb="md"
+            pt="lg"
             withBorder
             pos="sticky"
             bottom={0}
@@ -82,6 +96,7 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
                 intervalLength={intervalLength}
                 duration={duration}
                 formatTime={formatTime}
+                formatTimeWithMs={formatTimeWithMs}
                 seek={seek}
                 playPrev={playPrev}
                 togglePlay={togglePlay}
@@ -97,7 +112,12 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
                 volume={volume}
                 changeVolume={changeVolume}
                 songsCount={songsCount}
+                componentRadius={componentRadius}
                 coverRadius={coverRadius}
+                controlBackground={controlBackground}
+                controlStyles={controlStyles}
+                textColorPrimary={textColorPrimary}
+                textColorSecondary={textColorSecondary}
             />
         </Paper>
     );

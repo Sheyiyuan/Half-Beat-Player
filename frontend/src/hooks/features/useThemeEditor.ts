@@ -17,8 +17,6 @@ interface UseThemeEditorProps {
     setEditingThemeId: (id: string | null) => void;
     newThemeName: string;
     setNewThemeName: (name: string) => void;
-    colorSchemeDraft: "light" | "dark";
-    setColorSchemeDraft: (scheme: "light" | "dark") => void;
     themeColorDraft: string;
     setThemeColorDraft: (color: string) => void;
     backgroundColorDraft: string;
@@ -37,10 +35,34 @@ interface UseThemeEditorProps {
     setPanelBlurDraft: (blur: number) => void;
     panelRadiusDraft: number;
     setPanelRadiusDraft: (radius: number) => void;
+    controlColorDraft: string;
+    setControlColorDraft: (color: string) => void;
+    controlOpacityDraft: number;
+    setControlOpacityDraft: (opacity: number) => void;
+    controlBlurDraft: number;
+    setControlBlurDraft: (blur: number) => void;
+    textColorPrimaryDraft: string;
+    setTextColorPrimaryDraft: (color: string) => void;
+    textColorSecondaryDraft: string;
+    setTextColorSecondaryDraft: (color: string) => void;
+    favoriteCardColorDraft: string;
+    setFavoriteCardColorDraft: (color: string) => void;
+    cardOpacityDraft: number;
+    setCardOpacityDraft: (opacity: number) => void;
+    modalRadiusDraft: number;
+    setModalRadiusDraft: (radius: number) => void;
+    notificationRadiusDraft: number;
+    setNotificationRadiusDraft: (radius: number) => void;
     componentRadiusDraft: number;
     setComponentRadiusDraft: (radius: number) => void;
     coverRadiusDraft: number;
     setCoverRadiusDraft: (radius: number) => void;
+    modalColorDraft: string;
+    setModalColorDraft: (color: string) => void;
+    modalOpacityDraft: number;
+    setModalOpacityDraft: (opacity: number) => void;
+    modalBlurDraft: number;
+    setModalBlurDraft: (blur: number) => void;
     windowControlsPosDraft: string;
     setWindowControlsPosDraft: (pos: string) => void;
     setSavingTheme: (saving: boolean) => void;
@@ -61,8 +83,6 @@ export const useThemeEditor = ({
     setEditingThemeId,
     newThemeName,
     setNewThemeName,
-    colorSchemeDraft,
-    setColorSchemeDraft,
     themeColorDraft,
     setThemeColorDraft,
     backgroundColorDraft,
@@ -81,10 +101,34 @@ export const useThemeEditor = ({
     setPanelBlurDraft,
     panelRadiusDraft,
     setPanelRadiusDraft,
+    controlColorDraft,
+    setControlColorDraft,
+    controlOpacityDraft,
+    setControlOpacityDraft,
+    controlBlurDraft,
+    setControlBlurDraft,
+    textColorPrimaryDraft,
+    setTextColorPrimaryDraft,
+    textColorSecondaryDraft,
+    setTextColorSecondaryDraft,
+    favoriteCardColorDraft,
+    setFavoriteCardColorDraft,
+    cardOpacityDraft,
+    setCardOpacityDraft,
+    modalRadiusDraft,
+    setModalRadiusDraft,
+    notificationRadiusDraft,
+    setNotificationRadiusDraft,
     componentRadiusDraft,
     setComponentRadiusDraft,
     coverRadiusDraft,
     setCoverRadiusDraft,
+    modalColorDraft,
+    setModalColorDraft,
+    modalOpacityDraft,
+    setModalOpacityDraft,
+    modalBlurDraft,
+    setModalBlurDraft,
     windowControlsPosDraft,
     setWindowControlsPosDraft,
     setSavingTheme,
@@ -100,7 +144,6 @@ export const useThemeEditor = ({
     const editTheme = useCallback((theme: Theme) => {
         setEditingThemeId(theme.id);
         setNewThemeName(theme.name);
-        setColorSchemeDraft((theme.colorScheme as "light" | "dark") || "light");
         setThemeColorDraft(theme.themeColor);
         setBackgroundColorDraft(theme.backgroundColor);
         setBackgroundOpacityDraft(theme.backgroundOpacity);
@@ -110,11 +153,23 @@ export const useThemeEditor = ({
         setPanelOpacityDraft(theme.panelOpacity);
         setPanelBlurDraft(theme.panelBlur ?? 0);
         setPanelRadiusDraft(theme.panelRadius ?? 8);
+        setControlColorDraft(theme.controlColor || theme.panelColor);
+        setControlOpacityDraft(theme.controlOpacity ?? 1);
+        setControlBlurDraft(theme.controlBlur ?? 0);
+        setTextColorPrimaryDraft(theme.textColorPrimary || '#1a1b1e');
+        setTextColorSecondaryDraft(theme.textColorSecondary || '#909296');
+        setFavoriteCardColorDraft(theme.favoriteCardColor || theme.panelColor);
+        setCardOpacityDraft(theme.cardOpacity ?? 1);
+        setModalRadiusDraft(theme.modalRadius ?? 8);
+        setNotificationRadiusDraft(theme.notificationRadius ?? 8);
         setComponentRadiusDraft(theme.componentRadius ?? 8);
         setCoverRadiusDraft(theme.coverRadius ?? 8);
+        setModalColorDraft(theme.modalColor || theme.panelColor);
+        setModalOpacityDraft(theme.modalOpacity ?? 1);
+        setModalBlurDraft(theme.modalBlur ?? 0);
         setWindowControlsPosDraft(theme.windowControlsPos || 'right');
         openModal("themeEditorModal");
-    }, [setEditingThemeId, setNewThemeName, setColorSchemeDraft, setThemeColorDraft, setBackgroundColorDraft, setBackgroundOpacityDraft, setBackgroundImageUrlDraftSafe, setBackgroundBlurDraft, setPanelColorDraft, setPanelOpacityDraft, setPanelBlurDraft, setPanelRadiusDraft, setComponentRadiusDraft, setCoverRadiusDraft, setWindowControlsPosDraft, openModal]);
+    }, [setEditingThemeId, setNewThemeName, setThemeColorDraft, setBackgroundColorDraft, setBackgroundOpacityDraft, setBackgroundImageUrlDraftSafe, setBackgroundBlurDraft, setPanelColorDraft, setPanelOpacityDraft, setPanelBlurDraft, setPanelRadiusDraft, setControlColorDraft, setControlOpacityDraft, setControlBlurDraft, setTextColorPrimaryDraft, setTextColorSecondaryDraft, setFavoriteCardColorDraft, setCardOpacityDraft, setModalRadiusDraft, setNotificationRadiusDraft, setComponentRadiusDraft, setCoverRadiusDraft, setModalColorDraft, setModalOpacityDraft, setModalBlurDraft, setWindowControlsPosDraft, openModal]);
 
     const deleteTheme = useCallback(async (id: string) => {
         await Services.DeleteTheme(id);
@@ -127,7 +182,6 @@ export const useThemeEditor = ({
     const createThemeClick = useCallback(() => {
         setEditingThemeId(null);
         setNewThemeName("");
-        setColorSchemeDraft(computedColorScheme as "light" | "dark");
         setThemeColorDraft("#228be6");
         setBackgroundColorDraft(computedColorScheme === "dark" ? "#0b1021" : "#f8fafc");
         setBackgroundOpacityDraft(1);
@@ -137,11 +191,23 @@ export const useThemeEditor = ({
         setPanelOpacityDraft(0.92);
         setPanelBlurDraft(0);
         setPanelRadiusDraft(8);
+        setControlColorDraft(computedColorScheme === "dark" ? "#1f2937" : "#ffffff");
+        setControlOpacityDraft(1);
+        setControlBlurDraft(0);
+        setTextColorPrimaryDraft(computedColorScheme === "dark" ? "#ffffff" : "#1a1b1e");
+        setTextColorSecondaryDraft(computedColorScheme === "dark" ? "#a6a7ab" : "#909296");
+        setFavoriteCardColorDraft(computedColorScheme === "dark" ? "#1f2937" : "#ffffff");
+        setCardOpacityDraft(1);
+        setModalRadiusDraft(8);
+        setNotificationRadiusDraft(8);
         setComponentRadiusDraft(8);
         setCoverRadiusDraft(8);
+        setModalColorDraft(computedColorScheme === "dark" ? "#1f2937" : "#ffffff");
+        setModalOpacityDraft(0.92);
+        setModalBlurDraft(0);
         setWindowControlsPosDraft("right");
         openModal("themeEditorModal");
-    }, [setEditingThemeId, setNewThemeName, setColorSchemeDraft, setThemeColorDraft, setBackgroundColorDraft, setBackgroundOpacityDraft, setBackgroundImageUrlDraftSafe, setBackgroundBlurDraft, setPanelColorDraft, setPanelOpacityDraft, setPanelBlurDraft, setPanelRadiusDraft, setComponentRadiusDraft, setCoverRadiusDraft, setWindowControlsPosDraft, openModal, computedColorScheme]);
+    }, [setEditingThemeId, setNewThemeName, setThemeColorDraft, setBackgroundColorDraft, setBackgroundOpacityDraft, setBackgroundImageUrlDraftSafe, setBackgroundBlurDraft, setPanelColorDraft, setPanelOpacityDraft, setPanelBlurDraft, setPanelRadiusDraft, setControlColorDraft, setControlOpacityDraft, setControlBlurDraft, setTextColorPrimaryDraft, setTextColorSecondaryDraft, setFavoriteCardColorDraft, setCardOpacityDraft, setModalRadiusDraft, setNotificationRadiusDraft, setComponentRadiusDraft, setCoverRadiusDraft, setModalColorDraft, setModalOpacityDraft, setModalBlurDraft, setWindowControlsPosDraft, openModal, computedColorScheme]);
 
     const submitTheme = useCallback(async () => {
         setSavingTheme(true);
@@ -158,7 +224,6 @@ export const useThemeEditor = ({
                 const updatedTheme: Theme = {
                     id: editingThemeId,
                     name: newThemeName || "未命名主题",
-                    colorScheme: colorSchemeDraft,
                     themeColor: themeColorDraft,
                     backgroundColor: backgroundColorDraft,
                     backgroundOpacity: backgroundOpacityDraft,
@@ -168,8 +233,20 @@ export const useThemeEditor = ({
                     panelOpacity: panelOpacityDraft,
                     panelBlur: panelBlurDraft,
                     panelRadius: panelRadiusDraft,
+                    controlColor: controlColorDraft,
+                    controlOpacity: controlOpacityDraft,
+                    controlBlur: controlBlurDraft,
+                    textColorPrimary: textColorPrimaryDraft,
+                    textColorSecondary: textColorSecondaryDraft,
+                    favoriteCardColor: favoriteCardColorDraft,
+                    cardOpacity: cardOpacityDraft,
                     componentRadius: componentRadiusDraft,
+                    modalRadius: modalRadiusDraft,
+                    notificationRadius: notificationRadiusDraft,
                     coverRadius: coverRadiusDraft,
+                    modalColor: modalColorDraft,
+                    modalOpacity: modalOpacityDraft,
+                    modalBlur: modalBlurDraft,
                     windowControlsPos: windowControlsPosDraft,
                     isDefault: editingTheme?.isDefault || false,
                     isReadOnly: false,
@@ -194,7 +271,6 @@ export const useThemeEditor = ({
                 const newTheme: Theme = {
                     id: "",
                     name: newThemeName || "未命名主题",
-                    colorScheme: colorSchemeDraft,
                     themeColor: themeColorDraft,
                     backgroundColor: backgroundColorDraft,
                     backgroundOpacity: backgroundOpacityDraft,
@@ -204,8 +280,20 @@ export const useThemeEditor = ({
                     panelOpacity: panelOpacityDraft,
                     panelBlur: panelBlurDraft,
                     panelRadius: panelRadiusDraft,
+                    controlColor: controlColorDraft,
+                    controlOpacity: controlOpacityDraft,
+                    controlBlur: controlBlurDraft,
+                    textColorPrimary: textColorPrimaryDraft,
+                    textColorSecondary: textColorSecondaryDraft,
+                    favoriteCardColor: favoriteCardColorDraft,
+                    cardOpacity: cardOpacityDraft,
                     componentRadius: componentRadiusDraft,
+                    modalRadius: modalRadiusDraft,
+                    notificationRadius: notificationRadiusDraft,
                     coverRadius: coverRadiusDraft,
+                    modalColor: modalColorDraft,
+                    modalOpacity: modalOpacityDraft,
+                    modalBlur: modalBlurDraft,
                     windowControlsPos: windowControlsPosDraft,
                     isDefault: false,
                     isReadOnly: false,
@@ -242,10 +330,12 @@ export const useThemeEditor = ({
     }, [
         themes, currentThemeId, saveCachedCustomThemes, applyThemeToUi, getCustomThemesFromState,
         setThemes, setSavingTheme, closeModal, setEditingThemeId, setNewThemeName,
-        editingThemeId, newThemeName, colorSchemeDraft, themeColorDraft,
+        editingThemeId, newThemeName, themeColorDraft,
         backgroundColorDraft, backgroundOpacityDraft, backgroundImageUrlDraft, backgroundBlurDraft,
         panelColorDraft, panelOpacityDraft, panelBlurDraft, panelRadiusDraft,
-        componentRadiusDraft, coverRadiusDraft, windowControlsPosDraft, defaultThemes
+        controlColorDraft, controlOpacityDraft, controlBlurDraft, textColorPrimaryDraft, textColorSecondaryDraft, favoriteCardColorDraft, cardOpacityDraft,
+        componentRadiusDraft, coverRadiusDraft, windowControlsPosDraft, defaultThemes,
+        modalRadiusDraft, notificationRadiusDraft
     ]);
 
     const closeThemeEditor = useCallback(() => {

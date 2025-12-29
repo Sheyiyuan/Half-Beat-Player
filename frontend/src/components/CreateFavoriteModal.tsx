@@ -35,6 +35,9 @@ interface CreateFavoriteModalProps {
     onFetchMyCollections: () => void;
 
     onSubmit: () => void;
+
+    panelStyles?: any;
+    derived?: any;
 }
 
 const CreateFavoriteModal: React.FC<CreateFavoriteModalProps> = ({
@@ -62,6 +65,9 @@ const CreateFavoriteModal: React.FC<CreateFavoriteModalProps> = ({
     onFetchMyCollections,
 
     onSubmit,
+
+    panelStyles,
+    derived,
 }) => {
     // 当切换到导入我的收藏夹模式时,自动获取收藏夹列表
     React.useEffect(() => {
@@ -69,6 +75,33 @@ const CreateFavoriteModal: React.FC<CreateFavoriteModalProps> = ({
             onFetchMyCollections();
         }
     }, [opened, createFavMode, myCollections.length, isLoadingCollections, onFetchMyCollections]);
+
+    const modalStyles = derived ? {
+        content: {
+            backgroundColor: derived.modalBackground,
+            backdropFilter: panelStyles?.backdropFilter,
+            color: derived.textColorPrimary,
+        },
+        header: {
+            backgroundColor: "transparent",
+            color: derived.textColorPrimary,
+        },
+        title: {
+            color: derived.textColorPrimary,
+        }
+    } : undefined;
+
+    const inputStyles = derived ? {
+        input: {
+            backgroundColor: derived.controlBackground,
+            color: derived.textColorPrimary,
+            borderColor: "transparent",
+        },
+        label: {
+            color: derived.textColorPrimary,
+        }
+    } : undefined;
+
     return (
         <Modal
             opened={opened}
@@ -76,7 +109,8 @@ const CreateFavoriteModal: React.FC<CreateFavoriteModalProps> = ({
             title="新建歌单"
             centered
             size="md"
-            overlayProps={{ blur: 10, opacity: 0.35 }}
+            styles={modalStyles}
+            className={panelStyles ? "glass-panel" : ""}
         >
             <Stack gap="sm">
                 <TextInput
@@ -84,6 +118,7 @@ const CreateFavoriteModal: React.FC<CreateFavoriteModalProps> = ({
                     value={createFavName}
                     onChange={(e) => onNameChange(e.currentTarget.value)}
                     placeholder="输入歌单名"
+                    styles={inputStyles}
                 />
                 <Select
                     label="创建方式"
@@ -95,6 +130,7 @@ const CreateFavoriteModal: React.FC<CreateFavoriteModalProps> = ({
                     ]}
                     value={createFavMode}
                     onChange={(val) => onModeChange((val as CreateFavMode) || "blank")}
+                    styles={inputStyles}
                 />
                 {createFavMode === "duplicate" && (
                     <Select
@@ -105,6 +141,7 @@ const CreateFavoriteModal: React.FC<CreateFavoriteModalProps> = ({
                         onChange={(val) => onDuplicateSourceChange(val)}
                         searchable
                         clearable
+                        styles={inputStyles}
                     />
                 )}
                 {createFavMode === "importFid" && (
@@ -113,6 +150,7 @@ const CreateFavoriteModal: React.FC<CreateFavoriteModalProps> = ({
                         placeholder="输入 fid"
                         value={importFid}
                         onChange={(e) => onImportFidChange(e.currentTarget.value)}
+                        styles={inputStyles}
                     />
                 )}
                 {createFavMode === "importMine" && (
@@ -120,7 +158,7 @@ const CreateFavoriteModal: React.FC<CreateFavoriteModalProps> = ({
                         {isLoadingCollections ? (
                             <Group justify="center" py="md">
                                 <Loader size="sm" color={themeColor} />
-                                <Text size="sm" c="dimmed">正在获取收藏夹列表...</Text>
+                                <Text size="sm" style={{ color: derived?.textColorSecondary }}>正在获取收藏夹列表...</Text>
                             </Group>
                         ) : myCollections.length > 0 ? (
                             <Select
@@ -134,10 +172,11 @@ const CreateFavoriteModal: React.FC<CreateFavoriteModalProps> = ({
                                 onChange={(val) => onMyCollectionSelect(val ? Number(val) : null)}
                                 searchable
                                 clearable
+                                styles={inputStyles}
                             />
                         ) : (
                             <Stack gap="xs">
-                                <Text size="sm" c="dimmed">暂无可用收藏夹</Text>
+                                <Text size="sm" style={{ color: derived?.textColorSecondary }}>暂无可用收藏夹</Text>
                                 <Button
                                     size="xs"
                                     variant="light"
@@ -151,7 +190,7 @@ const CreateFavoriteModal: React.FC<CreateFavoriteModalProps> = ({
                     </>
                 )}
                 <Group justify="flex-end" mt="sm">
-                    <Button variant="default" onClick={onClose}>取消</Button>
+                    <Button variant="subtle" color={themeColor} onClick={onClose} style={{ color: derived?.textColorPrimary }}>取消</Button>
                     <Button color={themeColor} onClick={onSubmit}>确认</Button>
                 </Group>
             </Stack>

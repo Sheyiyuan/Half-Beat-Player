@@ -32,6 +32,9 @@ interface BVAddModalProps {
     onSingerChange: (value: string) => void;
     onConfirmAdd: () => void;
     formatTime: (value: number) => string;
+    formatTimeWithMs: (value: number) => string;
+    panelStyles?: any;
+    derived?: any;
 }
 
 const BVAddModal: React.FC<BVAddModalProps> = ({
@@ -56,7 +59,38 @@ const BVAddModal: React.FC<BVAddModalProps> = ({
     onSingerChange,
     onConfirmAdd,
     formatTime,
+    formatTimeWithMs,
+    panelStyles,
+    derived,
 }) => {
+    const modalStyles = derived ? {
+        content: {
+            ...panelStyles,
+            backgroundColor: derived.modalBackground,
+            color: derived.textColorPrimary,
+        },
+        header: {
+            backgroundColor: "transparent",
+            color: derived.textColorPrimary,
+        },
+        title: {
+            color: derived.textColorPrimary,
+            fontWeight: 600,
+        }
+    } : undefined;
+
+    const inputStyles = derived ? {
+        input: {
+            backgroundColor: derived.controlBackground,
+            color: derived.textColorPrimary,
+            borderColor: "transparent",
+            borderRadius: derived.componentRadius,
+        },
+        label: {
+            color: derived.textColorPrimary,
+        }
+    } : undefined;
+
     return (
         <Modal
             opened={opened}
@@ -65,6 +99,9 @@ const BVAddModal: React.FC<BVAddModalProps> = ({
             centered
             title="添加到歌单"
             overlayProps={{ blur: 10, opacity: 0.35 }}
+            radius={derived?.componentRadius}
+            styles={modalStyles}
+            className="glass-panel"
         >
             {bvPreview ? (
                 <Stack gap="md">
@@ -75,7 +112,7 @@ const BVAddModal: React.FC<BVAddModalProps> = ({
                                 src={`https://player.bilibili.com/player.html?bvid=${bvPreview.bvid}&high_quality=1&as_wide=1&autoplay=0`}
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
                                 allowFullScreen
-                                style={{ border: 0, width: "100%", height: "100%", borderRadius: 12 }}
+                                style={{ border: 0, width: "100%", height: "100%", borderRadius: derived?.componentRadius }}
                             />
                         ) : (
                             <Image
@@ -83,26 +120,26 @@ const BVAddModal: React.FC<BVAddModalProps> = ({
                                 alt={bvPreview.title}
                                 fit="cover"
                                 w="100%"
-                                radius="md"
+                                radius={derived?.componentRadius}
                                 fallbackSrc="https://via.placeholder.com/640x360?text=No+Cover"
                             />
                         )}
                     </AspectRatio>
                     <Stack gap="xs">
-                        <Text fw={600}>{bvPreview.title}</Text>
-                        <Text size="sm" c="dimmed">BV: {bvPreview.bvid}</Text>
-                        <Text size="sm" c="dimmed">时长: {formatTime(bvPreview.duration || 0)}</Text>
+                        <Text fw={600} c={derived?.textColorPrimary}>{bvPreview.title}</Text>
+                        <Text size="sm" c={derived?.textColorSecondary}>BV: {bvPreview.bvid}</Text>
+                        <Text size="sm" c={derived?.textColorSecondary}>时长: {formatTime(bvPreview.duration || 0)}</Text>
                     </Stack>
                     <Stack gap="xs">
-                        <Text size="xs" c="dimmed">播放区间（只播放此段）</Text>
+                        <Text size="xs" c={derived?.textColorSecondary}>播放区间（只播放此段）</Text>
                         <RangeSlider
                             value={[sliceStart, sliceEnd]}
                             onChange={([startVal, endVal]) => onSliceRangeChange(startVal, endVal)}
                             min={0}
                             max={Math.max(bvPreview.duration || 0, sliceEnd || 0, 1)}
-                            step={0.1}
-                            label={(value) => formatTime(Number(value))}
-                            style={{ '--slider-color': themeColor } as any}
+                            step={0.05}
+                            label={(value) => formatTimeWithMs(Number(value))}
+                            color={themeColor}
                         />
                         <Group gap="sm" grow>
                             <NumberInput
@@ -111,9 +148,12 @@ const BVAddModal: React.FC<BVAddModalProps> = ({
                                 onChange={onSliceStartChange}
                                 min={0}
                                 max={Math.max(bvPreview.duration || 0, sliceEnd || 0, 1)}
-                                step={0.1}
+                                step={0.05}
+                                decimalScale={2}
                                 hideControls
                                 size="sm"
+                                radius={derived?.componentRadius}
+                                styles={inputStyles}
                             />
                             <NumberInput
                                 label="播放结束 (秒)"
@@ -121,9 +161,12 @@ const BVAddModal: React.FC<BVAddModalProps> = ({
                                 onChange={onSliceEndChange}
                                 min={0}
                                 max={Math.max(bvPreview.duration || 0, sliceEnd || 0, 1)}
-                                step={0.1}
+                                step={0.05}
+                                decimalScale={2}
                                 hideControls
                                 size="sm"
+                                radius={derived?.componentRadius}
+                                styles={inputStyles}
                             />
                         </Group>
                     </Stack>
@@ -135,6 +178,8 @@ const BVAddModal: React.FC<BVAddModalProps> = ({
                             value={bvTargetFavId}
                             onChange={(val) => onSelectFavorite(val)}
                             clearable={favorites.length === 0}
+                            radius={derived?.componentRadius}
+                            styles={inputStyles}
                         />
                         <Group align="flex-end" wrap="nowrap" gap="xs">
                             <TextInput
@@ -143,32 +188,38 @@ const BVAddModal: React.FC<BVAddModalProps> = ({
                                 value={newFavName}
                                 onChange={(e) => onFavNameChange(e.currentTarget.value)}
                                 style={{ flex: 1 }}
+                                radius={derived?.componentRadius}
+                                styles={inputStyles}
                             />
-                            <Button variant="light" onClick={onCreateFavorite}>创建</Button>
+                            <Button variant="light" color={themeColor} radius={derived?.componentRadius} onClick={onCreateFavorite}>创建</Button>
                         </Group>
                         <TextInput
                             label="歌曲名"
                             value={bvSongName}
                             onChange={(e) => onSongNameChange(e.currentTarget.value)}
+                            radius={derived?.componentRadius}
+                            styles={inputStyles}
                         />
                         <TextInput
                             label="歌手"
                             value={bvSinger}
                             onChange={(e) => onSingerChange(e.currentTarget.value)}
                             placeholder="默认使用视频 UP/联合投稿"
+                            radius={derived?.componentRadius}
+                            styles={inputStyles}
                         />
                     </Stack>
                     <Group justify="flex-end">
-                        <Button variant="default" onClick={onClose}>
+                        <Button variant="subtle" onClick={onClose} radius={derived?.componentRadius} style={{ color: derived?.textColorPrimary }}>
                             取消
                         </Button>
-                        <Button color={themeColor} onClick={onConfirmAdd}>
+                        <Button color={themeColor} onClick={onConfirmAdd} radius={derived?.componentRadius}>
                             确认添加
                         </Button>
                     </Group>
                 </Stack>
             ) : (
-                <Text c="dimmed">暂无预览数据</Text>
+                <Text c={derived?.textColorSecondary}>暂无预览数据</Text>
             )}
         </Modal>
     );

@@ -18,6 +18,11 @@ export type FavoriteListCardProps = {
     confirmDeleteFavId: string | null;
     currentSong: Song | null;
     themeColor: string;
+    componentRadius?: number;
+    controlBackground?: string;
+    favoriteCardBackground?: string;
+    textColorPrimary?: string;
+    textColorSecondary?: string;
 };
 
 const FavoriteListCard: React.FC<FavoriteListCardProps> = ({
@@ -36,12 +41,17 @@ const FavoriteListCard: React.FC<FavoriteListCardProps> = ({
     confirmDeleteFavId,
     currentSong,
     themeColor,
+    componentRadius = 8,
+    controlBackground,
+    favoriteCardBackground,
+    textColorPrimary,
+    textColorSecondary,
 }) => {
     return (
         <Card shadow="sm" padding="md" w={300} withBorder h="100%" className="glass-panel" style={{ ...panelStyles, display: "flex", flexDirection: "column", minHeight: 0, backgroundColor: panelBackground }}>
             <Group justify="space-between" mb="sm">
-                <Text fw={600} size="sm">我的歌单</Text>
-                <Button size="xs" variant="light" color={themeColor} onClick={onCreateFavorite}>+ 新建</Button>
+                <Text fw={600} size="sm" style={{ color: textColorPrimary }}>我的歌单</Text>
+                <Button size="xs" variant="light" color={themeColor} onClick={onCreateFavorite} radius={componentRadius}>+ 新建</Button>
             </Group>
             <ScrollArea style={{ flex: 1, minHeight: 0 }}>
                 <Stack gap="xs" pb="sm">
@@ -52,7 +62,7 @@ const FavoriteListCard: React.FC<FavoriteListCardProps> = ({
                             <Card
                                 key={f.id}
                                 padding="sm"
-                                radius="md"
+                                radius={componentRadius}
                                 withBorder
                                 shadow="xs"
                                 onClick={() => {
@@ -61,38 +71,50 @@ const FavoriteListCard: React.FC<FavoriteListCardProps> = ({
                                 }}
                                 style={{
                                     cursor: "pointer",
-                                    backgroundColor: isSelected ? themeColor : undefined
+                                    backgroundColor: isSelected ? themeColor : (favoriteCardBackground || "transparent"),
+                                    borderColor: isSelected ? themeColor : "transparent",
                                 }}
                             >
                                 <Stack gap={6}>
-                                    <Text fw={600} size="sm">{f.title}</Text>
-                                    <Text size="xs" c={isSelected ? "gray.2" : "dimmed"}>{f.songIds.length} 首</Text>
+                                    <Text fw={600} size="sm" style={{ color: isSelected ? "white" : textColorPrimary }}>{f.title}</Text>
+                                    <Text size="xs" style={{ color: isSelected ? "rgba(255,255,255,0.7)" : textColorSecondary }}>{f.songIds.length} 首</Text>
                                     <Group gap="xs" wrap="nowrap">
                                         <Button
                                             size="xs"
                                             variant={isSelected ? "filled" : "light"}
-                                            color={themeColor}
+                                            color={isSelected ? "white" : themeColor}
+                                            radius={componentRadius}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 onPlayFavorite(f);
                                             }}
-                                            style={{ flexShrink: 0 }}
+                                            style={{
+                                                flexShrink: 0,
+                                                color: isSelected ? themeColor : undefined,
+                                                backgroundColor: isSelected ? "white" : undefined
+                                            }}
                                         >播放</Button>
                                         <Button
                                             size="xs"
                                             variant="light"
                                             color="gray"
+                                            radius={componentRadius}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 onEditFavorite(f);
                                                 onToggleConfirmDelete(null);
                                             }}
-                                            style={{ flexShrink: 0, backgroundColor: "rgba(0,0,0,0.08)" }}
+                                            style={{
+                                                flexShrink: 0,
+                                                backgroundColor: isSelected ? "rgba(255,255,255,0.2)" : (controlBackground || "rgba(0,0,0,0.08)"),
+                                                color: isSelected ? "white" : textColorPrimary
+                                            }}
                                         >编辑</Button>
                                         <Button
                                             size="xs"
                                             variant="outline"
                                             color="red"
+                                            radius={componentRadius}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 if (isConfirmDelete) {
@@ -103,7 +125,9 @@ const FavoriteListCard: React.FC<FavoriteListCardProps> = ({
                                             }}
                                             style={{
                                                 flexShrink: 0,
-                                                backgroundColor: isConfirmDelete ? "rgb(250, 82, 82)" : "rgba(255,0,0,0.12)",
+                                                backgroundColor: isConfirmDelete ? "rgb(250, 82, 82)" : (isSelected ? "rgba(255,255,255,0.1)" : (controlBackground || "rgba(255,0,0,0.12)")),
+                                                color: isConfirmDelete ? "white" : (isSelected ? "white" : "red"),
+                                                borderColor: isSelected ? "white" : "red",
                                                 transition: "background-color 150ms ease-out"
                                             }}
                                         >

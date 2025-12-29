@@ -10,6 +10,8 @@ interface DownloadManagerModalProps {
     onOpenFile: () => void;
     onDeleteFile: () => void;
     onToggleConfirmDelete: (value: boolean) => void;
+    panelStyles?: any;
+    derived?: any;
 }
 
 const DownloadManagerModal: React.FC<DownloadManagerModalProps> = ({
@@ -20,7 +22,24 @@ const DownloadManagerModal: React.FC<DownloadManagerModalProps> = ({
     onOpenFile,
     onDeleteFile,
     onToggleConfirmDelete,
+    panelStyles,
+    derived,
 }) => {
+    const modalStyles = derived ? {
+        content: {
+            backgroundColor: derived.modalBackground,
+            backdropFilter: panelStyles?.backdropFilter,
+            color: derived.textColorPrimary,
+        },
+        header: {
+            backgroundColor: "transparent",
+            color: derived.textColorPrimary,
+        },
+        title: {
+            color: derived.textColorPrimary,
+        }
+    } : undefined;
+
     return (
         <Modal
             opened={opened}
@@ -28,12 +47,13 @@ const DownloadManagerModal: React.FC<DownloadManagerModalProps> = ({
             size="sm"
             centered
             title="下载文件管理"
-            overlayProps={{ blur: 10, opacity: 0.35 }}
+            styles={modalStyles}
+            className={panelStyles ? "glass-panel" : ""}
         >
             <Stack gap="md">
-                <Text fw={600}>{managingSong?.name || '未选择歌曲'}</Text>
+                <Text fw={600} style={{ color: derived?.textColorPrimary }}>{managingSong?.name || '未选择歌曲'}</Text>
                 <Group justify="space-between">
-                    <Button variant="default" onClick={onOpenFile}>在文件管理器中打开</Button>
+                    <Button variant="subtle" onClick={onOpenFile} style={{ color: derived?.textColorPrimary }}>在文件管理器中打开</Button>
                     <Group gap="xs">
                         {!confirmDeleteDownloaded ? (
                             <Button variant="light" color="red" onClick={() => onToggleConfirmDelete(true)}>删除下载文件</Button>

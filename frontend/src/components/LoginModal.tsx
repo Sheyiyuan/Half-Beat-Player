@@ -7,9 +7,11 @@ interface LoginModalProps {
     opened: boolean;
     onClose: () => void;
     onLoginSuccess: () => void;
+    panelStyles?: any;
+    derived?: any;
 }
 
-export default function LoginModal({ opened, onClose, onLoginSuccess }: LoginModalProps) {
+export default function LoginModal({ opened, onClose, onLoginSuccess, panelStyles, derived }: LoginModalProps) {
     const [qrUrl, setQrUrl] = useState<string>("");
     const [qrcodeKey, setQrcodeKey] = useState<string>("");
     const [expireAt, setExpireAt] = useState<Date | null>(null);
@@ -18,6 +20,21 @@ export default function LoginModal({ opened, onClose, onLoginSuccess }: LoginMod
     const [errorMessage, setErrorMessage] = useState("");
     const [statusMessage, setStatusMessage] = useState("");
     const [isExpired, setIsExpired] = useState(false);
+
+    const modalStyles = derived ? {
+        content: {
+            backgroundColor: derived.panelBackground,
+            backdropFilter: panelStyles?.backdropFilter,
+            color: derived.textColorPrimary,
+        },
+        header: {
+            backgroundColor: "transparent",
+            color: derived.textColorPrimary,
+        },
+        title: {
+            color: derived.textColorPrimary,
+        }
+    } : undefined;
 
     const generateQR = async () => {
         try {
@@ -102,6 +119,8 @@ export default function LoginModal({ opened, onClose, onLoginSuccess }: LoginMod
             size="sm"
             closeOnEscape={true}
             closeOnClickOutside={true}
+            styles={modalStyles}
+            className={panelStyles ? "glass-panel" : ""}
         >
             <Stack gap="md">
                 {errorMessage && (
@@ -153,7 +172,7 @@ export default function LoginModal({ opened, onClose, onLoginSuccess }: LoginMod
                                 </div>
                             )}
                         </div>
-                        <Text size="sm" c="dimmed" mt="md">
+                        <Text size="sm" style={{ color: derived?.textColorSecondary }} mt="md">
                             请使用 B站 APP 扫描二维码
                         </Text>
                     </div>

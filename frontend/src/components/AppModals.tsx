@@ -11,7 +11,7 @@ import CreateFavoriteModal from "./CreateFavoriteModal";
 import GlobalSearchModal from "./GlobalSearchModal";
 import BVAddModal from "./BVAddModal";
 import { Favorite, Song, Theme } from "../types";
-import { formatTime } from "../utils/time";
+import { formatTime, formatTimeWithMs } from "../utils/time";
 
 // 导入 GlobalSearchResult 类型
 type GlobalSearchResult = { kind: "song"; song: Song } | { kind: "favorite"; favorite: Favorite };
@@ -38,7 +38,6 @@ export interface AppModalsProps {
     themeColorLight: string;
     editingThemeId: string | null;
     newThemeName: string;
-    colorSchemeDraft: "light" | "dark";
     themeColorDraft: string;
     backgroundColorDraft: string;
     backgroundOpacityDraft: number;
@@ -48,8 +47,20 @@ export interface AppModalsProps {
     panelOpacityDraft: number;
     panelBlurDraft: number;
     panelRadiusDraft: number;
+    controlColorDraft: string;
+    controlOpacityDraft: number;
+    controlBlurDraft: number;
+    textColorPrimaryDraft: string;
+    textColorSecondaryDraft: string;
+    favoriteCardColorDraft: string;
+    cardOpacityDraft: number;
+    modalRadiusDraft: number;
+    notificationRadiusDraft: number;
     componentRadiusDraft: number;
     coverRadiusDraft: number;
+    modalColorDraft: string;
+    modalOpacityDraft: number;
+    modalBlurDraft: number;
     windowControlsPosDraft: string;
     savingTheme: boolean;
     fileDraftInputRef: React.RefObject<HTMLInputElement>;
@@ -99,7 +110,6 @@ export interface AppModalsProps {
     onDeleteTheme: (id: string) => void | Promise<void>;
     onCreateTheme: () => void;
     onThemeNameChange: (v: string) => void;
-    onColorSchemeChange: (scheme: "light" | "dark") => void;
     onThemeColorChange: (v: string) => void;
     onBackgroundColorChange: (v: string) => void;
     onBackgroundOpacityChange: (v: number) => void;
@@ -110,8 +120,20 @@ export interface AppModalsProps {
     onPanelOpacityChange: (v: number) => void;
     onPanelBlurChange: (v: number) => void;
     onPanelRadiusChange: (v: number) => void;
+    onControlColorChange: (v: string) => void;
+    onControlOpacityChange: (v: number) => void;
+    onControlBlurChange: (v: number) => void;
+    onTextColorPrimaryChange: (v: string) => void;
+    onTextColorSecondaryChange: (v: string) => void;
+    onFavoriteCardColorChange: (v: string) => void;
+    onCardOpacityChange: (v: number) => void;
+    onModalRadiusChange: (v: number) => void;
+    onNotificationRadiusChange: (v: number) => void;
     onComponentRadiusChange: (v: number) => void;
     onCoverRadiusChange: (v: number) => void;
+    onModalColorChange: (v: string) => void;
+    onModalOpacityChange: (v: number) => void;
+    onModalBlurChange: (v: number) => void;
     onWindowControlsPosChange: (v: string) => void;
     onSubmitTheme: () => Promise<void>;
     onCancelThemeEdit: () => void;
@@ -163,6 +185,12 @@ export interface AppModalsProps {
     onSingerChange: (v: string) => void;
     onConfirmBVAdd: () => Promise<void> | void;
     onBvModalClose: () => void;
+    formatTime: (v: number) => string;
+    formatTimeWithMs: (v: number) => string;
+
+    // theme derived
+    panelStyles?: React.CSSProperties;
+    derived?: any;
 }
 
 const AppModals: React.FC<AppModalsProps> = (props) => {
@@ -174,7 +202,6 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
         themeColorLight,
         editingThemeId,
         newThemeName,
-        colorSchemeDraft,
         themeColorDraft,
         backgroundColorDraft,
         backgroundOpacityDraft,
@@ -184,8 +211,20 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
         panelOpacityDraft,
         panelBlurDraft,
         panelRadiusDraft,
+        controlColorDraft,
+        controlOpacityDraft,
+        controlBlurDraft,
+        textColorPrimaryDraft,
+        textColorSecondaryDraft,
+        favoriteCardColorDraft,
+        cardOpacityDraft,
+        modalRadiusDraft,
+        notificationRadiusDraft,
         componentRadiusDraft,
         coverRadiusDraft,
+        modalColorDraft,
+        modalOpacityDraft,
+        modalBlurDraft,
         windowControlsPosDraft,
         savingTheme,
         fileDraftInputRef,
@@ -223,7 +262,6 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
         onDeleteTheme,
         onCreateTheme,
         onThemeNameChange,
-        onColorSchemeChange,
         onThemeColorChange,
         onBackgroundColorChange,
         onBackgroundOpacityChange,
@@ -234,8 +272,20 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
         onPanelOpacityChange,
         onPanelBlurChange,
         onPanelRadiusChange,
+        onControlColorChange,
+        onControlOpacityChange,
+        onControlBlurChange,
+        onTextColorPrimaryChange,
+        onTextColorSecondaryChange,
+        onFavoriteCardColorChange,
+        onCardOpacityChange,
+        onModalRadiusChange,
+        onNotificationRadiusChange,
         onComponentRadiusChange,
         onCoverRadiusChange,
+        onModalColorChange,
+        onModalOpacityChange,
+        onModalBlurChange,
         onWindowControlsPosChange,
         onSubmitTheme,
         onCancelThemeEdit,
@@ -280,6 +330,10 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
         onSingerChange,
         onConfirmBVAdd,
         onBvModalClose,
+        formatTime,
+        formatTimeWithMs,
+        panelStyles,
+        derived,
     } = props;
 
     return (
@@ -294,6 +348,8 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
                 onDeleteTheme={onDeleteTheme}
                 onCreateTheme={onCreateTheme}
                 accentColor={themeColor}
+                panelStyles={panelStyles}
+                derived={derived}
             />
 
             <ThemeEditorModal
@@ -303,8 +359,6 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
                 editingThemeId={editingThemeId}
                 newThemeName={newThemeName}
                 onNameChange={onThemeNameChange}
-                colorSchemeDraft={colorSchemeDraft}
-                onColorSchemeChange={onColorSchemeChange}
                 themeColorDraft={themeColorDraft}
                 onThemeColorChange={onThemeColorChange}
                 backgroundColorDraft={backgroundColorDraft}
@@ -324,10 +378,34 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
                 onPanelBlurChange={onPanelBlurChange}
                 panelRadiusDraft={panelRadiusDraft}
                 onPanelRadiusChange={onPanelRadiusChange}
+                controlColorDraft={controlColorDraft}
+                onControlColorChange={onControlColorChange}
+                controlOpacityDraft={controlOpacityDraft}
+                onControlOpacityChange={onControlOpacityChange}
+                controlBlurDraft={controlBlurDraft}
+                onControlBlurChange={onControlBlurChange}
+                textColorPrimaryDraft={textColorPrimaryDraft}
+                onTextColorPrimaryChange={onTextColorPrimaryChange}
+                textColorSecondaryDraft={textColorSecondaryDraft}
+                onTextColorSecondaryChange={onTextColorSecondaryChange}
+                favoriteCardColorDraft={favoriteCardColorDraft}
+                onFavoriteCardColorChange={onFavoriteCardColorChange}
+                cardOpacityDraft={cardOpacityDraft}
+                onCardOpacityChange={onCardOpacityChange}
+                modalRadiusDraft={modalRadiusDraft}
+                onModalRadiusChange={onModalRadiusChange}
+                notificationRadiusDraft={notificationRadiusDraft}
+                onNotificationRadiusChange={onNotificationRadiusChange}
                 componentRadiusDraft={componentRadiusDraft}
                 onComponentRadiusChange={onComponentRadiusChange}
                 coverRadiusDraft={coverRadiusDraft}
                 onCoverRadiusChange={onCoverRadiusChange}
+                modalColorDraft={modalColorDraft}
+                onModalColorChange={onModalColorChange}
+                modalOpacityDraft={modalOpacityDraft}
+                onModalOpacityChange={onModalOpacityChange}
+                modalBlurDraft={modalBlurDraft}
+                onModalBlurChange={onModalBlurChange}
                 windowControlsPosDraft={windowControlsPosDraft}
                 onWindowControlsPosChange={onWindowControlsPosChange}
                 onSubmit={onSubmitTheme}
@@ -343,6 +421,8 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
                 currentSong={currentSong}
                 themeColor={themeColor}
                 onAdd={onAddToFavorite}
+                panelStyles={panelStyles}
+                derived={derived}
             />
 
             <PlaylistModal
@@ -354,6 +434,8 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
                 onSelect={onPlaylistSelect}
                 onReorder={onPlaylistReorder}
                 onRemove={onPlaylistRemove}
+                panelStyles={panelStyles}
+                derived={derived}
             />
 
             <Modal
@@ -362,6 +444,21 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
                 title="编辑歌单"
                 centered
                 size="sm"
+                styles={{
+                    content: {
+                        ...panelStyles,
+                        backgroundColor: derived?.panelBackground,
+                        color: derived?.textColorPrimary,
+                    },
+                    header: {
+                        backgroundColor: "transparent",
+                        color: derived?.textColorPrimary,
+                    },
+                    title: {
+                        fontWeight: 600,
+                    }
+                }}
+                className="glass-panel"
             >
                 <Stack gap="md">
                     <TextInput
@@ -369,9 +466,19 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
                         value={editingFavName}
                         onChange={(e) => onEditingFavNameChange(e.currentTarget.value)}
                         placeholder="输入歌单名称"
+                        styles={{
+                            input: {
+                                backgroundColor: derived?.controlBackground,
+                                color: derived?.textColorPrimary,
+                                borderColor: "transparent",
+                            },
+                            label: {
+                                color: derived?.textColorPrimary,
+                            }
+                        }}
                     />
                     <Group justify="flex-end" gap="sm">
-                        <Button variant="subtle" color={themeColor} onClick={() => closeModal("editFavModal")}>
+                        <Button variant="subtle" color={themeColor} onClick={() => closeModal("editFavModal")} style={{ color: derived?.textColorPrimary }}>
                             取消
                         </Button>
                         <Button color={themeColor} onClick={onSaveEditFavorite}>
@@ -385,6 +492,8 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
                 opened={modals.loginModal}
                 onClose={() => closeModal("loginModal")}
                 onLoginSuccess={onLoginSuccess}
+                panelStyles={panelStyles}
+                derived={derived}
             />
 
             <SettingsModal
@@ -399,6 +508,8 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
                 onOpenDatabaseFile={onOpenDatabaseFile}
                 onClearMusicCache={onClearMusicCache}
                 onClearAllCache={onClearAllCache}
+                panelStyles={panelStyles}
+                derived={derived}
             />
 
             <DownloadManagerModal
@@ -409,6 +520,8 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
                 onOpenFile={onOpenDownloadedFile}
                 onDeleteFile={onDeleteDownloadedFile}
                 onToggleConfirmDelete={onToggleConfirmDelete}
+                panelStyles={panelStyles}
+                derived={derived}
             />
 
             <CreateFavoriteModal
@@ -430,6 +543,8 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
                 onMyCollectionSelect={onMyCollectionSelect}
                 onFetchMyCollections={onFetchMyCollections}
                 onSubmit={onCreateFavoriteSubmit}
+                panelStyles={panelStyles}
+                derived={derived}
             />
 
             <GlobalSearchModal
@@ -446,6 +561,8 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
                 onRemoteSearch={onRemoteSearch}
                 onResultClick={onResultClick}
                 onAddFromRemote={onAddFromRemote}
+                panelStyles={panelStyles}
+                derived={derived}
             />
 
             <BVAddModal
@@ -470,6 +587,9 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
                 onSingerChange={onSingerChange}
                 onConfirmAdd={onConfirmBVAdd}
                 formatTime={formatTime}
+                formatTimeWithMs={formatTimeWithMs}
+                panelStyles={panelStyles}
+                derived={derived}
             />
         </>
     );

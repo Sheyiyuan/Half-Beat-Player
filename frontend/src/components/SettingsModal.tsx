@@ -14,6 +14,8 @@ interface SettingsModalProps {
     onOpenDatabaseFile: () => void;
     onClearMusicCache: () => void;
     onClearAllCache: () => void;
+    panelStyles?: React.CSSProperties;
+    derived?: any;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -28,6 +30,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     onOpenDatabaseFile,
     onClearMusicCache,
     onClearAllCache,
+    panelStyles,
+    derived,
 }) => {
     return (
         <Modal
@@ -37,31 +41,47 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             centered
             title="设置"
             overlayProps={{ blur: 10, opacity: 0.35 }}
+            radius={derived?.componentRadius}
+            styles={{
+                content: {
+                    ...panelStyles,
+                    backgroundColor: derived?.panelBackground,
+                    color: derived?.textColorPrimary,
+                },
+                header: {
+                    backgroundColor: "transparent",
+                    color: derived?.textColorPrimary,
+                },
+                title: {
+                    fontWeight: 600,
+                }
+            }}
+            className="glass-panel"
         >
             <Stack gap="md">
-                <Text fw={600}>软件信息</Text>
-                <Text>half-beat v{appVersion}</Text>
-                <Text size="sm" c="dimmed">更好的 bilibili 音乐播放器</Text>
+                <Text fw={600} c={derived?.textColorPrimary}>软件信息</Text>
+                <Text c={derived?.textColorPrimary}>half-beat v{appVersion}</Text>
+                <Text size="sm" c={derived?.textColorSecondary}>更好的 bilibili 音乐播放器</Text>
 
-                <Text fw={600} mt="sm">缓存</Text>
+                <Text fw={600} mt="sm" c={derived?.textColorPrimary}>缓存</Text>
                 <Group>
-                    <Button variant="default" onClick={onClearLoginCache}>清除登录缓存</Button>
-                    <Button variant="default" onClick={onClearThemeCache}>清除主题缓存</Button>
-                    <Button variant="default" onClick={onClearMusicCache}>清除音乐缓存 ({(cacheSize / 1024 / 1024).toFixed(2)} MB)</Button>
-                    <Button color={themeColor} onClick={onClearAllCache}>清除所有缓存</Button>
+                    <Button variant="default" radius={derived?.componentRadius} onClick={onClearLoginCache} styles={{ root: { backgroundColor: derived?.controlBackground, color: derived?.textColorPrimary } }}>清除登录缓存</Button>
+                    <Button variant="default" radius={derived?.componentRadius} onClick={onClearThemeCache} styles={{ root: { backgroundColor: derived?.controlBackground, color: derived?.textColorPrimary } }}>清除主题缓存</Button>
+                    <Button variant="default" radius={derived?.componentRadius} onClick={onClearMusicCache} styles={{ root: { backgroundColor: derived?.controlBackground, color: derived?.textColorPrimary } }}>清除音乐缓存 ({(cacheSize / 1024 / 1024).toFixed(2)} MB)</Button>
+                    <Button color={themeColor} radius={derived?.componentRadius} onClick={onClearAllCache}>清除所有缓存</Button>
                 </Group>
 
-                <Text fw={600} mt="sm">下载</Text>
+                <Text fw={600} mt="sm" c={derived?.textColorPrimary}>下载</Text>
                 <Group>
-                    <Button variant="default" onClick={onOpenDownloadsFolder}>在文件管理器中打开下载目录</Button>
+                    <Button variant="default" radius={derived?.componentRadius} onClick={onOpenDownloadsFolder} styles={{ root: { backgroundColor: derived?.controlBackground, color: derived?.textColorPrimary } }}>在文件管理器中打开下载目录</Button>
                 </Group>
 
-                <Text fw={600} mt="sm">数据库</Text>
+                <Text fw={600} mt="sm" c={derived?.textColorPrimary}>数据库</Text>
                 <Group>
-                    <Button variant="default" onClick={onOpenDatabaseFile}>打开数据库文件</Button>
+                    <Button variant="default" radius={derived?.componentRadius} onClick={onOpenDatabaseFile} styles={{ root: { backgroundColor: derived?.controlBackground, color: derived?.textColorPrimary } }}>打开数据库文件</Button>
                 </Group>
 
-                <Text fw={600} mt="sm">窗口设置</Text>
+                <Text fw={600} mt="sm" c={derived?.textColorPrimary}>窗口设置</Text>
                 <SettingsExitBehavior />
             </Stack>
         </Modal>

@@ -8,13 +8,33 @@ import { useThemeContext } from "../context";
 type ExitBehavior = "minimize" | "quit";
 const EXIT_BEHAVIOR_KEY = "half-beat.exitBehavior";
 
-export const WindowControls: React.FC = () => {
+interface WindowControlsProps {
+    themeColor?: string;
+    controlBackground?: string;
+    textColorPrimary?: string;
+    textColorSecondary?: string;
+    componentRadius?: number;
+}
+
+export const WindowControls: React.FC<WindowControlsProps> = ({
+    themeColor: propThemeColor,
+    controlBackground: propControlBackground,
+    textColorPrimary: propTextColorPrimary,
+    textColorSecondary: propTextColorSecondary,
+    componentRadius: propComponentRadius,
+}) => {
     const [isMaximized, setIsMaximized] = useState(false);
     const [exitModalOpen, setExitModalOpen] = useState(false);
     const [rememberChoice, setRememberChoice] = useState(false);
     const [exitChoice, setExitChoice] = useState<ExitBehavior>("minimize");
     const { state: themeState } = useThemeContext();
-    const { themeColor } = themeState;
+
+    // 优先使用 props，否则回退到 context (虽然 context 里没有 computed values，但可以作为兜底)
+    const themeColor = propThemeColor || themeState.themeColor;
+    const controlBackground = propControlBackground;
+    const textColorPrimary = propTextColorPrimary || themeState.textColorPrimary;
+    const textColorSecondary = propTextColorSecondary || themeState.textColorSecondary;
+    const componentRadius = propComponentRadius ?? themeState.componentRadius;
 
     // 定期检查窗口最大化状态
     useEffect(() => {
@@ -105,30 +125,36 @@ export const WindowControls: React.FC = () => {
                 <ActionIcon
                     variant="subtle"
                     size="lg"
+                    radius={componentRadius}
                     onClick={handleMinimize}
                     title="最小化"
                     className="window-control"
                     color={themeColor}
+                    style={{ backgroundColor: controlBackground }}
                 >
                     <Minus size={16} />
                 </ActionIcon>
                 <ActionIcon
                     variant="subtle"
                     size="lg"
+                    radius={componentRadius}
                     onClick={handleMaximize}
                     title={isMaximized ? "还原" : "最大化"}
                     className="window-control"
                     color={themeColor}
+                    style={{ backgroundColor: controlBackground }}
                 >
                     {isMaximized ? <Copy size={16} /> : <Square size={16} />}
                 </ActionIcon>
                 <ActionIcon
                     variant="subtle"
                     size="lg"
+                    radius={componentRadius}
                     onClick={handleCloseClick}
                     title="关闭"
                     className="window-control"
                     color="red"
+                    style={{ backgroundColor: controlBackground }}
                 >
                     <X size={16} />
                 </ActionIcon>
@@ -140,6 +166,22 @@ export const WindowControls: React.FC = () => {
                 title="关闭应用"
                 centered
                 size="sm"
+                radius={componentRadius}
+                styles={{
+                    content: {
+                        backgroundColor: "var(--glass-panel-color)",
+                        backdropFilter: "blur(20px)",
+                        color: textColorPrimary,
+                    },
+                    header: {
+                        backgroundColor: "transparent",
+                        color: textColorPrimary,
+                    },
+                    title: {
+                        fontWeight: 600,
+                    }
+                }}
+                className="glass-panel"
             >
                 <div style={{ marginBottom: "16px" }}>
                     <Radio.Group
@@ -147,9 +189,12 @@ export const WindowControls: React.FC = () => {
                         onChange={(value) => setExitChoice(value as ExitBehavior)}
                         label="选择关闭时的行为"
                         size="sm"
+                        styles={{
+                            label: { color: textColorPrimary }
+                        }}
                     >
-                        <Radio value="minimize" label="最小化到托盘" style={{ marginBottom: "8px" }} />
-                        <Radio value="quit" label="直接退出应用" />
+                        <Radio value="minimize" label="最小化到托盘" style={{ marginBottom: "8px" }} styles={{ label: { color: textColorPrimary } }} />
+                        <Radio value="quit" label="直接退出应用" styles={{ label: { color: textColorPrimary } }} />
                     </Radio.Group>
                 </div>
 
@@ -159,18 +204,23 @@ export const WindowControls: React.FC = () => {
                     label="记住我的选择"
                     size="sm"
                     style={{ marginBottom: "16px" }}
+                    styles={{ label: { color: textColorPrimary } }}
                 />
 
                 <Group justify="flex-end" gap="xs">
                     <Button
-                        variant="default"
+                        variant="subtle"
                         size="sm"
+                        radius={componentRadius}
                         onClick={() => setExitModalOpen(false)}
+                        style={{ color: textColorPrimary }}
                     >
                         取消
                     </Button>
                     <Button
                         size="sm"
+                        color={themeColor}
+                        radius={componentRadius}
                         onClick={handleConfirmExit}
                     >
                         确定

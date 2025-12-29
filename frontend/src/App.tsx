@@ -16,7 +16,7 @@ import { useAppPanelsProps } from "./hooks/ui/useAppPanelsProps";
 import { useThemeContext, useModalContext } from "./context";
 
 // Utils
-import { formatTime, formatTimeLabel, parseTimeLabel } from "./utils/time";
+import { formatTime, formatTimeLabel, parseTimeLabel, formatTimeWithMs } from "./utils/time";
 import { APP_VERSION, PLACEHOLDER_COVER, DEFAULT_THEMES } from "./utils/constants";
 
 // Declare window.go for Wails runtime
@@ -54,11 +54,15 @@ const App: React.FC = () => {
     const { state: themeState, actions: themeActions } = useThemeContext();
     const {
         themes, currentThemeId, themeColor, backgroundColor, backgroundOpacity,
-        backgroundImageUrl, backgroundBlur, panelColor, panelOpacity, panelBlur, panelRadius, componentRadius, coverRadius, windowControlsPos, computedColorScheme,
+        backgroundImageUrl, backgroundBlur, panelColor, panelOpacity, panelBlur, panelRadius,
+        controlColor, controlOpacity, controlBlur, textColorPrimary, textColorSecondary, favoriteCardColor, cardOpacity,
+        modalRadius, notificationRadius, componentRadius, coverRadius, modalColor, modalOpacity, modalBlur, windowControlsPos, computedColorScheme,
     } = themeState;
     const {
         setThemes, setCurrentThemeId, setThemeColor, setBackgroundColor,
-        setBackgroundOpacity, setBackgroundImageUrl, setBackgroundBlur, setPanelColor, setPanelOpacity, setPanelBlur, setPanelRadius, setComponentRadius, setCoverRadius, setWindowControlsPos,
+        setBackgroundOpacity, setBackgroundImageUrl, setBackgroundBlur, setPanelColor, setPanelOpacity, setPanelBlur, setPanelRadius,
+        setControlColor, setControlOpacity, setControlBlur, setTextColorPrimary, setTextColorSecondary, setFavoriteCardColor, setCardOpacity,
+        setModalRadius, setNotificationRadius, setComponentRadius, setCoverRadius, setModalColor, setModalOpacity, setModalBlur, setWindowControlsPos,
         applyTheme, setBackgroundImageUrlSafe,
     } = themeActions;
 
@@ -131,9 +135,8 @@ const App: React.FC = () => {
     // ========== 主题编辑器状态 ==========
     const [editingThemeId, setEditingThemeId] = useState<string | null>(null);
     const [newThemeName, setNewThemeName] = useState<string>("");
-    const [colorSchemeDraft, setColorSchemeDraft] = useState<"light" | "dark">("light");
     const [themeColorDraft, setThemeColorDraft] = useState<string>("#228be6");
-    const [backgroundColorDraft, setBackgroundColorDraft] = useState<string>(computedColorScheme === "dark" ? "#0b1021" : "#f8fafc");
+    const [backgroundColorDraft, setBackgroundColorDraft] = useState<string>("#f8fafc");
     const [backgroundOpacityDraft, setBackgroundOpacityDraft] = useState<number>(1);
     const [backgroundImageUrlDraft, setBackgroundImageUrlDraft] = useState<string>("");
     const [backgroundBlurDraft, setBackgroundBlurDraft] = useState<number>(0);
@@ -141,8 +144,20 @@ const App: React.FC = () => {
     const [panelColorDraft, setPanelColorDraft] = useState<string>("#ffffff");
     const [panelBlurDraft, setPanelBlurDraft] = useState<number>(0);
     const [panelRadiusDraft, setPanelRadiusDraft] = useState<number>(8);
+    const [controlColorDraft, setControlColorDraft] = useState<string>("#ffffff");
+    const [controlOpacityDraft, setControlOpacityDraft] = useState<number>(1);
+    const [controlBlurDraft, setControlBlurDraft] = useState<number>(0);
+    const [textColorPrimaryDraft, setTextColorPrimaryDraft] = useState<string>("#1a1b1e");
+    const [textColorSecondaryDraft, setTextColorSecondaryDraft] = useState<string>("#909296");
+    const [favoriteCardColorDraft, setFavoriteCardColorDraft] = useState<string>("#ffffff");
+    const [cardOpacityDraft, setCardOpacityDraft] = useState<number>(1);
+    const [modalRadiusDraft, setModalRadiusDraft] = useState<number>(8);
+    const [notificationRadiusDraft, setNotificationRadiusDraft] = useState<number>(8);
     const [componentRadiusDraft, setComponentRadiusDraft] = useState<number>(8);
     const [coverRadiusDraft, setCoverRadiusDraft] = useState<number>(8);
+    const [modalColorDraft, setModalColorDraft] = useState<string>("#ffffff");
+    const [modalOpacityDraft, setModalOpacityDraft] = useState<number>(1);
+    const [modalBlurDraft, setModalBlurDraft] = useState<number>(0);
     const [windowControlsPosDraft, setWindowControlsPosDraft] = useState<string>("right");
     const [savingTheme, setSavingTheme] = useState(false);
 
@@ -163,12 +178,11 @@ const App: React.FC = () => {
         const backgroundBlurValue = theme.backgroundBlur ?? 0;
         const panelBlurValue = theme.panelBlur ?? 0;
         const panelRadiusValue = theme.panelRadius ?? 8;
+        const modalRadiusValue = theme.modalRadius ?? 8;
+        const notificationRadiusValue = theme.notificationRadius ?? 8;
         const windowControlsPosValue = theme.windowControlsPos ?? 'right';
 
         setCurrentThemeId(theme.id);
-        if (theme.colorScheme) {
-            setColorScheme(theme.colorScheme as "light" | "dark");
-        }
         skipPersistRef.current = true;
         setThemeColor(theme.themeColor);
         setBackgroundColor(theme.backgroundColor);
@@ -179,15 +193,27 @@ const App: React.FC = () => {
         setPanelOpacity(theme.panelOpacity);
         setPanelBlur(panelBlurValue);
         setPanelRadius(panelRadiusValue);
+        setControlColor(theme.controlColor || theme.panelColor);
+        setControlOpacity(theme.controlOpacity ?? 1);
+        setControlBlur(theme.controlBlur ?? 0);
+        setTextColorPrimary(theme.textColorPrimary || '#1a1b1e');
+        setTextColorSecondary(theme.textColorSecondary || '#909296');
+        setFavoriteCardColor(theme.favoriteCardColor || theme.panelColor);
+        setCardOpacity(theme.cardOpacity ?? 1);
+        setModalRadius(modalRadiusValue);
+        setNotificationRadius(notificationRadiusValue);
         setComponentRadius(theme.componentRadius ?? 8);
         setCoverRadius(theme.coverRadius ?? 8);
+        setModalColor(theme.modalColor || theme.panelColor);
+        setModalOpacity(theme.modalOpacity ?? 1);
+        setModalBlur(theme.modalBlur ?? 0);
         setWindowControlsPos(windowControlsPosValue);
-    }, [setCurrentThemeId, setColorScheme, setThemeColor, setBackgroundColor, setBackgroundOpacity, setBackgroundImageUrlSafe, setPanelColor, setPanelOpacity, setBackgroundBlur, setPanelBlur, setPanelRadius, setComponentRadius, setCoverRadius, setWindowControlsPos]);
+    }, [setCurrentThemeId, setColorScheme, setThemeColor, setBackgroundColor, setBackgroundOpacity, setBackgroundImageUrlSafe, setPanelColor, setPanelOpacity, setBackgroundBlur, setPanelBlur, setPanelRadius, setControlColor, setControlOpacity, setControlBlur, setTextColorPrimary, setTextColorSecondary, setFavoriteCardColor, setCardOpacity, setModalRadius, setNotificationRadius, setComponentRadius, setCoverRadius, setModalColor, setModalOpacity, setModalBlur, setWindowControlsPos]);
 
     // 主题缓存辅助函数（提前定义，避免 TDZ）
     const saveCachedCustomThemes = useCallback((themesToCache: Theme[]) => {
         try {
-            localStorage.setItem('customThemes', JSON.stringify(themesToCache));
+            localStorage.setItem('half-beat.customThemes', JSON.stringify(themesToCache));
         } catch (e) {
             console.warn('保存自定义主题缓存失败', e);
         }
@@ -258,8 +284,6 @@ const App: React.FC = () => {
         setEditingThemeId,
         newThemeName,
         setNewThemeName,
-        colorSchemeDraft,
-        setColorSchemeDraft,
         themeColorDraft,
         setThemeColorDraft,
         backgroundColorDraft,
@@ -278,10 +302,34 @@ const App: React.FC = () => {
         setPanelBlurDraft,
         panelRadiusDraft,
         setPanelRadiusDraft,
+        controlColorDraft,
+        setControlColorDraft,
+        controlOpacityDraft,
+        setControlOpacityDraft,
+        controlBlurDraft,
+        setControlBlurDraft,
+        textColorPrimaryDraft,
+        setTextColorPrimaryDraft,
+        textColorSecondaryDraft,
+        setTextColorSecondaryDraft,
+        favoriteCardColorDraft,
+        setFavoriteCardColorDraft,
+        cardOpacityDraft,
+        setCardOpacityDraft,
+        modalRadiusDraft,
+        setModalRadiusDraft,
+        notificationRadiusDraft,
+        setNotificationRadiusDraft,
         componentRadiusDraft,
         setComponentRadiusDraft,
         coverRadiusDraft,
         setCoverRadiusDraft,
+        modalColorDraft,
+        setModalColorDraft,
+        modalOpacityDraft,
+        setModalOpacityDraft,
+        modalBlurDraft,
+        setModalBlurDraft,
         windowControlsPosDraft,
         setWindowControlsPosDraft,
         setSavingTheme,
@@ -421,7 +469,20 @@ const App: React.FC = () => {
         backgroundColor,
         backgroundOpacity,
         backgroundImageUrl,
+        panelColor,
         panelOpacity,
+        panelBlur,
+        panelRadius,
+        controlColor,
+        controlOpacity,
+        textColorPrimary,
+        textColorSecondary,
+        favoriteCardColor,
+        componentRadius,
+        modalRadius,
+        notificationRadius,
+        coverRadius,
+        windowControlsPos,
         setSetting,
         skipPersistRef,
     });
@@ -462,15 +523,11 @@ const App: React.FC = () => {
     // 播放区间相关派生值（从 useAudioInterval hook 获取）
     const maxSkipLimit = duration > 0 ? duration : 1;
 
-    // ========== Effect: 当主题改变时同步 Mantine 颜色方案 ==========
+    // Effect: 当主题改变时同步 Mantine 颜色方案
     useEffect(() => {
         if (!themes.length || !currentThemeId) return;
-
-        const currentTheme = themes.find(t => t.id === currentThemeId);
-        if (currentTheme && currentTheme.colorScheme) {
-            setColorScheme(currentTheme.colorScheme as "light" | "dark");
-        }
-    }, [currentThemeId, themes, setColorScheme]);
+        // Mantine color scheme will be managed by the computedColorScheme
+    }, [currentThemeId, themes]);
 
     useAppLifecycle({
         userInfo,
@@ -519,7 +576,16 @@ const App: React.FC = () => {
 
     // toRgba 已移至 useUiDerived
 
-    const { backgroundWithOpacity, panelBackground, themeColorLight, panelStyles, componentRadius: derivedComponentRadius, coverRadius: derivedCoverRadius } = useUiDerived({
+    const {
+        backgroundWithOpacity, panelBackground, controlBackground, favoriteCardBackground, modalBackground, themeColorLight, panelStyles,
+        controlStyles, modalStyles,
+        componentRadius: derivedComponentRadius,
+        coverRadius: derivedCoverRadius,
+        modalRadius: derivedModalRadius,
+        notificationRadius: derivedNotificationRadius,
+        textColorPrimary: derivedTextColorPrimary,
+        textColorSecondary: derivedTextColorSecondary,
+    } = useUiDerived({
         themeColor,
         backgroundColor,
         backgroundOpacity,
@@ -528,8 +594,20 @@ const App: React.FC = () => {
         panelOpacity,
         panelBlur,
         panelRadius,
+        controlColor,
+        controlOpacity,
+        controlBlur,
+        textColorPrimary,
+        textColorSecondary,
+        favoriteCardColor,
+        cardOpacity,
+        modalRadius,
+        notificationRadius,
         componentRadius,
         coverRadius,
+        modalColor,
+        modalOpacity,
+        modalBlur,
     });
 
     // 音频事件处理由 useAudioEvents Hook 统一管理
@@ -567,7 +645,6 @@ const App: React.FC = () => {
         themeEditor,
         editingThemeId,
         newThemeName,
-        colorSchemeDraft,
         themeColorDraft,
         backgroundColorDraft,
         backgroundOpacityDraft,
@@ -577,6 +654,13 @@ const App: React.FC = () => {
         panelOpacityDraft,
         panelBlurDraft,
         panelRadiusDraft,
+        controlColorDraft,
+        controlOpacityDraft,
+        controlBlurDraft,
+        textColorPrimaryDraft,
+        textColorSecondaryDraft,
+        favoriteCardColorDraft,
+        cardOpacityDraft,
         componentRadiusDraft,
         windowControlsPosDraft,
         setBackgroundImageUrlDraftSafe,
@@ -710,10 +794,18 @@ const App: React.FC = () => {
         currentSong,
         panelBackground,
         panelStyles,
+        controlBackground,
+        controlStyles,
+        favoriteCardBackground,
+        textColorPrimary: derivedTextColorPrimary,
+        textColorSecondary: derivedTextColorSecondary,
+        componentRadius: derivedComponentRadius,
+        coverRadius: derivedCoverRadius,
         computedColorScheme: (computedColorScheme === "auto" ? "light" : computedColorScheme) as "light" | "dark",
         placeholderCover: PLACEHOLDER_COVER,
         maxSkipLimit,
         formatTime,
+        formatTimeWithMs,
         formatTimeLabel,
         parseTimeLabel,
         handleIntervalChange,
@@ -761,7 +853,6 @@ const App: React.FC = () => {
         volume,
         changeVolume,
         songsCount: songs.length,
-        coverRadius: derivedCoverRadius,
     });
 
     const filteredSongs = songs.filter((s) =>
@@ -784,8 +875,36 @@ const App: React.FC = () => {
     // 动态生成 Mantine 主题以支持圆角调整
     const mantineTheme = useMemo(() => createTheme({
         defaultRadius: derivedComponentRadius,
-        // 也可以在这里覆盖其他全局样式
-    }), [derivedComponentRadius]);
+        black: derivedTextColorPrimary,
+        white: "#ffffff",
+        components: {
+            Text: {
+                defaultProps: {
+                    color: derivedTextColorPrimary,
+                },
+            },
+            Title: {
+                defaultProps: {
+                    color: derivedTextColorPrimary,
+                },
+            },
+            Modal: {
+                defaultProps: {
+                    radius: derivedModalRadius,
+                },
+            },
+            Menu: {
+                defaultProps: {
+                    radius: derivedModalRadius,
+                },
+            },
+            Notification: {
+                defaultProps: {
+                    radius: derivedNotificationRadius,
+                },
+            },
+        },
+    }), [derivedComponentRadius, derivedModalRadius, derivedNotificationRadius, derivedTextColorPrimary]);
 
     // ========== 设置弹窗动作 ==========
 
@@ -797,7 +916,6 @@ const App: React.FC = () => {
         themeColorLight,
         editingThemeId,
         newThemeName,
-        colorSchemeDraft,
         themeColorDraft,
         backgroundColorDraft,
         backgroundOpacityDraft,
@@ -807,8 +925,20 @@ const App: React.FC = () => {
         panelOpacityDraft,
         panelBlurDraft,
         panelRadiusDraft,
+        controlColorDraft,
+        controlOpacityDraft,
+        controlBlurDraft,
+        textColorPrimaryDraft,
+        textColorSecondaryDraft,
+        favoriteCardColorDraft,
+        cardOpacityDraft,
+        modalRadiusDraft,
+        notificationRadiusDraft,
         componentRadiusDraft,
         coverRadiusDraft,
+        modalColorDraft,
+        modalOpacityDraft,
+        modalBlurDraft,
         windowControlsPosDraft,
         savingTheme,
         fileDraftInputRef,
@@ -846,7 +976,6 @@ const App: React.FC = () => {
         onDeleteTheme: handleDeleteTheme,
         onCreateTheme: handleCreateThemeClick,
         onThemeNameChange: setNewThemeName,
-        onColorSchemeChange: setColorSchemeDraft,
         onThemeColorChange: setThemeColorDraft,
         onBackgroundColorChange: setBackgroundColorDraft,
         onBackgroundOpacityChange: setBackgroundOpacityDraft,
@@ -857,8 +986,20 @@ const App: React.FC = () => {
         onPanelOpacityChange: setPanelOpacityDraft,
         onPanelBlurChange: setPanelBlurDraft,
         onPanelRadiusChange: setPanelRadiusDraft,
+        onControlColorChange: setControlColorDraft,
+        onControlOpacityChange: setControlOpacityDraft,
+        onControlBlurChange: setControlBlurDraft,
+        onTextColorPrimaryChange: setTextColorPrimaryDraft,
+        onTextColorSecondaryChange: setTextColorSecondaryDraft,
+        onFavoriteCardColorChange: setFavoriteCardColorDraft,
+        onCardOpacityChange: setCardOpacityDraft,
+        onModalRadiusChange: setModalRadiusDraft,
+        onNotificationRadiusChange: setNotificationRadiusDraft,
         onComponentRadiusChange: setComponentRadiusDraft,
         onCoverRadiusChange: setCoverRadiusDraft,
+        onModalColorChange: setModalColorDraft,
+        onModalOpacityChange: setModalOpacityDraft,
+        onModalBlurChange: setModalBlurDraft,
         onWindowControlsPosChange: setWindowControlsPosDraft,
         onSubmitTheme: handleSubmitTheme,
         onCancelThemeEdit: handleCloseThemeEditor,
@@ -903,6 +1044,16 @@ const App: React.FC = () => {
         onSingerChange: setBvSinger,
         onConfirmBVAdd: handleConfirmBVAdd,
         onBvModalClose: () => setBvModalOpen(false),
+        formatTime,
+        formatTimeWithMs,
+        panelStyles,
+        derived: {
+            panelBackground,
+            controlBackground,
+            favoriteCardBackground,
+            textColorPrimary: derivedTextColorPrimary,
+            textColorSecondary: derivedTextColorSecondary,
+        }
     };
 
     return (

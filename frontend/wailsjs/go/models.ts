@@ -323,7 +323,6 @@ export namespace models {
 	export class Theme {
 	    id: string;
 	    name: string;
-	    colorScheme: string;
 	    themeColor: string;
 	    backgroundColor: string;
 	    backgroundOpacity: number;
@@ -333,8 +332,20 @@ export namespace models {
 	    panelOpacity: number;
 	    panelBlur: number;
 	    panelRadius: number;
+	    controlColor: string;
+	    controlOpacity: number;
+	    controlBlur: number;
+	    textColorPrimary: string;
+	    textColorSecondary: string;
+	    favoriteCardColor: string;
+	    cardOpacity: number;
 	    componentRadius: number;
+	    modalRadius: number;
+	    notificationRadius: number;
 	    coverRadius: number;
+	    modalColor: string;
+	    modalOpacity: number;
+	    modalBlur: number;
 	    windowControlsPos: string;
 	    isDefault: boolean;
 	    isReadOnly: boolean;
@@ -347,7 +358,6 @@ export namespace models {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.id = source["id"];
 	        this.name = source["name"];
-	        this.colorScheme = source["colorScheme"];
 	        this.themeColor = source["themeColor"];
 	        this.backgroundColor = source["backgroundColor"];
 	        this.backgroundOpacity = source["backgroundOpacity"];
@@ -357,8 +367,20 @@ export namespace models {
 	        this.panelOpacity = source["panelOpacity"];
 	        this.panelBlur = source["panelBlur"];
 	        this.panelRadius = source["panelRadius"];
+	        this.controlColor = source["controlColor"];
+	        this.controlOpacity = source["controlOpacity"];
+	        this.controlBlur = source["controlBlur"];
+	        this.textColorPrimary = source["textColorPrimary"];
+	        this.textColorSecondary = source["textColorSecondary"];
+	        this.favoriteCardColor = source["favoriteCardColor"];
+	        this.cardOpacity = source["cardOpacity"];
 	        this.componentRadius = source["componentRadius"];
+	        this.modalRadius = source["modalRadius"];
+	        this.notificationRadius = source["notificationRadius"];
 	        this.coverRadius = source["coverRadius"];
+	        this.modalColor = source["modalColor"];
+	        this.modalOpacity = source["modalOpacity"];
+	        this.modalBlur = source["modalBlur"];
 	        this.windowControlsPos = source["windowControlsPos"];
 	        this.isDefault = source["isDefault"];
 	        this.isReadOnly = source["isReadOnly"];

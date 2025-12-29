@@ -32,6 +32,7 @@ interface UseAppPanelsPropsParams {
     placeholderCover: string;
     maxSkipLimit: number;
     formatTime: (v: number) => string;
+    formatTimeWithMs: (v: number) => string;
     formatTimeLabel: (v: number) => string;
     parseTimeLabel: (v: string) => number;
     handleIntervalChange: (start: number, end: number) => void;
@@ -81,7 +82,13 @@ interface UseAppPanelsPropsParams {
     volume: number;
     changeVolume: (val: number) => void;
     songsCount: number;
+    componentRadius?: number;
     coverRadius?: number;
+    controlBackground?: string;
+    controlStyles?: React.CSSProperties;
+    favoriteCardBackground?: string;
+    textColorPrimary?: string;
+    textColorSecondary?: string;
 }
 
 export const useAppPanelsProps = (params: UseAppPanelsPropsParams) => {
@@ -113,6 +120,7 @@ export const useAppPanelsProps = (params: UseAppPanelsPropsParams) => {
             placeholderCover,
             maxSkipLimit,
             formatTime,
+            formatTimeWithMs,
             formatTimeLabel,
             parseTimeLabel,
             handleIntervalChange,
@@ -160,6 +168,10 @@ export const useAppPanelsProps = (params: UseAppPanelsPropsParams) => {
             volume,
             changeVolume,
             songsCount,
+            controlBackground,
+            favoriteCardBackground,
+            textColorPrimary,
+            textColorSecondary,
         } = params;
 
         const topBarProps = {
@@ -187,6 +199,12 @@ export const useAppPanelsProps = (params: UseAppPanelsPropsParams) => {
                 setUserInfo(null);
                 setStatus("已退出登录");
             },
+            themeColor,
+            controlBackground,
+            controlStyles: params.controlStyles,
+            textColorPrimary,
+            textColorSecondary,
+            componentRadius: params.componentRadius,
         } as const;
 
         const mainLayoutProps = {
@@ -198,6 +216,7 @@ export const useAppPanelsProps = (params: UseAppPanelsPropsParams) => {
             placeholderCover,
             maxSkipLimit,
             formatTime,
+            formatTimeWithMs,
             formatTimeLabel,
             parseTimeLabel,
             onIntervalChange: handleIntervalChange,
@@ -248,7 +267,13 @@ export const useAppPanelsProps = (params: UseAppPanelsPropsParams) => {
             onDeleteFavorite: handleDeleteFavorite,
             onToggleConfirmDelete: setConfirmDeleteFavId,
             confirmDeleteFavId,
+            componentRadius: params.componentRadius,
             coverRadius: params.coverRadius,
+            controlBackground,
+            controlStyles: params.controlStyles,
+            favoriteCardBackground,
+            textColorPrimary,
+            textColorSecondary,
         } as const;
 
         const controlsPanelProps = {
@@ -261,6 +286,7 @@ export const useAppPanelsProps = (params: UseAppPanelsPropsParams) => {
             intervalLength,
             duration,
             formatTime,
+            formatTimeWithMs,
             seek,
             playPrev,
             togglePlay,
@@ -278,7 +304,12 @@ export const useAppPanelsProps = (params: UseAppPanelsPropsParams) => {
             songsCount,
             panelBackground,
             panelStyles,
+            componentRadius: params.componentRadius,
             coverRadius: params.coverRadius,
+            controlBackground,
+            controlStyles: params.controlStyles,
+            textColorPrimary,
+            textColorSecondary,
         } as const;
 
         return { topBarProps, mainLayoutProps, controlsPanelProps } as const;

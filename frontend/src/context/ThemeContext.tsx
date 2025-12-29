@@ -16,8 +16,20 @@ export interface ThemeState {
     panelOpacity: number;
     panelBlur: number;
     panelRadius: number;
+    controlColor: string;
+    controlOpacity: number;
+    controlBlur: number;
+    textColorPrimary: string;
+    textColorSecondary: string;
+    favoriteCardColor: string;
+    cardOpacity: number;
     componentRadius: number;
+    modalRadius: number;
+    notificationRadius: number;
     coverRadius: number;
+    modalColor: string;
+    modalOpacity: number;
+    modalBlur: number;
     windowControlsPos: string;
     computedColorScheme: MantineColorScheme;
 }
@@ -34,8 +46,20 @@ export interface ThemeActions {
     setPanelOpacity: (opacity: number) => void;
     setPanelBlur: (blur: number) => void;
     setPanelRadius: (radius: number) => void;
+    setControlColor: (color: string) => void;
+    setControlOpacity: (opacity: number) => void;
+    setControlBlur: (blur: number) => void;
+    setTextColorPrimary: (color: string) => void;
+    setTextColorSecondary: (color: string) => void;
+    setFavoriteCardColor: (color: string) => void;
+    setCardOpacity: (opacity: number) => void;
     setComponentRadius: (radius: number) => void;
+    setModalRadius: (radius: number) => void;
+    setNotificationRadius: (radius: number) => void;
     setCoverRadius: (radius: number) => void;
+    setModalColor: (color: string) => void;
+    setModalOpacity: (opacity: number) => void;
+    setModalBlur: (blur: number) => void;
     setWindowControlsPos: (pos: string) => void;
 
     // 工具方法
@@ -72,10 +96,21 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     const initialThemes = [...DEFAULT_THEMES, ...getCachedThemes()];
 
+    useEffect(() => {
+        // 清理旧的 localStorage 键，避免与带前缀的新键冲突
+        const oldKeys = ['customThemes', 'currentThemeId', 'userInfo'];
+        oldKeys.forEach(key => {
+            if (localStorage.getItem(key)) {
+                localStorage.removeItem(key);
+                console.log(`[ThemeContext] 已清理旧缓存键: ${key}`);
+            }
+        });
+    }, []);
+
     // 优先从 localStorage 读取，否则使用系统偏好
     const getInitialThemeId = (allThemes: Theme[]): string => {
         try {
-            const saved = localStorage.getItem('currentThemeId');
+            const saved = localStorage.getItem('half-beat.currentThemeId');
             if (saved && allThemes.find(t => t.id === saved)) {
                 return saved;
             }
@@ -100,8 +135,20 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const [panelOpacity, setPanelOpacity] = useState(defaultTheme.panelOpacity);
     const [panelBlur, setPanelBlur] = useState(defaultTheme.panelBlur ?? 0);
     const [panelRadius, setPanelRadius] = useState(defaultTheme.panelRadius ?? 8);
+    const [controlColor, setControlColor] = useState(defaultTheme.controlColor || defaultTheme.panelColor);
+    const [controlOpacity, setControlOpacity] = useState(defaultTheme.controlOpacity ?? 1);
+    const [controlBlur, setControlBlur] = useState(defaultTheme.controlBlur ?? 0);
+    const [textColorPrimary, setTextColorPrimary] = useState(defaultTheme.textColorPrimary || "#1a1b1e");
+    const [textColorSecondary, setTextColorSecondary] = useState(defaultTheme.textColorSecondary || "#909296");
+    const [favoriteCardColor, setFavoriteCardColor] = useState(defaultTheme.favoriteCardColor || defaultTheme.panelColor);
+    const [cardOpacity, setCardOpacity] = useState(defaultTheme.cardOpacity ?? 1);
     const [componentRadius, setComponentRadius] = useState(defaultTheme.componentRadius ?? 8);
+    const [modalRadius, setModalRadius] = useState(defaultTheme.modalRadius ?? 12);
+    const [notificationRadius, setNotificationRadius] = useState(defaultTheme.notificationRadius ?? 8);
     const [coverRadius, setCoverRadius] = useState(defaultTheme.coverRadius ?? 8);
+    const [modalColor, setModalColor] = useState(defaultTheme.modalColor || defaultTheme.panelColor);
+    const [modalOpacity, setModalOpacity] = useState(defaultTheme.modalOpacity ?? 1);
+    const [modalBlur, setModalBlur] = useState(defaultTheme.modalBlur ?? 0);
     const [windowControlsPos, setWindowControlsPos] = useState(defaultTheme.windowControlsPos || "right");
 
     // ========== Actions ==========
@@ -110,24 +157,40 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
      * 应用主题
      */
     const applyTheme = useCallback((theme: Theme) => {
+        if (!theme) return;
+
         setThemeColor(theme.themeColor);
         setBackgroundColor(theme.backgroundColor);
         setBackgroundOpacity(theme.backgroundOpacity);
-        // 使用后端模型字段名 backgroundImage
         setBackgroundImageUrl(theme.backgroundImage || "");
         setBackgroundBlur(theme.backgroundBlur ?? 0);
         setPanelColor(theme.panelColor);
         setPanelOpacity(theme.panelOpacity);
         setPanelBlur(theme.panelBlur ?? 0);
         setPanelRadius(theme.panelRadius ?? 8);
+
+        // 容错处理：如果旧缓存中没有这些字段，使用合理的默认值
+        setControlColor(theme.controlColor || theme.panelColor || "#ffffff");
+        setControlOpacity(theme.controlOpacity ?? 1);
+        setControlBlur(theme.controlBlur ?? 0);
+        setTextColorPrimary(theme.textColorPrimary || (computedColorScheme === 'dark' ? '#ffffff' : '#1a1b1e'));
+        setTextColorSecondary(theme.textColorSecondary || (computedColorScheme === 'dark' ? '#a6a7ab' : '#909296'));
+        setFavoriteCardColor(theme.favoriteCardColor || theme.panelColor || "#ffffff");
+        setCardOpacity(theme.cardOpacity ?? 1);
+
         setComponentRadius(theme.componentRadius ?? 8);
+        setModalRadius(theme.modalRadius ?? 12);
+        setNotificationRadius(theme.notificationRadius ?? 8);
         setCoverRadius(theme.coverRadius ?? 8);
+        setModalColor(theme.modalColor || theme.panelColor || "#ffffff");
+        setModalOpacity(theme.modalOpacity ?? 1);
+        setModalBlur(theme.modalBlur ?? 0);
         setWindowControlsPos(theme.windowControlsPos || "right");
         setCurrentThemeId(theme.id);
 
         // 只保存主题 ID 到 localStorage，避免字段污染
-        localStorage.setItem('currentThemeId', theme.id);
-    }, []);
+        localStorage.setItem('half-beat.currentThemeId', theme.id);
+    }, [computedColorScheme, setCurrentThemeId]);
 
     /**
      * 安全设置背景图片 URL
@@ -145,7 +208,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         }
 
         setBackgroundImageUrl(trimmedUrl);
-        localStorage.setItem('backgroundImageUrl', trimmedUrl);
+        localStorage.setItem('half-beat.backgroundImageUrl', trimmedUrl);
     }, []);
 
     // ========== Effect: 清理旧的 localStorage 字段 ==========
@@ -153,7 +216,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         // 清理旧的污染字段
         const fieldsToClean = [
             'themeColor', 'backgroundColor', 'backgroundOpacity', 'backgroundImageUrl',
-            'panelColor', 'panelOpacity'
+            'panelColor', 'panelOpacity', 'currentThemeId', 'customThemes'
         ];
         fieldsToClean.forEach(field => {
             try {
@@ -196,8 +259,20 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             panelOpacity,
             panelBlur,
             panelRadius,
+            controlColor,
+            controlOpacity,
+            controlBlur,
+            textColorPrimary,
+            textColorSecondary,
+            favoriteCardColor,
+            cardOpacity,
             componentRadius,
+            modalRadius,
+            notificationRadius,
             coverRadius,
+            modalColor,
+            modalOpacity,
+            modalBlur,
             windowControlsPos,
             computedColorScheme,
         },
@@ -213,8 +288,20 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             setPanelOpacity,
             setPanelBlur,
             setPanelRadius,
+            setControlColor,
+            setControlOpacity,
+            setControlBlur,
+            setTextColorPrimary,
+            setTextColorSecondary,
+            setFavoriteCardColor,
+            setCardOpacity,
             setComponentRadius,
+            setModalRadius,
+            setNotificationRadius,
             setCoverRadius,
+            setModalColor,
+            setModalOpacity,
+            setModalBlur,
             setWindowControlsPos,
             applyTheme,
             setBackgroundImageUrlSafe,

@@ -9,8 +9,20 @@ interface UiDerivedProps {
     panelOpacity: number;
     panelBlur?: number;
     panelRadius?: number;
+    controlColor?: string;
+    controlOpacity?: number;
+    controlBlur?: number;
+    textColorPrimary?: string;
+    textColorSecondary?: string;
+    favoriteCardColor?: string;
+    cardOpacity?: number;
+    modalRadius?: number;
+    notificationRadius?: number;
     componentRadius?: number;
     coverRadius?: number;
+    modalColor?: string;
+    modalOpacity?: number;
+    modalBlur?: number;
 }
 
 function toRgba(color: string, alpha: number) {
@@ -94,11 +106,24 @@ export function useUiDerived({
     panelOpacity,
     panelBlur = 0,
     panelRadius = 8,
+    controlColor,
+    controlOpacity = 1,
+    controlBlur = 0,
+    textColorPrimary = '#1a1b1e',
+    textColorSecondary = '#909296',
+    favoriteCardColor,
+    cardOpacity = 1,
+    modalRadius = 8,
+    notificationRadius = 8,
     componentRadius = 8,
     coverRadius = 8,
+    modalColor,
+    modalOpacity = 1,
+    modalBlur = 0,
 }: UiDerivedProps) {
     // 确保 blur 是有效的数字
     const safePanelBlur = typeof panelBlur === 'number' ? panelBlur : 0;
+    const safeControlBlur = typeof controlBlur === 'number' ? controlBlur : 0;
 
     const backgroundWithOpacity = useMemo(
         () => toRgba(backgroundColor, backgroundOpacity),
@@ -108,6 +133,32 @@ export function useUiDerived({
     const panelBackground = useMemo(
         () => toRgba(panelColor, panelOpacity),
         [panelColor, panelOpacity]
+    );
+
+    const controlBackground = useMemo(
+        () => toRgba(controlColor || panelColor, controlOpacity),
+        [controlColor, panelColor, controlOpacity]
+    );
+
+    const favoriteCardBackground = useMemo(
+        () => toRgba(favoriteCardColor || panelColor, cardOpacity),
+        [favoriteCardColor, panelColor, cardOpacity]
+    );
+
+    const modalBackground = useMemo(
+        () => toRgba(modalColor || panelColor, modalOpacity),
+        [modalColor, panelColor, modalOpacity]
+    );
+
+    const safeModalBlur = typeof modalBlur === 'number' ? modalBlur : 0;
+
+    const modalStyles = useMemo(
+        () => ({
+            backgroundColor: modalBackground,
+            backdropFilter: safeModalBlur > 0 ? `blur(${safeModalBlur}px)` : undefined,
+            WebkitBackdropFilter: safeModalBlur > 0 ? `blur(${safeModalBlur}px)` : undefined,
+        }),
+        [modalBackground, safeModalBlur]
     );
 
     const themeColorLight = useMemo(() => lightenHex(themeColor, 40), [themeColor]);
@@ -120,14 +171,41 @@ export function useUiDerived({
             '--glass-blur': `${safePanelBlur}px`,
             '--glass-opacity': backgroundImageUrl ? '1' : '0',
             '--glass-panel-color': panelBackground,
+            '--text-color-primary': textColorPrimary,
+            '--text-color-secondary': textColorSecondary,
             // 依然保留 backdrop-filter 作为增强（如果支持的话）
             backdropFilter: safePanelBlur > 0 ? `blur(${safePanelBlur}px)` : undefined,
             WebkitBackdropFilter: safePanelBlur > 0 ? `blur(${safePanelBlur}px)` : undefined,
             position: 'relative' as const,
             overflow: 'hidden' as const,
         }),
-        [safePanelBlur, panelRadius, backgroundImageUrl, panelBackground]
+        [safePanelBlur, panelRadius, backgroundImageUrl, panelBackground, textColorPrimary, textColorSecondary]
     );
 
-    return { backgroundWithOpacity, panelBackground, themeColorLight, panelStyles, componentRadius, coverRadius };
+    const controlStyles = useMemo(
+        () => ({
+            backgroundColor: controlBackground,
+            backdropFilter: safeControlBlur > 0 ? `blur(${safeControlBlur}px)` : undefined,
+            WebkitBackdropFilter: safeControlBlur > 0 ? `blur(${safeControlBlur}px)` : undefined,
+        }),
+        [controlBackground, safeControlBlur]
+    );
+
+    return {
+        backgroundWithOpacity,
+        panelBackground,
+        controlBackground,
+        favoriteCardBackground,
+        modalBackground,
+        themeColorLight,
+        panelStyles,
+        controlStyles,
+        modalStyles,
+        componentRadius,
+        coverRadius,
+        modalRadius,
+        notificationRadius,
+        textColorPrimary,
+        textColorSecondary
+    };
 }

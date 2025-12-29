@@ -15,6 +15,7 @@ interface MainLayoutProps {
     placeholderCover: string;
     maxSkipLimit: number;
     formatTime: (ms: number) => string;
+    formatTimeWithMs: (ms: number) => string;
     formatTimeLabel: (value: number | string) => string;
     parseTimeLabel: (value: string) => number;
     onIntervalChange: (start: number, end: number) => void;
@@ -22,6 +23,7 @@ interface MainLayoutProps {
     onSkipEndChange: (value: number) => void;
     onStreamUrlChange: (url: string) => void;
     onSongInfoUpdate?: (songId: string, updates: { name?: string; singer?: string; cover?: string }) => void;
+    componentRadius?: number;
     coverRadius?: number;
 
     // CurrentPlaylistCard props
@@ -52,6 +54,11 @@ interface MainLayoutProps {
     onDeleteFavorite: (id: string) => Promise<void>;
     onToggleConfirmDelete: (id: string | null) => void;
     confirmDeleteFavId: string | null;
+    controlBackground?: string;
+    controlStyles?: React.CSSProperties;
+    favoriteCardBackground?: string;
+    textColorPrimary?: string;
+    textColorSecondary?: string;
 }
 
 const MainLayout: React.FC<MainLayoutProps> = ({
@@ -64,6 +71,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
     placeholderCover,
     maxSkipLimit,
     formatTime,
+    formatTimeWithMs,
     formatTimeLabel,
     parseTimeLabel,
     onIntervalChange,
@@ -100,7 +108,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({
     onDeleteFavorite,
     onToggleConfirmDelete,
     confirmDeleteFavId,
+    componentRadius,
     coverRadius,
+    controlBackground,
+    controlStyles,
+    favoriteCardBackground,
+    textColorPrimary,
+    textColorSecondary,
 }) => {
     return (
         <Flex flex={1} gap="md" miw={0} style={{ minHeight: 0 }}>
@@ -113,6 +127,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                 placeholderCover={placeholderCover}
                 maxSkipLimit={maxSkipLimit}
                 formatTime={formatTime}
+                formatTimeWithMs={formatTimeWithMs}
                 formatTimeLabel={formatTimeLabel}
                 parseTimeLabel={parseTimeLabel}
                 onIntervalChange={onIntervalChange}
@@ -120,7 +135,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                 onSkipEndChange={onSkipEndChange}
                 onStreamUrlChange={onStreamUrlChange}
                 onSongInfoUpdate={onSongInfoUpdate}
+                componentRadius={componentRadius}
                 coverRadius={coverRadius}
+                controlBackground={controlBackground}
+                controlStyles={controlStyles}
+                textColorPrimary={textColorPrimary}
+                textColorSecondary={textColorSecondary}
             />
 
             <CurrentPlaylistCard
@@ -142,6 +162,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                 onToggleConfirmRemove={onToggleConfirmRemove}
                 onPlayAll={onPlayAll}
                 onDownloadAll={onDownloadAll}
+                componentRadius={componentRadius}
+                controlBackground={controlBackground}
+                controlStyles={controlStyles}
+                textColorPrimary={textColorPrimary}
+                textColorSecondary={textColorSecondary}
             />
 
             <FavoriteListCard
@@ -160,6 +185,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({
                 confirmDeleteFavId={confirmDeleteFavId}
                 currentSong={currentSong}
                 themeColor={themeColor}
+                componentRadius={componentRadius}
+                controlBackground={controlBackground}
+                favoriteCardBackground={favoriteCardBackground}
+                textColorPrimary={textColorPrimary}
+                textColorSecondary={textColorSecondary}
             />
         </Flex>
     );

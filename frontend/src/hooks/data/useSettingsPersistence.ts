@@ -11,7 +11,20 @@ interface UseSettingsPersistenceProps {
     backgroundColor: string;
     backgroundOpacity: number;
     backgroundImageUrl: string;
+    panelColor: string;
     panelOpacity: number;
+    panelBlur: number;
+    panelRadius: number;
+    controlColor: string;
+    controlOpacity: number;
+    textColorPrimary: string;
+    textColorSecondary: string;
+    favoriteCardColor: string;
+    componentRadius: number;
+    modalRadius: number;
+    notificationRadius: number;
+    coverRadius: number;
+    windowControlsPos: string;
     setSetting: (setting: PlayerSetting) => void;
     skipPersistRef: React.MutableRefObject<boolean>;
 }
@@ -25,16 +38,39 @@ export const useSettingsPersistence = ({
     backgroundColor,
     backgroundOpacity,
     backgroundImageUrl,
+    panelColor,
     panelOpacity,
+    panelBlur,
+    panelRadius,
+    controlColor,
+    controlOpacity,
+    textColorPrimary,
+    textColorSecondary,
+    favoriteCardColor,
+    componentRadius,
+    modalRadius,
+    notificationRadius,
+    coverRadius,
+    windowControlsPos,
     setSetting,
     skipPersistRef,
 }: UseSettingsPersistenceProps) => {
     // 标记设置是否已完成加载，供其他模块判断
     const settingsLoadedRef = useRef(false);
     // 使用 ref 同步最新的设置状态，立即同步而非依赖 useEffect
-    const settingsRef = useRef({ setting, playMode, volume, currentThemeId, themeColor, backgroundColor, backgroundOpacity, backgroundImageUrl, panelOpacity });
+    const settingsRef = useRef({
+        setting, playMode, volume, currentThemeId, themeColor, backgroundColor, backgroundOpacity, backgroundImageUrl,
+        panelColor, panelOpacity, panelBlur, panelRadius, controlColor, controlOpacity,
+        textColorPrimary, textColorSecondary, favoriteCardColor,
+        componentRadius, modalRadius, notificationRadius, coverRadius, windowControlsPos
+    });
     // 立即同步更新 ref，不等待 useEffect
-    settingsRef.current = { setting, playMode, volume, currentThemeId, themeColor, backgroundColor, backgroundOpacity, backgroundImageUrl, panelOpacity };
+    settingsRef.current = {
+        setting, playMode, volume, currentThemeId, themeColor, backgroundColor, backgroundOpacity, backgroundImageUrl,
+        panelColor, panelOpacity, panelBlur, panelRadius, controlColor, controlOpacity,
+        textColorPrimary, textColorSecondary, favoriteCardColor,
+        componentRadius, modalRadius, notificationRadius, coverRadius, windowControlsPos
+    };
 
     /**
      * 持久化设置到后端
@@ -60,7 +96,20 @@ export const useSettingsPersistence = ({
                 backgroundColor: s.backgroundColor,
                 backgroundOpacity: s.backgroundOpacity,
                 backgroundImage: s.backgroundImageUrl,
+                panelColor: s.panelColor,
                 panelOpacity: s.panelOpacity,
+                panelBlur: s.panelBlur,
+                panelRadius: s.panelRadius,
+                controlColor: s.controlColor,
+                controlOpacity: s.controlOpacity,
+                textColorPrimary: s.textColorPrimary,
+                textColorSecondary: s.textColorSecondary,
+                favoriteCardColor: s.favoriteCardColor,
+                componentRadius: s.componentRadius,
+                modalRadius: s.modalRadius,
+                notificationRadius: s.notificationRadius,
+                coverRadius: s.coverRadius,
+                windowControlsPos: s.windowControlsPos,
                 ...(partial.config || {}),
             },
             updatedAt: new Date().toISOString(),
@@ -84,7 +133,13 @@ export const useSettingsPersistence = ({
             persistSettings({});
         }, 500);
         return () => clearTimeout(timeoutId);
-    }, [playMode, volume, currentThemeId, themeColor, backgroundColor, backgroundOpacity, backgroundImageUrl, panelOpacity, skipPersistRef, persistSettings]);
+    }, [
+        playMode, volume, currentThemeId, themeColor, backgroundColor, backgroundOpacity, backgroundImageUrl,
+        panelColor, panelOpacity, panelBlur, panelRadius, controlColor, controlOpacity,
+        textColorPrimary, textColorSecondary, favoriteCardColor,
+        componentRadius, modalRadius, notificationRadius, coverRadius, windowControlsPos,
+        skipPersistRef, persistSettings
+    ]);
 
     // 关闭软件时：同步设置到后端并清理前端缓存
     useEffect(() => {

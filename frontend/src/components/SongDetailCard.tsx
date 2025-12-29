@@ -12,6 +12,7 @@ export type SongDetailCardProps = {
     placeholderCover: string;
     maxSkipLimit: number;
     formatTime: (seconds: number) => string;
+    formatTimeWithMs: (seconds: number) => string;
     formatTimeLabel: (value: number | string) => string;
     parseTimeLabel: (value: string) => number;
     onIntervalChange: (start: number, end: number) => void;
@@ -19,7 +20,12 @@ export type SongDetailCardProps = {
     onSkipEndChange: (value: number) => void;
     onStreamUrlChange: (value: string) => void;
     onSongInfoUpdate?: (songId: string, updates: { name?: string; singer?: string; cover?: string }) => void;
+    componentRadius?: number;
     coverRadius?: number;
+    controlBackground?: string;
+    controlStyles?: React.CSSProperties;
+    textColorPrimary?: string;
+    textColorSecondary?: string;
 };
 
 const SongDetailCard: React.FC<SongDetailCardProps> = ({
@@ -31,6 +37,7 @@ const SongDetailCard: React.FC<SongDetailCardProps> = ({
     placeholderCover,
     maxSkipLimit,
     formatTime,
+    formatTimeWithMs,
     formatTimeLabel,
     parseTimeLabel,
     onIntervalChange,
@@ -38,7 +45,12 @@ const SongDetailCard: React.FC<SongDetailCardProps> = ({
     onSkipEndChange,
     onStreamUrlChange,
     onSongInfoUpdate,
+    componentRadius = 8,
     coverRadius = 8,
+    controlBackground,
+    controlStyles,
+    textColorPrimary,
+    textColorSecondary,
 }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editName, setEditName] = useState("");
@@ -68,6 +80,18 @@ const SongDetailCard: React.FC<SongDetailCardProps> = ({
     const handleCancelEdit = () => {
         setIsEditing(false);
     };
+    const inputStyles = {
+        input: {
+            ...controlStyles,
+            color: textColorPrimary,
+            borderColor: "transparent",
+            borderRadius: componentRadius,
+        },
+        label: {
+            color: textColorPrimary,
+        }
+    };
+
     return (
         <Card shadow="sm" padding="md" w={300} withBorder h="100%" className="glass-panel" style={{ ...panelStyles, minHeight: 0, backgroundColor: panelBackground, display: "flex", flexDirection: "column" }}>
             {song ? (
@@ -76,7 +100,7 @@ const SongDetailCard: React.FC<SongDetailCardProps> = ({
                         <Box
                             w="100%"
                             h={135}
-                            bg={computedColorScheme === "dark" ? "dark.6" : "gray.2"}
+                            bg={controlBackground || (computedColorScheme === "dark" ? "dark.6" : "gray.2")}
                             style={{
                                 borderRadius: coverRadius,
                                 display: "flex",
@@ -84,6 +108,7 @@ const SongDetailCard: React.FC<SongDetailCardProps> = ({
                                 justifyContent: "center",
                                 flexShrink: 0,
                                 overflow: "hidden",
+                                ...controlStyles,
                             }}
                         >
                             <Image
@@ -103,6 +128,7 @@ const SongDetailCard: React.FC<SongDetailCardProps> = ({
                                         onChange={(e) => setEditName(e.currentTarget.value)}
                                         placeholder="请输入歌曲名称"
                                         size="sm"
+                                        styles={inputStyles}
                                     />
                                     <TextInput
                                         label="歌手"
@@ -110,6 +136,7 @@ const SongDetailCard: React.FC<SongDetailCardProps> = ({
                                         onChange={(e) => setEditSinger(e.currentTarget.value)}
                                         placeholder="请输入歌手名称"
                                         size="sm"
+                                        styles={inputStyles}
                                     />
                                     <TextInput
                                         label="封面 URL"
@@ -117,13 +144,16 @@ const SongDetailCard: React.FC<SongDetailCardProps> = ({
                                         onChange={(e) => setEditCover(e.currentTarget.value)}
                                         placeholder="请输入封面图片链接"
                                         size="sm"
+                                        styles={inputStyles}
                                     />
                                     <Group gap="xs" mt="xs">
                                         <Button
                                             size="xs"
                                             color={themeColor}
+                                            radius={componentRadius}
                                             leftSection={<IconCheck size={14} />}
                                             onClick={handleSaveEdit}
+                                            style={controlStyles}
                                         >
                                             保存
                                         </Button>
@@ -131,8 +161,10 @@ const SongDetailCard: React.FC<SongDetailCardProps> = ({
                                             size="xs"
                                             variant="light"
                                             color="gray"
+                                            radius={componentRadius}
                                             leftSection={<IconX size={14} />}
                                             onClick={handleCancelEdit}
+                                            style={{ ...controlStyles, color: textColorPrimary }}
                                         >
                                             取消
                                         </Button>
@@ -141,7 +173,7 @@ const SongDetailCard: React.FC<SongDetailCardProps> = ({
                             ) : (
                                 <>
                                     <Group gap="xs">
-                                        <Text fw={700} size="lg" lineClamp={2} style={{ flex: 1 }}>
+                                        <Text fw={700} size="lg" lineClamp={2} style={{ flex: 1, color: textColorPrimary }}>
                                             {song.name}
                                         </Text>
                                         {onSongInfoUpdate && (
@@ -157,23 +189,24 @@ const SongDetailCard: React.FC<SongDetailCardProps> = ({
                                             </Tooltip>
                                         )}
                                     </Group>
-                                    <Text c="dimmed" size="sm" lineClamp={1}>{song.singer}</Text>
+                                    <Text size="sm" lineClamp={1} style={{ color: textColorSecondary }}>{song.singer}</Text>
                                     {song.bvid && (
-                                        <Text size="xs" c="dimmed" lineClamp={1}>BV: {song.bvid}</Text>
+                                        <Text size="xs" lineClamp={1} style={{ color: textColorSecondary }}>BV: {song.bvid}</Text>
                                     )}
                                 </>
                             )}
                         </Stack>
 
                         <Stack gap="xs">
-                            <Text size="xs" c="dimmed">播放区间（只播放此段）</Text>
+                            <Text size="xs" style={{ color: textColorSecondary }}>播放区间（只播放此段）</Text>
                             <RangeSlider
                                 value={[song?.skipStartTime ?? 0, song?.skipEndTime ?? 0]}
                                 onChange={(vals) => onIntervalChange(Number(vals[0]), Number(vals[1]))}
                                 min={0}
                                 max={maxSkipLimit}
-                                step={0.1}
-                                label={(value) => formatTime(value)}
+                                step={0.05}
+                                radius={componentRadius}
+                                label={(value) => formatTimeWithMs(value)}
                                 style={{ '--slider-color': themeColor } as any}
                             />
                             <Group gap="sm" grow>
@@ -183,9 +216,11 @@ const SongDetailCard: React.FC<SongDetailCardProps> = ({
                                     onChange={(value) => value !== undefined && onSkipStartChange(Number(value))}
                                     min={0}
                                     max={maxSkipLimit}
-                                    step={0.1}
+                                    step={0.05}
+                                    decimalScale={2}
                                     hideControls
                                     size="sm"
+                                    styles={inputStyles}
                                 />
                                 <NumberInput
                                     label="播放结束 (秒)"
@@ -193,9 +228,11 @@ const SongDetailCard: React.FC<SongDetailCardProps> = ({
                                     onChange={(value) => value !== undefined && onSkipEndChange(Number(value))}
                                     min={0}
                                     max={maxSkipLimit}
-                                    step={0.1}
+                                    step={0.05}
+                                    decimalScale={2}
                                     hideControls
                                     size="sm"
+                                    styles={inputStyles}
                                 />
                             </Group>
                         </Stack>
@@ -205,7 +242,7 @@ const SongDetailCard: React.FC<SongDetailCardProps> = ({
                 </ScrollArea>
             ) : (
                 <Flex align="center" justify="center" h="100%">
-                    <Text c="dimmed">选择一首歌曲</Text>
+                    <Text style={{ color: textColorSecondary }}>选择一首歌曲</Text>
                 </Flex>
             )}
         </Card>

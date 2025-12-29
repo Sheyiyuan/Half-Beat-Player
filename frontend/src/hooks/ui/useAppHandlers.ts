@@ -13,7 +13,6 @@ export const useAppHandlers = (config: {
     themeEditor: any;
     editingThemeId: string | null;
     newThemeName: string;
-    colorSchemeDraft: "light" | "dark";
     themeColorDraft: string;
     backgroundColorDraft: string;
     backgroundOpacityDraft: number;
@@ -23,6 +22,13 @@ export const useAppHandlers = (config: {
     panelOpacityDraft: number;
     panelBlurDraft: number;
     panelRadiusDraft: number;
+    controlColorDraft: string;
+    controlOpacityDraft: number;
+    controlBlurDraft: number;
+    textColorPrimaryDraft: string;
+    textColorSecondaryDraft: string;
+    favoriteCardColorDraft: string;
+    cardOpacityDraft: number;
     componentRadiusDraft: number;
     windowControlsPosDraft: string;
     setBackgroundImageUrlDraftSafe: (url: string) => void;
@@ -95,7 +101,6 @@ export const useAppHandlers = (config: {
         themeEditor,
         editingThemeId,
         newThemeName,
-        colorSchemeDraft,
         themeColorDraft,
         backgroundColorDraft,
         backgroundOpacityDraft,
@@ -105,6 +110,13 @@ export const useAppHandlers = (config: {
         panelOpacityDraft,
         panelBlurDraft,
         panelRadiusDraft,
+        controlColorDraft,
+        controlOpacityDraft,
+        controlBlurDraft,
+        textColorPrimaryDraft,
+        textColorSecondaryDraft,
+        favoriteCardColorDraft,
+        cardOpacityDraft,
         componentRadiusDraft,
         windowControlsPosDraft,
         setBackgroundImageUrlDraftSafe,
@@ -235,14 +247,16 @@ export const useAppHandlers = (config: {
             bvPreview?.duration && bvPreview.duration > 0
                 ? bvPreview.duration
                 : Math.max(endVal, startVal);
-        const safeStart = Math.max(0, Math.min(startVal, endVal, limit));
-        const safeEnd = Math.max(safeStart, Math.min(endVal, limit));
+        const roundedStart = Math.round(startVal * 20) / 20;
+        const roundedEnd = Math.round(endVal * 20) / 20;
+        const safeStart = Math.max(0, Math.min(roundedStart, roundedEnd, limit));
+        const safeEnd = Math.max(safeStart, Math.min(roundedEnd, limit));
         setSliceStart(safeStart);
         setSliceEnd(safeEnd);
     };
 
     const handleSliceStartChange = (value: number | string) => {
-        const v = Number(value) || 0;
+        const v = Math.round((Number(value) || 0) * 20) / 20;
         const limit =
             bvPreview?.duration && bvPreview.duration > 0
                 ? bvPreview.duration
@@ -254,7 +268,7 @@ export const useAppHandlers = (config: {
     };
 
     const handleSliceEndChange = (value: number | string) => {
-        const v = Number(value) || 0;
+        const v = Math.round((Number(value) || 0) * 20) / 20;
         const limit =
             bvPreview?.duration && bvPreview.duration > 0
                 ? bvPreview.duration

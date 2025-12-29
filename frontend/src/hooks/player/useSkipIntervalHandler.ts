@@ -75,25 +75,29 @@ export const useSkipIntervalHandler = ({
 
     const handleIntervalChange = useCallback((start: number, end: number) => {
         if (!currentSong) return;
+        const roundedStart = Math.round(start * 20) / 20;
+        const roundedEnd = Math.round(end * 20) / 20;
         updateSongSkipTimes({
-            skipStartTime: start,
-            skipEndTime: end,
+            skipStartTime: roundedStart,
+            skipEndTime: roundedEnd,
         }, `interval_${currentSong.id}`);
         // 局部区间状态将由 currentSong 更新派生得到，无需额外 setter
     }, [currentSong, updateSongSkipTimes]);
 
     const handleSkipStartChange = useCallback((value: number) => {
         if (!currentSong) return;
+        const roundedValue = Math.round(value * 20) / 20;
         updateSongSkipTimes({
-            skipStartTime: value,
+            skipStartTime: roundedValue,
         }, `start_${currentSong.id}`);
         // 局部区间状态将由 currentSong 更新派生得到，无需额外 setter
     }, [currentSong, updateSongSkipTimes]);
 
     const handleSkipEndChange = useCallback((value: number) => {
         if (!currentSong) return;
+        const roundedValue = Math.round(value * 20) / 20;
         updateSongSkipTimes({
-            skipEndTime: value,
+            skipEndTime: roundedValue,
         }, `end_${currentSong.id}`);
         // 局部区间状态将由 currentSong 更新派生得到，无需额外 setter
     }, [currentSong, updateSongSkipTimes]);

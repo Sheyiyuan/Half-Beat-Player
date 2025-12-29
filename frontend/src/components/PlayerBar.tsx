@@ -13,6 +13,7 @@ export type PlayerBarProps = {
     intervalLength: number;
     duration: number;
     formatTime: (seconds: number) => string;
+    formatTimeWithMs: (seconds: number) => string;
     seek: (value: number) => void;
     playPrev: () => void;
     togglePlay: () => void;
@@ -28,7 +29,12 @@ export type PlayerBarProps = {
     volume: number;
     changeVolume: (value: number) => void;
     songsCount: number;
+    componentRadius?: number;
     coverRadius?: number;
+    controlBackground?: string;
+    controlStyles?: React.CSSProperties;
+    textColorPrimary?: string;
+    textColorSecondary?: string;
 };
 
 const PlayerBar: React.FC<PlayerBarProps> = ({
@@ -41,6 +47,7 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
     intervalLength,
     duration,
     formatTime,
+    formatTimeWithMs,
     seek,
     playPrev,
     togglePlay,
@@ -56,9 +63,16 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
     volume,
     changeVolume,
     songsCount,
+    componentRadius = 8,
     coverRadius = 8,
+    controlBackground,
+    controlStyles,
+    textColorPrimary,
+    textColorSecondary,
 }) => {
     const isDownloaded = currentSong ? downloadedSongIds.has(currentSong.id) : false;
+    const iconStyle = { color: textColorPrimary };
+
     return (
         <Group align="flex-start" gap="md">
             {cover ? (
@@ -74,7 +88,7 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
                 <Box
                     w={100}
                     h={100}
-                    bg={computedColorScheme === "dark" ? "dark.6" : "gray.2"}
+                    bg={controlBackground || (computedColorScheme === "dark" ? "dark.6" : "gray.2")}
                     style={{
                         borderRadius: coverRadius,
                         display: "flex",
@@ -85,9 +99,10 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
                         minHeight: 100,
                         maxWidth: 100,
                         maxHeight: 100,
+                        ...controlStyles,
                     }}
                 >
-                    <Music size={48} color="currentColor" />
+                    <Music size={48} color={textColorSecondary || "currentColor"} />
                 </Box>
             )}
 
@@ -98,16 +113,17 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
                         onChange={(v) => seek(intervalStart + v)}
                         min={0}
                         max={intervalLength || 1}
-                        step={0.1}
+                        step={0.05}
                         w="100%"
-                        label={(value) => formatTime(intervalStart + value)}
-                        style={{ '--slider-color': themeColor } as any}
+                        radius={componentRadius}
+                        label={(value) => formatTimeWithMs(intervalStart + value)}
+                        style={{ '--slider-color': themeColor, marginTop: '12px' } as any}
                     />
                     <Group justify="space-between" align="center">
-                        <Text size="xs" c="dimmed">
+                        <Text size="xs" style={{ color: textColorSecondary }}>
                             {formatTime(progressInInterval)}
                         </Text>
-                        <Text size="xs" c="dimmed">
+                        <Text size="xs" style={{ color: textColorSecondary }}>
                             {formatTime(intervalLength || duration)}
                         </Text>
                     </Group>
@@ -120,6 +136,7 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
                                 size="lg"
                                 fw={600}
                                 style={{
+                                    color: textColorPrimary,
                                     overflow: "hidden",
                                     textOverflow: "ellipsis",
                                     whiteSpace: "nowrap",
@@ -132,8 +149,8 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
                         </Box>
                         <Text
                             size="sm"
-                            c="dimmed"
                             style={{
+                                color: textColorSecondary,
                                 overflow: "hidden",
                                 textOverflow: "ellipsis",
                                 whiteSpace: "nowrap",
@@ -145,21 +162,38 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
                     </Stack>
 
                     <Group gap="xs">
-                        <ActionIcon variant="outline" color={themeColor} radius="xl" size="lg" onClick={playPrev} title="上一首">
+                        <ActionIcon
+                            variant="subtle"
+                            color={themeColor}
+                            radius={componentRadius}
+                            size="lg"
+                            onClick={playPrev}
+                            title="上一首"
+                            style={{ ...controlStyles, color: textColorPrimary }}
+                        >
                             <SkipBack size={16} />
                         </ActionIcon>
                         <ActionIcon
                             variant="filled"
-                            radius="xl"
+                            radius={componentRadius}
                             size="xl"
                             color={themeColor}
                             onClick={togglePlay}
                             disabled={!currentSong?.streamUrl}
                             title={isPlaying ? "暂停" : "播放"}
+                            style={controlStyles}
                         >
                             {isPlaying ? <Pause size={18} /> : <Play size={18} />}
                         </ActionIcon>
-                        <ActionIcon variant="outline" color={themeColor} radius="xl" size="lg" onClick={playNext} title="下一首">
+                        <ActionIcon
+                            variant="subtle"
+                            color={themeColor}
+                            radius={componentRadius}
+                            size="lg"
+                            onClick={playNext}
+                            title="下一首"
+                            style={{ ...controlStyles, color: textColorPrimary }}
+                        >
                             <SkipForward size={16} />
                         </ActionIcon>
                     </Group>
@@ -168,18 +202,22 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
                         <ActionIcon
                             variant="default"
                             size="lg"
+                            radius={componentRadius}
                             onClick={onAddToFavorite}
                             title="添加到收藏"
                             disabled={!currentSong}
+                            style={{ ...controlStyles, borderColor: "transparent", color: textColorPrimary }}
                         >
                             <SquarePlus size={16} />
                         </ActionIcon>
                         <ActionIcon
                             variant="default"
                             size="lg"
+                            radius={componentRadius}
                             onClick={onShowPlaylist}
                             title="打开播放列表"
                             disabled={songsCount === 0}
+                            style={{ ...controlStyles, borderColor: "transparent", color: textColorPrimary }}
                         >
                             <ListMusic size={16} />
                         </ActionIcon>
@@ -187,9 +225,11 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
                             <ActionIcon
                                 variant="default"
                                 size="lg"
+                                radius={componentRadius}
                                 onClick={onDownloadSong}
                                 title="下载当前歌曲"
                                 disabled={!currentSong}
+                                style={{ ...controlStyles, borderColor: "transparent", color: textColorPrimary }}
                             >
                                 <Download size={16} />
                             </ActionIcon>
@@ -199,9 +239,11 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
                                 variant="filled"
                                 color={themeColor}
                                 size="lg"
+                                radius={componentRadius}
                                 onClick={onManageDownload}
                                 title="管理下载文件"
                                 disabled={!currentSong}
+                                style={controlStyles}
                             >
                                 <Download size={16} />
                             </ActionIcon>
@@ -209,23 +251,27 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
                         <ActionIcon
                             variant="default"
                             size="lg"
+                            radius={componentRadius}
                             onClick={onTogglePlayMode}
                             title={`播放模式: ${playMode === "loop" ? "列表循环" : playMode === "random" ? "随机" : "单曲循环"}`}
+                            style={{ ...controlStyles, borderColor: "transparent", color: textColorPrimary }}
                         >
                             {playMode === "loop" ? <Repeat size={16} /> : playMode === "random" ? <Shuffle size={16} /> : <Repeat1 size={16} />}
                         </ActionIcon>
                         <Group gap={6} align="center">
-                            <Text size="xs" c="dimmed">音量</Text>
+                            <Text size="xs" style={{ color: textColorSecondary }}>音量</Text>
                             <Slider
-                                value={volume * 100}
+                                value={Math.round(volume * 100)}
                                 onChange={(v) => changeVolume(v / 100)}
                                 min={0}
                                 max={100}
                                 step={1}
+                                radius={componentRadius}
+                                label={(v) => `${v}%`}
                                 w={140}
                                 style={{ '--slider-color': themeColor } as any}
                             />
-                            <Text size="xs" c="dimmed">{Math.round(volume * 100)}%</Text>
+                            <Text size="xs" style={{ color: textColorSecondary, width: 36, textAlign: 'right' }}>{Math.round(volume * 100)}%</Text>
                         </Group>
                     </Group>
                 </Group>

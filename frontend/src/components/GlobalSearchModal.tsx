@@ -19,6 +19,8 @@ interface GlobalSearchModalProps {
     onRemoteSearch: () => void;
     onResultClick: (result: GlobalSearchResult) => void;
     onAddFromRemote: (song: Song) => void;
+    panelStyles?: any;
+    derived?: any;
 }
 
 const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
@@ -35,6 +37,8 @@ const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     onRemoteSearch,
     onResultClick,
     onAddFromRemote,
+    panelStyles,
+    derived,
 }) => {
     const lastSearchedBVRef = useRef<string>("");
 
@@ -81,10 +85,25 @@ const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
             onClose={handleClose}
             size="lg"
             centered
-            radius="md"
             padding="lg"
             title="搜索视频 (BV 号或链接)"
             overlayProps={{ blur: 10, opacity: 0.35 }}
+            radius={derived?.componentRadius}
+            styles={{
+                content: {
+                    ...panelStyles,
+                    backgroundColor: derived?.modalBackground,
+                    color: derived?.textColorPrimary,
+                },
+                header: {
+                    backgroundColor: "transparent",
+                    color: derived?.textColorPrimary,
+                },
+                title: {
+                    fontWeight: 600,
+                }
+            }}
+            className="glass-panel"
         >
             <Stack gap="md">
                 <TextInput
@@ -95,6 +114,14 @@ const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                     leftSectionPointerEvents="none"
                     autoFocus
                     disabled={resolvingBV}
+                    radius={derived?.componentRadius}
+                    styles={{
+                        input: {
+                            backgroundColor: derived?.controlBackground,
+                            color: derived?.textColorPrimary,
+                            borderColor: "transparent",
+                        }
+                    }}
                     onKeyDown={(e) => {
                         if (e.key === "Enter" && !resolvingBV) {
                             handleEnter(globalSearchResults.length > 0);
@@ -105,7 +132,7 @@ const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                     <Stack gap="xs">
                         {/* BV号搜索时：显示解析按钮 */}
                         {trimmedTerm && isBVSearch && (
-                            <Paper withBorder p="md" w="100%" style={{ backgroundColor: 'rgba(0, 123, 255, 0.05)' }}>
+                            <Paper withBorder p="md" w="100%" radius={derived?.componentRadius} style={{ backgroundColor: 'rgba(0, 123, 255, 0.05)' }}>
                                 <Group justify="space-between">
                                     <Stack gap={4}>
                                         <Text size="sm" fw={500}>解析 BV 号并添加到歌单</Text>
@@ -115,6 +142,7 @@ const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                                         size="lg"
                                         variant="filled"
                                         color={themeColor}
+                                        radius={derived?.componentRadius}
                                         onClick={onResolveBVAndAdd}
                                         loading={resolvingBV}
                                         disabled={resolvingBV}

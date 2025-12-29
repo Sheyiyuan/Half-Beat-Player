@@ -22,6 +22,11 @@ export type CurrentPlaylistCardProps = {
     onToggleConfirmRemove: (songId: string | null) => void;
     onPlayAll: () => void;
     onDownloadAll: () => void;
+    componentRadius?: number;
+    controlBackground?: string;
+    controlStyles?: React.CSSProperties;
+    textColorPrimary?: string;
+    textColorSecondary?: string;
 };
 
 const CurrentPlaylistCard: React.FC<CurrentPlaylistCardProps> = ({
@@ -43,6 +48,11 @@ const CurrentPlaylistCard: React.FC<CurrentPlaylistCardProps> = ({
     onToggleConfirmRemove,
     onPlayAll,
     onDownloadAll,
+    componentRadius = 8,
+    controlBackground,
+    controlStyles,
+    textColorPrimary,
+    textColorSecondary,
 }) => {
     // 过滤当前歌单的歌曲，基于实时搜索词（名称或歌手）
     const normalizedQuery = (searchQuery || "").trim().toLowerCase();
@@ -56,10 +66,10 @@ const CurrentPlaylistCard: React.FC<CurrentPlaylistCardProps> = ({
     return (
         <Card flex={1} shadow="sm" padding="md" withBorder miw={0} h="100%" className="glass-panel" style={{ ...panelStyles, minHeight: 0, backgroundColor: panelBackground, display: "flex", flexDirection: "column" }}>
             <Group justify="space-between" mb="sm">
-                <Text fw={600} size="sm">{currentFav?.title || "选择歌单"}</Text>
+                <Text fw={600} size="sm" style={{ color: textColorPrimary }}>{currentFav?.title || "选择歌单"}</Text>
                 <Group gap="xs">
-                    <Button size="xs" variant="light" color={themeColor} disabled={!currentFav} onClick={onPlayAll}>播放全部</Button>
-                    <Button size="xs" variant="light" color={themeColor} disabled={!currentFav} onClick={onDownloadAll}>下载全部</Button>
+                    <Button size="xs" variant="light" color={themeColor} disabled={!currentFav} onClick={onPlayAll} radius={componentRadius}>播放全部</Button>
+                    <Button size="xs" variant="light" color={themeColor} disabled={!currentFav} onClick={onDownloadAll} radius={componentRadius}>下载全部</Button>
                 </Group>
             </Group>
             <TextInput
@@ -68,6 +78,14 @@ const CurrentPlaylistCard: React.FC<CurrentPlaylistCardProps> = ({
                 onChange={(e) => onSearchChange(e.currentTarget.value)}
                 size="sm"
                 mb="sm"
+                radius={componentRadius}
+                styles={{
+                    input: {
+                        backgroundColor: controlBackground,
+                        color: textColorPrimary,
+                        borderColor: "transparent",
+                    }
+                }}
             />
             <ScrollArea style={{ flex: 1, minHeight: 0 }}>
                 {currentFav ? (
@@ -80,18 +98,24 @@ const CurrentPlaylistCard: React.FC<CurrentPlaylistCardProps> = ({
                         {displayedSongs.map((s) => {
                             const isDownloaded = downloadedSongIds.has(s.id);
                             const isConfirmingRemove = confirmRemoveSongId === s.id;
+                            const isSelected = currentSongId === s.id;
                             return (
                                 <Group key={s.id} gap="xs" wrap="nowrap" align="stretch">
                                     <Button
-                                        variant={currentSongId === s.id ? "filled" : "subtle"}
+                                        variant={isSelected ? "filled" : "subtle"}
                                         color={themeColor}
                                         justify="flex-start"
                                         onClick={() => onPlaySong(s)}
-                                        style={{ flex: 1 }}
+                                        radius={componentRadius}
+                                        style={{
+                                            flex: 1,
+                                            ...(isSelected ? { backgroundColor: themeColor } : controlStyles),
+                                            color: isSelected ? "white" : textColorPrimary,
+                                        }}
                                     >
                                         <Stack gap={2} align="flex-start">
-                                            <Text fw={500} size="sm">{s.name}</Text>
-                                            <Text size="xs" c="dimmed">{s.singer || "未知歌手"}</Text>
+                                            <Text fw={500} size="sm" style={{ color: "inherit" }}>{s.name}</Text>
+                                            <Text size="xs" style={{ color: isSelected ? "rgba(255,255,255,0.7)" : textColorSecondary }}>{s.singer || "未知歌手"}</Text>
                                         </Stack>
                                     </Button>
                                     <Group gap={4} wrap="nowrap">
@@ -99,22 +123,34 @@ const CurrentPlaylistCard: React.FC<CurrentPlaylistCardProps> = ({
                                             variant={isDownloaded ? "filled" : "default"}
                                             color={themeColor}
                                             size="lg"
+                                            radius={componentRadius}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 onDownloadSong(s);
                                             }}
                                             title={isDownloaded ? "已下载：管理下载文件" : "下载歌曲"}
+                                            style={{
+                                                ...(isDownloaded ? { backgroundColor: themeColor } : controlStyles),
+                                                color: isDownloaded ? "white" : textColorPrimary,
+                                                borderColor: "transparent"
+                                            }}
                                         >
                                             <Download size={16} />
                                         </ActionIcon>
                                         <ActionIcon
                                             variant="default"
                                             size="lg"
+                                            radius={componentRadius}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 onAddSongToFavorite(s);
                                             }}
                                             title="添加到收藏"
+                                            style={{
+                                                ...controlStyles,
+                                                color: textColorPrimary,
+                                                borderColor: "transparent"
+                                            }}
                                         >
                                             <SquarePlus size={16} />
                                         </ActionIcon>
@@ -127,12 +163,18 @@ const CurrentPlaylistCard: React.FC<CurrentPlaylistCardProps> = ({
                                                 <ActionIcon
                                                     variant="default"
                                                     size="lg"
+                                                    radius={componentRadius}
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         onToggleConfirmRemove(s.id);
                                                     }}
                                                     title="移出歌单"
-                                                    style={styles}
+                                                    style={{
+                                                        ...styles,
+                                                        ...controlStyles,
+                                                        color: "red",
+                                                        borderColor: "transparent"
+                                                    }}
                                                 >
                                                     <Trash2 size={16} />
                                                 </ActionIcon>
@@ -148,6 +190,7 @@ const CurrentPlaylistCard: React.FC<CurrentPlaylistCardProps> = ({
                                                     color="red"
                                                     variant="filled"
                                                     size="lg"
+                                                    radius={componentRadius}
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         onRemoveSongFromPlaylist(s);
@@ -166,7 +209,7 @@ const CurrentPlaylistCard: React.FC<CurrentPlaylistCardProps> = ({
                     </Stack>
                 ) : (
                     <Flex align="center" justify="center" h="100%">
-                        <Text c="dimmed">请在右侧选择一个歌单</Text>
+                        <Text style={{ color: textColorSecondary }}>请从左侧选择一个歌单</Text>
                     </Flex>
                 )}
             </ScrollArea>
