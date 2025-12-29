@@ -69,47 +69,113 @@
 ### 组件架构
 - **ThemeDetailModal** (`frontend/src/components/ThemeDetailModal.tsx`): 新的主题详情组件，支持两种模式
   - GUI 模式: 使用 Mantine 组件进行可视化编辑（滑块、颜色选择器等）
+    - 使用 ScrollArea 包装，固定高度 500px，保证一致的视觉效果
+    - 支持滚动查看所有设置项
   - JSON 模式: 直接编辑 JSON 配置，包含实时验证
+    - 使用 ScrollArea 包装，固定高度 500px，与 GUI 模式保持一致
+    - minRows 设置为 20，提供更好的初始显示效果
+    - 包含一键复制按钮，支持复制整个 JSON 配置到剪贴板
+    - 复制成功时显示绿色通知和图标反馈（Copy → Check）
   - 两种模式完全等价，修改会自动同步
 
 - **ThemeManagerModal** (`frontend/src/components/ThemeManagerModal.tsx`): 主题管理界面
-  - 新增"详情"按钮：所有主题都可以查看详情
-  - 内置主题显示为只读（无编辑/删除按钮）
-  - 自定义主题显示编辑/删除按钮
+  - 内置主题显示"详情"按钮：允许查看主题配置（只读模式）
+  - 自定义主题只显示"编辑"按钮：允许修改主题配置
+  - 自定义主题还显示"删除"按钮：支持删除主题
 
 ### 关键功能
-1. **双模式编辑**
-   - GUI 模式：用户友好的可视化编辑
-   - JSON 模式：高级用户可直接编辑 JSON
-   - Tab 切换时自动同步数据
+1. **双模式编辑（固定高度一致）**
+   - GUI 模式：用户友好的可视化编辑，ScrollArea 高度 500px
+   - JSON 模式：高级用户可直接编辑 JSON，ScrollArea 高度 500px
+   - Tab 切换时自动同步数据，高度保持一致
 
-2. **JSON 类型检查**（保存前强制检查）
+2. **复制功能**
+   - JSON 模式下提供"复制 JSON"按钮
+   - 一键复制整个 JSON 配置到剪贴板
+   - 复制成功时显示绿色通知提示
+   - 按钮图标切换反馈（Copy → Check 图标，持续 2 秒）
+
+3. **JSON 类型检查**（保存前强制检查）
    - 验证所有必需字段存在
    - 颜色值必须是有效的十六进制格式 (#RRGGBB)
    - 数值字段检查范围（如不透明度 0-1，模糊 0-50px 等）
    - 枚举字段验证（如 windowControlsPos: 'left'|'right'|'hidden'）
    - 错误信息在 JSON 模式下即时显示
 
-3. **只读模式**
-   - 内置主题和已加载的主题可以查看详情
+4. **只读模式**
+   - 内置主题查看详情时为只读模式
    - 所有输入字段禁用
+   - JSON 模式文本区域禁用编辑
    - 仅展示"关闭"按钮
-   - JSON 模式下文本区域禁用编辑
+   - 复制按钮隐藏在只读模式
+
+5. **按钮逻辑简化**
+   - 内置主题：选择 → 详情
+   - 自定义主题：选择 → 编辑 → 删除
 
 ### 使用流程
 1. 打开主题管理器
-2. 点击任何主题的"详情"按钮
-3. 选择 GUI 或 JSON 模式编辑
-4. JSON 模式下修改后点击"应用 JSON 配置"
-5. 点击"保存"（编辑模式）或"关闭"（查看模式）
+2. 内置主题点击"详情"查看（只读），自定义主题点击"编辑"修改
+3. 选择 GUI 或 JSON 模式
+4. JSON 模式可使用"复制 JSON"按钮复制配置
+5. JSON 模式修改后点击"应用 JSON 配置"
+6. 点击"保存"（编辑模式）或"关闭"（查看模式）
 
 ### 相关 Hook 和处理
-- `useThemeEditor`: 主题编辑逻辑，新增 `viewTheme` 方法
-- `useModalManager`: 新增 `themeDetailModal` 状态
-- `useAppHandlers`: 新增 `handleViewTheme` 处理函数
+- `useThemeEditor`: 主题编辑逻辑，`viewTheme` 方法用于打开查看/编辑模式
+- `useModalManager`: `themeDetailModal` 状态管理
+- `useAppHandlers`: `handleViewTheme` 处理函数调用 `themeEditor.viewTheme`
 
 ## 交互建议
 - 在处理 UI 问题时，优先考虑 Mantine 的组件属性。
 - 在处理后端逻辑时，注意 Wails 运行时的 context 生命周期。
 - 涉及 B站 API 时，参考 `internal/services/` 中已有的请求模式。
 - JSON 验证需要保证所有颜色值都是有效的十六进制格式，所有数值都在指定范围内。
+## 最近更新（UI/UX 优化）
+
+### ThemeDetailModal 优化
+- **固定高度容器**: GUI 和 JSON 编辑面板都使用 `ScrollArea` 包装，高度固定为 500px
+  - `marginRight: -16, paddingRight: 16` 用于处理 ScrollArea 的 margin 问题
+  - 保证两种模式的视觉一致性和更好的空间利用
+  
+- **复制功能**: JSON 模式添加"复制 JSON"按钮
+  - 使用 `navigator.clipboard.writeText()` 实现剪贴板操作
+  - 按钮显示图标状态反馈：`copied ? <Check> : <Copy>`
+  - 复制成功时显示绿色通知，2 秒后自动复位
+  - 仅在非只读模式下显示
+
+- **JSON 高度调整**: minRows 从 15 增加到 20，提供更好的初始显示
+
+### ThemeManagerModal 优化
+- **按钮逻辑条件化**:
+  - 内置主题 (`theme.isReadOnly`): 仅显示"选择"和"详情"按钮
+  - 自定义主题 (!theme.isReadOnly): 显示"选择"、"编辑"和"删除"按钮
+  - 使用条件渲染而非禁用状态，更清晰的视觉反馈
+
+### 相关代码片段
+```tsx
+// 复制 JSON 处理
+const handleCopyJson = useCallback(() => {
+    navigator.clipboard.writeText(jsonText).then(() => {
+        setCopied(true);
+        notifications.show({
+            message: "已复制到剪贴板",
+            color: "green",
+            autoClose: 1500,
+        });
+        setTimeout(() => setCopied(false), 2000);
+    });
+}, [jsonText]);
+
+// 固定高度 ScrollArea
+<ScrollArea style={{ height: "500px", marginRight: -16, paddingRight: 16 }}>
+    {/* 内容 */}
+</ScrollArea>
+
+// 按钮条件渲染
+{theme.isReadOnly && <Button>详情</Button>}
+{!theme.isReadOnly && <>
+    <Button>编辑</Button>
+    <Button color="red">删除</Button>
+</>}
+```
