@@ -1,15 +1,6 @@
 import React from "react";
 import { Modal, Stack, TextInput, Group, Button } from "@mantine/core";
-import ThemeManagerModal from "./ThemeManagerModal";
-import ThemeDetailModal from "./ThemeDetailModal";
-import AddToFavoriteModal from "./AddToFavoriteModal";
-import PlaylistModal from "./PlaylistModal";
-import LoginModal from "./LoginModal";
-import SettingsModal from "./SettingsModal";
-import DownloadManagerModal from "./DownloadManagerModal";
-import CreateFavoriteModal from "./CreateFavoriteModal";
-import GlobalSearchModal from "./GlobalSearchModal";
-import BVAddModal from "./BVAddModal";
+import { ThemeManagerModal, ThemeDetailModal, AddToFavoriteModal, PlaylistModal, LoginModal, SettingsModal, DownloadManagerModal, CreateFavoriteModal, GlobalSearchModal, BVAddModal } from "./modals";
 import { Favorite, Song, Theme } from "../types";
 import { formatTime, formatTimeWithMs } from "../utils/time";
 

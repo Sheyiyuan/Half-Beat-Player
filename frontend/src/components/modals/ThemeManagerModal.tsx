@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Button, Card, Group, Modal, Stack, Text } from "@mantine/core";
-import { Theme } from "../types";
+import { Theme } from "../../types";
 
 export type ThemeManagerModalProps = {
     opened: boolean;

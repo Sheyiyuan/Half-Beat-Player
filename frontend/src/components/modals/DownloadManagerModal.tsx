@@ -1,6 +1,6 @@
 import React from "react";
 import { Button, Group, Modal, Stack, Text } from "@mantine/core";
-import type { Song } from "../types";
+import type { Song } from "../../types";
 
 interface DownloadManagerModalProps {
     opened: boolean;

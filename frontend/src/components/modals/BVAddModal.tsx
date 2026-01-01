@@ -1,6 +1,6 @@
 import React from "react";
 import { AspectRatio, Button, Group, Image, Modal, NumberInput, RangeSlider, Select, Stack, Text, TextInput, ScrollArea } from "@mantine/core";
-import type { Favorite } from "../types";
+import type { Favorite } from "../../types";
 
 interface BVPreview {
     bvid?: string;

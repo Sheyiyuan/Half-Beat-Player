@@ -2,8 +2,8 @@ import React, { useEffect, useRef } from "react";
 import { ActionIcon, Avatar, Button, Group, Menu, Text } from "@mantine/core";
 import { LogOut, Palette, Search, Settings as SettingsIcon } from "lucide-react";
 import { notifications } from "@mantine/notifications";
-import * as Services from "../../wailsjs/go/services/Service";
-import { WindowControls } from "./WindowControls";
+import * as Services from "../../../wailsjs/go/services/Service";
+import { WindowControls } from "./";
 
 interface UserInfo {
     username: string;

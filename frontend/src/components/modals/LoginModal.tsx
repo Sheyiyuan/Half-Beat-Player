@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Modal, Group, Button, Text, Stack, Loader, Alert } from "@mantine/core";
 import QRCode from "qrcode";
-import * as Services from "../../wailsjs/go/services/Service";
+import * as Services from "../../../wailsjs/go/services/Service";
 
 interface LoginModalProps {
     opened: boolean;

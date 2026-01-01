@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ActionIcon, Box, Group, Image, Slider, Stack, Text } from "@mantine/core";
 import { Download, ListMusic, Music, Pause, Play, Repeat, Repeat1, Shuffle, SkipBack, SkipForward, SquarePlus, Volume, Volume1, Volume2, VolumeX } from "lucide-react";
-import { Song } from "../types";
+import { Song } from "../../types";
 
 export type PlayerBarProps = {
     themeColor: string;

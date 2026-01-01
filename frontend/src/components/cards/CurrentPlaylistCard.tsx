@@ -1,7 +1,7 @@
 import React from "react";
 import { ActionIcon, Button, Card, Flex, Group, ScrollArea, Stack, Text, TextInput, Transition } from "@mantine/core";
 import { Download, SquarePlus, Trash2 } from "lucide-react";
-import { Favorite, Song } from "../types";
+import { Favorite, Song } from "../../types";
 
 export type CurrentPlaylistCardProps = {
     panelBackground: string;

@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { ActionIcon, Group, Modal, Radio, Checkbox, Button } from "@mantine/core";
 import { Minus, Square, X, Copy } from "lucide-react";
 import { notifications } from "@mantine/notifications";
-import * as Services from "../../wailsjs/go/services/Service";
-import { useThemeContext } from "../context";
+import * as Services from "../../../wailsjs/go/services/Service";
+import { useThemeContext } from "../../context";
 
 type ExitBehavior = "minimize" | "quit";
 const EXIT_BEHAVIOR_KEY = "half-beat.exitBehavior";

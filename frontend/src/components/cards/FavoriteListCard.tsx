@@ -1,6 +1,6 @@
 import React from "react";
 import { Button, Card, Group, ScrollArea, Stack, Text, Transition } from "@mantine/core";
-import { Favorite, Song } from "../types";
+import { Favorite, Song } from "../../types";
 
 export type FavoriteListCardProps = {
     panelBackground: string;

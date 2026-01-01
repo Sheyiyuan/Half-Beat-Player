@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ActionIcon, Group, Modal, Paper, ScrollArea, Stack, Text } from "@mantine/core";
 import { GripVertical, X } from "lucide-react";
-import { Song } from "../types";
+import { Song } from "../../types";
 
 export type PlaylistModalProps = {
     opened: boolean;

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ActionIcon, Box, Button, Card, Flex, Group, Image, NumberInput, RangeSlider, ScrollArea, Stack, Text, TextInput, Tooltip } from "@mantine/core";
 import { IconEdit, IconCheck, IconX } from "@tabler/icons-react";
-import { Song } from "../types";
+import { Song } from "../../types";
 
 export type SongDetailCardProps = {
     song: Song | null;

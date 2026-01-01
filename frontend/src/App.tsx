@@ -17,7 +17,7 @@ import { useThemeContext, useModalContext } from "./context";
 
 // Components
 import AppModals from "./components/AppModals";
-import AppPanels from "./components/AppPanels";
+import { AppPanels } from "./components/layouts";
 
 // Utils
 import { formatTime, formatTimeLabel, parseTimeLabel, formatTimeWithMs } from "./utils/time";
