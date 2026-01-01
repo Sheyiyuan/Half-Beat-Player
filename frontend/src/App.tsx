@@ -6,12 +6,16 @@ import { Favorite, LyricMapping, PlayerSetting, Song, Theme } from "./types";
 import AppPanels from "./components/AppPanels";
 import AppModals, { AppModalsProps } from "./components/AppModals";
 
-// Hooks
+// Hooks - Player & Data
 import { useAudioPlayer, usePlaylist, useAudioInterval, usePlaylistActions, useSkipIntervalHandler, useDownloadManager, useAudioEvents, usePlaybackControls, usePlaylistPersistence, useAudioSourceManager, usePlaySong, usePlayModes } from "./hooks/player";
 import { useSongs, useFavorites, useSongCache, useSettingsPersistence } from "./hooks/data";
+
+// Hooks - Features
 import { useAuth, useBVResolver, useFavoriteActions, useThemeEditor, useSearchAndBV, useBVModal, useLyricManagement, useSongOperations, useLyricLoader, useGlobalSearch, useLoginHandlers } from "./hooks/features";
-import { useHitokoto, useUiDerived, useAppLifecycle, useAppEffects, useAppHandlers } from "./hooks/ui";
-import { useAppPanelsProps } from "./hooks/ui/useAppPanelsProps";
+
+// Hooks - UI (aggregated state management)
+import { useHitokoto, useUiDerived, useAppLifecycle, useAppEffects, useAppHandlers, useAppPanelsProps, useThemeManagement, useFavoritesManager, useThemeDraftState, useAppSearchState } from "./hooks/ui";
+
 // Contexts - use both old and new for compatibility during migration
 import { useThemeContext, useModalContext } from "./context";
 
@@ -27,8 +31,12 @@ declare global {
 }
 
 const App: React.FC = () => {
-    // ========== Hooks ==========
-    // 播放器相关
+    // ========== 聚合状态管理（使用新 Hook）==========
+    const themeDraft = useThemeDraftState();
+    const favoritesState = useFavoritesManager();
+    const searchState = useAppSearchState();
+
+    // ========== 播放器相关 ==========
     const playlist = usePlaylist();
     const { queue, currentIndex, currentSong, playMode, setQueue, setCurrentIndex, setCurrentSong, setPlayMode } = playlist;
 
@@ -40,7 +48,7 @@ const App: React.FC = () => {
     const interval = useAudioInterval(currentSong, duration, progress);
     const { intervalRef, intervalStart, intervalEnd, intervalLength, progressInInterval } = interval;
 
-    // 数据管理
+    // ========== 数据管理 ==========
     const songsHook = useSongs();
     const { songs, setSongs, loadSongs, refreshSongs } = songsHook;
 
@@ -50,7 +58,7 @@ const App: React.FC = () => {
     const songCache = useSongCache();
     const { updateSongWithCache } = songCache;
 
-    // 功能模块
+    // ========== 功能模块 ==========
     const { state: themeState, actions: themeActions } = useThemeContext();
     const {
         themes, currentThemeId, themeColor, backgroundColor, backgroundOpacity,
@@ -63,21 +71,12 @@ const App: React.FC = () => {
         setBackgroundOpacity, setBackgroundImageUrl, setBackgroundBlur, setPanelColor, setPanelOpacity, setPanelBlur, setPanelRadius,
         setControlColor, setControlOpacity, setControlBlur, setTextColorPrimary, setTextColorSecondary, setFavoriteCardColor, setCardOpacity,
         setModalRadius, setNotificationRadius, setComponentRadius, setCoverRadius, setModalColor, setModalOpacity, setModalBlur, setWindowControlsPos,
-        applyTheme, setBackgroundImageUrlSafe,
     } = themeActions;
 
     const auth = useAuth();
     const { isLoggedIn, userInfo, loginModalOpened, setIsLoggedIn, setUserInfo, setLoginModalOpened, checkLoginStatus, getUserInfo } = auth;
 
     const bvResolver = useBVResolver();
-    const {
-        bvPreview, bvModalOpen, bvSongName, bvSinger, bvTargetFavId, resolvingBV,
-        sliceStart, sliceEnd,
-        setBvPreview, setBvModalOpen, setBvSongName, setBvSinger, setBvTargetFavId,
-        setResolvingBV, setSliceStart, setSliceEnd,
-        resolveBV, resetBVState
-    } = bvResolver;
-
     const hitokoto = useHitokoto();
 
     // ========== Refs ==========
@@ -85,11 +84,8 @@ const App: React.FC = () => {
     const playbackRetryRef = useRef<Map<string, number>>(new Map());
     const isHandlingErrorRef = useRef<Set<string>>(new Set());
     const prevSongIdRef = useRef<string | null>(null);
-
-    // 启动期间先阻止持久化，待设置加载完成后再打开
     const skipPersistRef = useRef(true);
     const fileDraftInputRef = useRef<HTMLInputElement | null>(null);
-    // 定时保存防抖器（key -> timerId）
     const saveTimerRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
     // ========== 模态框管理 ==========
@@ -98,134 +94,67 @@ const App: React.FC = () => {
     // ========== 核心应用状态 ==========
     const [setting, setSetting] = useState<PlayerSetting | null>(null);
     const [lyric, setLyric] = useState<LyricMapping | null>(null);
-    const [status, setStatus] = useState<string>("加载中...");
 
-    // 搜索相关
-    const [searchQuery, setSearchQuery] = useState("");
-    const [globalSearchTerm, setGlobalSearchTerm] = useState("");
-    const [selectedFavId, setSelectedFavId] = useState<string | null>(null);
-    const [remoteResults, setRemoteResults] = useState<Song[]>([]);
-    const [remoteLoading, setRemoteLoading] = useState(false);
+    // ========== 导出状态便利方法 ==========
+    // 搜索相关状态
+    const { searchQuery, setSearchQuery, globalSearchTerm, setGlobalSearchTerm, selectedFavId, setSelectedFavId, remoteResults, setRemoteResults, remoteLoading, setRemoteLoading, newFavName, setNewFavName, cacheSize, setCacheSize, status, setStatus } = searchState;
 
-    // BV 模态创建歌单名称
-    const [newFavName, setNewFavName] = useState("");
+    // 收藏夹相关状态
+    const { createFavName, setCreateFavName, createFavMode, setCreateFavMode, duplicateSourceId, setDuplicateSourceId, importFid, setImportFid, confirmDeleteFavId, setConfirmDeleteFavId, editingFavId, setEditingFavId, editingFavName, setEditingFavName, isDownloaded, setIsDownloaded, confirmDeleteDownloaded, setConfirmDeleteDownloaded, downloadedSongIds, setDownloadedSongIds, managingSong, setManagingSong, confirmRemoveSongId, setConfirmRemoveSongId } = favoritesState;
 
-    // 设置相关
-    const [cacheSize, setCacheSize] = useState(0);
+    // 主题草稿状态
+    const { editingThemeId, setEditingThemeId, newThemeName, setNewThemeName, themeColorDraft, setThemeColorDraft, backgroundColorDraft, setBackgroundColorDraft, backgroundOpacityDraft, setBackgroundOpacityDraft, backgroundImageUrlDraft, setBackgroundImageUrlDraft, backgroundBlurDraft, setBackgroundBlurDraft, panelOpacityDraft, setPanelOpacityDraft, panelColorDraft, setPanelColorDraft, panelBlurDraft, setPanelBlurDraft, panelRadiusDraft, setPanelRadiusDraft, controlColorDraft, setControlColorDraft, controlOpacityDraft, setControlOpacityDraft, controlBlurDraft, setControlBlurDraft, textColorPrimaryDraft, setTextColorPrimaryDraft, textColorSecondaryDraft, setTextColorSecondaryDraft, favoriteCardColorDraft, setFavoriteCardColorDraft, cardOpacityDraft, setCardOpacityDraft, modalRadiusDraft, setModalRadiusDraft, notificationRadiusDraft, setNotificationRadiusDraft, componentRadiusDraft, setComponentRadiusDraft, coverRadiusDraft, setCoverRadiusDraft, modalColorDraft, setModalColorDraft, modalOpacityDraft, setModalOpacityDraft, modalBlurDraft, setModalBlurDraft, windowControlsPosDraft, setWindowControlsPosDraft, colorSchemeDraft, setColorSchemeDraft, savingTheme, setSavingTheme } = themeDraft;
 
-    // ========== 收藏夹管理状态 ==========
-    // 创建收藏夹
-    const [createFavName, setCreateFavName] = useState("新歌单");
-    const [createFavMode, setCreateFavMode] = useState<"blank" | "duplicate" | "importMine" | "importFid">("blank");
-    const [duplicateSourceId, setDuplicateSourceId] = useState<string | null>(null);
-    const [importFid, setImportFid] = useState("");
-    const [confirmDeleteFavId, setConfirmDeleteFavId] = useState<string | null>(null);
+    // ========== 主题管理（集中 Hook）==========
+    const themeManagement = useThemeManagement({
+        themes,
+        setThemes,
+        currentThemeId,
+        setCurrentThemeId,
+        setters: {
+            setThemeColor,
+            setBackgroundColor,
+            setBackgroundOpacity,
+            setBackgroundImageUrl,
+            setBackgroundBlur,
+            setPanelColor,
+            setPanelOpacity,
+            setPanelBlur,
+            setPanelRadius,
+            setControlColor,
+            setControlOpacity,
+            setControlBlur,
+            setTextColorPrimary,
+            setTextColorSecondary,
+            setFavoriteCardColor,
+            setCardOpacity,
+            setModalRadius,
+            setNotificationRadius,
+            setComponentRadius,
+            setCoverRadius,
+            setModalColor,
+            setModalOpacity,
+            setModalBlur,
+            setWindowControlsPos,
+        },
+        skipPersistRef,
+    });
 
-    // 编辑收藏夹
-    const [editingFavId, setEditingFavId] = useState<string | null>(null);
-    const [editingFavName, setEditingFavName] = useState("");
+    const { applyTheme, saveCachedCustomThemes, getCustomThemes } = themeManagement;
 
-    // ========== 下载管理状态 ==========
-    const [isDownloaded, setIsDownloaded] = useState<boolean>(false);
-    const [confirmDeleteDownloaded, setConfirmDeleteDownloaded] = useState<boolean>(false);
-    const [downloadedSongIds, setDownloadedSongIds] = useState<Set<string>>(new Set());
-    const [managingSong, setManagingSong] = useState<Song | null>(null);
-    const [confirmRemoveSongId, setConfirmRemoveSongId] = useState<string | null>(null);
-
-    // ========== 主题编辑器状态 ==========
-    const [editingThemeId, setEditingThemeId] = useState<string | null>(null);
-    const [newThemeName, setNewThemeName] = useState<string>("");
-    const [themeColorDraft, setThemeColorDraft] = useState<string>("#228be6");
-    const [backgroundColorDraft, setBackgroundColorDraft] = useState<string>("#f8fafc");
-    const [backgroundOpacityDraft, setBackgroundOpacityDraft] = useState<number>(1);
-    const [backgroundImageUrlDraft, setBackgroundImageUrlDraft] = useState<string>("");
-    const [backgroundBlurDraft, setBackgroundBlurDraft] = useState<number>(0);
-    const [panelOpacityDraft, setPanelOpacityDraft] = useState<number>(0.92);
-    const [panelColorDraft, setPanelColorDraft] = useState<string>("#ffffff");
-    const [panelBlurDraft, setPanelBlurDraft] = useState<number>(0);
-    const [panelRadiusDraft, setPanelRadiusDraft] = useState<number>(8);
-    const [controlColorDraft, setControlColorDraft] = useState<string>("#ffffff");
-    const [controlOpacityDraft, setControlOpacityDraft] = useState<number>(1);
-    const [controlBlurDraft, setControlBlurDraft] = useState<number>(0);
-    const [textColorPrimaryDraft, setTextColorPrimaryDraft] = useState<string>("#1a1b1e");
-    const [textColorSecondaryDraft, setTextColorSecondaryDraft] = useState<string>("#909296");
-    const [favoriteCardColorDraft, setFavoriteCardColorDraft] = useState<string>("#ffffff");
-    const [cardOpacityDraft, setCardOpacityDraft] = useState<number>(1);
-    const [modalRadiusDraft, setModalRadiusDraft] = useState<number>(8);
-    const [notificationRadiusDraft, setNotificationRadiusDraft] = useState<number>(8);
-    const [componentRadiusDraft, setComponentRadiusDraft] = useState<number>(8);
-    const [coverRadiusDraft, setCoverRadiusDraft] = useState<number>(8);
-    const [modalColorDraft, setModalColorDraft] = useState<string>("#ffffff");
-    const [modalOpacityDraft, setModalOpacityDraft] = useState<number>(1);
-    const [modalBlurDraft, setModalBlurDraft] = useState<number>(0);
-    const [windowControlsPosDraft, setWindowControlsPosDraft] = useState<string>("right");
-    const [colorSchemeDraft, setColorSchemeDraft] = useState<string>("dark");
-    const [savingTheme, setSavingTheme] = useState(false);
-
-    // ========== 提前定义的辅助函数 ==========
-    // Mantine 颜色方案切换
-    const { setColorScheme } = useMantineColorScheme();
+    // 安全的背景图片设置
     const setBackgroundImageUrlDraftSafe = useCallback((url: string) => {
         setBackgroundImageUrlDraft(url);
     }, []);
 
-    // 从状态中提取自定义主题（非默认）
-    const getCustomThemesFromState = useCallback((all: Theme[]) => {
-        return all.filter((t) => !t.isDefault);
-    }, []);
-
-    // 应用主题到 UI（并跳过一次持久化防抖）
-    const applyThemeToUi = useCallback((theme: Theme) => {
-        const backgroundBlurValue = theme.backgroundBlur ?? 0;
-        const panelBlurValue = theme.panelBlur ?? 0;
-        const panelRadiusValue = theme.panelRadius ?? 8;
-        const modalRadiusValue = theme.modalRadius ?? 8;
-        const notificationRadiusValue = theme.notificationRadius ?? 8;
-        const windowControlsPosValue = theme.windowControlsPos ?? 'right';
-
-        setCurrentThemeId(theme.id);
-        skipPersistRef.current = true;
-        setThemeColor(theme.themeColor || '#1f77f0');
-        setBackgroundColor(theme.backgroundColor || '#0a0e27');
-        setBackgroundOpacity(theme.backgroundOpacity ?? 1);
-        setBackgroundImageUrlSafe(theme.backgroundImage || '');
-        setBackgroundBlur(backgroundBlurValue);
-        setPanelColor(theme.panelColor || '#1a1f3a');
-        setPanelOpacity(theme.panelOpacity ?? 0.6);
-        setPanelBlur(panelBlurValue);
-        setPanelRadius(panelRadiusValue);
-        setControlColor(theme.controlColor || theme.panelColor || '#2a2f4a');
-        setControlOpacity(theme.controlOpacity ?? 1);
-        setControlBlur(theme.controlBlur ?? 0);
-        setTextColorPrimary(theme.textColorPrimary || '#ffffff');
-        setTextColorSecondary(theme.textColorSecondary || '#909296');
-        setFavoriteCardColor(theme.favoriteCardColor || theme.panelColor || '#2a2f4a');
-        setCardOpacity(theme.cardOpacity ?? 0.5);
-        setModalRadius(modalRadiusValue);
-        setNotificationRadius(notificationRadiusValue);
-        setComponentRadius(theme.componentRadius ?? 6);
-        setCoverRadius(theme.coverRadius ?? 4);
-        setModalColor(theme.modalColor || theme.panelColor || '#1a1f3a');
-        setModalOpacity(theme.modalOpacity ?? 0.95);
-        setModalBlur(theme.modalBlur ?? 10);
-        setWindowControlsPos(windowControlsPosValue);
-        setColorSchemeDraft(theme.colorScheme || 'dark');
-
-        // 使用主题的 colorScheme 字段设置 Mantine 颜色方案
-        const colorScheme = theme.colorScheme || 'dark';
-        if (colorScheme === 'light' || colorScheme === 'dark') {
-            setColorScheme(colorScheme as any);
-        }
-    }, [setCurrentThemeId, setColorScheme, setThemeColor, setBackgroundColor, setBackgroundOpacity, setBackgroundImageUrlSafe, setPanelColor, setPanelOpacity, setBackgroundBlur, setPanelBlur, setPanelRadius, setControlColor, setControlOpacity, setControlBlur, setTextColorPrimary, setTextColorSecondary, setFavoriteCardColor, setCardOpacity, setModalRadius, setNotificationRadius, setComponentRadius, setCoverRadius, setModalColor, setModalOpacity, setModalBlur, setWindowControlsPos, setColorSchemeDraft]);
-
-    // 主题缓存辅助函数（提前定义，避免 TDZ）
-    const saveCachedCustomThemes = useCallback((themesToCache: Theme[]) => {
-        try {
-            localStorage.setItem('half-beat.customThemes', JSON.stringify(themesToCache));
-        } catch (e) {
-            console.warn('保存自定义主题缓存失败', e);
-        }
-    }, []);
+    // ========== BV Resolver 便利访问 ==========
+    const {
+        bvPreview, bvModalOpen, bvSongName, bvSinger, bvTargetFavId, resolvingBV,
+        sliceStart, sliceEnd,
+        setBvPreview, setBvModalOpen, setBvSongName, setBvSinger, setBvTargetFavId,
+        setResolvingBV, setSliceStart, setSliceEnd,
+        resolveBV, resetBVState
+    } = bvResolver;
 
     // ========== Hook 实例（依赖上述状态） ==========
     const favoriteActions = useFavoriteActions({
@@ -286,8 +215,8 @@ const App: React.FC = () => {
         currentThemeId,
         computedColorScheme,
         saveCachedCustomThemes,
-        applyThemeToUi,
-        getCustomThemesFromState,
+        applyThemeToUi: applyTheme,
+        getCustomThemesFromState: getCustomThemes,
         editingThemeId,
         setEditingThemeId,
         newThemeName,
@@ -552,7 +481,7 @@ const App: React.FC = () => {
         setThemeColor,
         setBackgroundColor,
         setBackgroundOpacity,
-        setBackgroundImageUrlSafe,
+        setBackgroundImageUrlSafe: setBackgroundImageUrlDraftSafe,
         setPanelColor,
         setPanelOpacity,
         skipPersistRef,
