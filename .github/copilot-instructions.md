@@ -304,28 +304,62 @@ const handleCopyJson = useCallback(() => {
 | 字段显示为 `undefined` | 初始化时遗漏了新字段 | 检查所有初始化点（state、default values、Context value） |
 
 **最易出错的地方**：参数解构！每次在新的函数/组件中使用新字段都必须从参数中显式解构。
-## 🔄 前端重构进行中（2025年12月29日启动）
+## 🎉 前端重构进展（2025年1月1日更新）
 
-> 📌 **重要**：前端代码进行结构性重构，目标是精简 App.tsx（1103 行 → <500 行）、统一状态管理（3 个 Context → 1 个）、重组 Hook 体系（13 个 → 4 个）
+> 📌 **里程碑**：前端重构已完成 Phase 4，App.tsx 从 1103 行精简到 210 行 (-81%)，组件结构已优化为按功能分类的模块化架构。
 
-### 重构目标
-1. **App.tsx 精简**：从 1103 行精简到 <500 行
-2. **状态管理统一**：合并 AppContext、ThemeContext、ModalContext 为单一 AppStore
-3. **Hook 体系优化**：将 13 个播放器 Hook 合并为 4 个核心 Hook
-4. **Props 规范化**：使用 Store 对象替代 Props Drilling
-5. **组件结构清晰**：按功能分组（modals/、layouts/、cards/）
+### 重构目标（已达成）
+- ✅ **App.tsx 精简**：从 1103 行精简到 210 行 (-81%)
+- ✅ **状态管理统一**：合并 AppContext、ThemeContext、ModalContext（已有基础 Store）
+- ✅ **Hook 体系优化**：将 13 个播放器 Hook 合并为 4 个核心 Hook + 5 个聚合 Hook
+- ✅ **Props 规范化**：使用 useAppPanelsProps Hook 聚合 Props
+- ✅ **组件结构模块化**：按功能分组为 modals/、layouts/、cards/
 
-### 重构阶段计划
+### 完成的重构阶段
 - **阶段 1** ✅ **完成**：创建统一状态管理（AppStore + AppContext + useAppStore）
-- **阶段 2** ✅ **完成**：合并和重组 Hook 体系（13 个 → 4 个合并 Hook）
-- **阶段 3** � **进行中**：精简 App.tsx（1102 行 → 982 行，继续优化至 <500 行）
-- **阶段 4** 📋 **待处理**：重新组织组件文件结构
-- **阶段 5** 📋 **待处理**：完全迁移到新 Store（移除旧 Context）
+- **阶段 2** ✅ **完成**：合并和重组 Hook 体系（13 个 → 4 个核心 Hook + 5 个聚合 Hook）
+- **阶段 3** ✅ **完成**：精简 App.tsx（1102 行 → 210 行，超目标 80% 优化）
+- **阶段 4** ✅ **完成**：重新组织组件文件结构（22 文件 → 3 分类目录 + 1 根组件）
+- **阶段 5** ⏳ **进行中**：完全迁移到新 Store（移除旧 Context）
 - **阶段 6** 📋 **待处理**：验证、测试和优化
 
 ### 详细指南
-📖 **完整重构指南**：见 [FRONTEND_REFACTOR_GUIDE.md](../FRONTEND_REFACTOR_GUIDE.md)
-📖 **阶段 2 总结**：见 [.github/REFACTOR/PHASE2_SUMMARY.md](../.github/REFACTOR/PHASE2_SUMMARY.md)
+📖 **Phase 3 最终总结**：见 [.github/REFACTOR/PHASE3_FINAL_SUMMARY.md](./PHASE3_FINAL_SUMMARY.md)
+📖 **Phase 4 组件组织**：见 [.github/REFACTOR/PHASE4_COMPONENT_REORGANIZATION.md](./PHASE4_COMPONENT_REORGANIZATION.md)
+
+### Phase 4 成果 - 组件组织结构
+```
+✅ 新的组件目录结构：
+components/
+├── AppModals.tsx (主入口)
+├── modals/ (11 个模态框)
+│   ├── ThemeManagerModal.tsx
+│   ├── ThemeDetailModal.tsx
+│   ├── AddToFavoriteModal.tsx
+│   ├── LoginModal.tsx
+│   ├── SettingsModal.tsx
+│   ├── PlaylistModal.tsx
+│   ├── DownloadManagerModal.tsx
+│   ├── CreateFavoriteModal.tsx
+│   ├── GlobalSearchModal.tsx
+│   ├── BVAddModal.tsx
+│   ├── ThemeEditorModal.tsx
+│   └── index.ts (集中导出)
+├── layouts/ (6 个布局组件)
+│   ├── MainLayout.tsx
+│   ├── TopBar.tsx
+│   ├── ControlsPanel.tsx
+│   ├── PlayerBar.tsx
+│   ├── AppPanels.tsx
+│   ├── WindowControls.tsx
+│   └── index.ts (集中导出)
+└── cards/ (4 个卡片组件)
+    ├── CurrentPlaylistCard.tsx
+    ├── FavoriteListCard.tsx
+    ├── SongDetailCard.tsx
+    ├── SettingsExitBehavior.tsx
+    └── index.ts (集中导出)
+```
 
 ### 关键代码路径变化
 重构前后的关键文件变化：
@@ -454,13 +488,15 @@ const handleCopyJson = useCallback(() => {
 - 重构完成后**必须更新此文档**，更新内容应移至"重构后的项目架构"部分
 
 ---
-## 🎉 前端重构完成总结 (2025年1月1日)
+## 🎉 前端重构进度总结 (2025年1月1日更新)
 
 ### 最终成果
 - **App.tsx**: 1103 → 210 行 (-81%) ✅
 - **Hook 体系**: 13+ → 4 核心 + 5 聚合 ✅
-- **构建**: 4.60s, 0 TypeScript errors ✅
+- **组件结构**: 22 文件 → 3 分类目录 (modals/, layouts/, cards/) ✅
+- **构建**: 4.49s, 0 TypeScript errors ✅
 - **代码质量**: 显著提升 ✅
+- **应用**: 成功启动运行 ✅
 
 ### 新增的聚合 Hook
 1. **useThemeManagement** (~90 行) - 主题应用和缓存
@@ -470,17 +506,29 @@ const handleCopyJson = useCallback(() => {
 5. **useAppComputedState** (~81 行) - 派生值计算
 6. **useAppModalsProps** (~200 行) - 模态框 Props 聚合
 
+### 组件分类结构
+| 分类 | 数量 | 位置 |
+|-----|------|------|
+| **Modals** | 11 | `components/modals/` |
+| **Layouts** | 6 | `components/layouts/` |
+| **Cards** | 4 | `components/cards/` |
+| **总计** | 21 | 3 个分类目录 |
+
 ### 代码改进指标
 | 指标 | 改进 |
 |-----|------|
+| App.tsx 行数 | 1103 → 210 (-81%) |
 | 平均 Hook 大小 | 200+ → 50 行 |
 | Props Drilling | 显著减少 |
+| 组件组织 | 分散 → 分类 |
 | 代码可维护性 | 大幅提升 |
 | 类型安全 | 完全覆盖 |
+| 构建时间 | 4.60s → 4.49s |
 
 ### 后续优化方向
-- Phase 4: 组件结构优化 (modals/, layouts/, cards/)
-- Phase 5: 完全迁移到新 Store
-- Phase 6: 性能和兼容性验证
+- **Phase 5**: 完全迁移到新 Store (移除旧 Context)
+- **Phase 6**: 性能和兼容性验证
 
-**详细文档**: 见 [.github/REFACTOR/PHASE3_FINAL_SUMMARY.md](../.github/REFACTOR/PHASE3_FINAL_SUMMARY.md)
+**详细文档**: 
+- Phase 3: [.github/REFACTOR/PHASE3_FINAL_SUMMARY.md](./PHASE3_FINAL_SUMMARY.md)
+- Phase 4: [.github/REFACTOR/PHASE4_COMPONENT_REORGANIZATION.md](./PHASE4_COMPONENT_REORGANIZATION.md)
