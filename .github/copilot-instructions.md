@@ -59,8 +59,11 @@
 - **主题查看功能**: 内置主题支持只读查看。
 - **主题 colorScheme 字段**: 支持亮色/暗色主题切换。
 - **禁用按钮样式优化**: 根据亮色/暗色主题自动调整禁用状态下的按钮外观。
+- **Phase 5-1**: 建立统一 Store 基础架构 ✅
+- **Phase 5-2 (第一批)**: 成功迁移 WindowControls 组件到 useAppStore ✅
 
 ### 🛠️ 进行中 / 待办
+- [ ] **Phase 5-2 (继续)**: 迁移 App.tsx 主组件到 useAppStore
 - [ ] **系统集成**: 实现 Linux MPRIS2 和 Windows SMTC 媒体控制。
 - [ ] **系统托盘**: 实现基础的托盘菜单（显示/隐藏/退出）。
 - [ ] **日志系统**: 建立后端日志记录机制。
@@ -489,9 +492,9 @@ components/
 - 重构完成后**必须更新此文档**，更新内容应移至"重构后的项目架构"部分
 
 ---
-## 🎉 前端重构进度总结 (2025年1月1日最新更新)
+## 🎉 前端重构进度总结 (2025年1月1日最新更新 - Phase 5-2进行中)
 
-### 最终成果
+### 最终成果 (至 Phase 5-1)
 - **App.tsx**: 1103 → 210 行 (-81%) ✅
 - **Hook 体系**: 13+ → 4 核心 + 5 聚合 ✅
 - **组件结构**: 22 文件 → 3 分类目录 (modals/, layouts/, cards/) ✅
@@ -499,6 +502,18 @@ components/
 - **构建**: 4.38s, 0 TypeScript errors ✅
 - **代码质量**: 显著提升 ✅
 - **应用**: 成功启动运行 ✅
+
+### Phase 5-2 进度 (Component Migration)
+**第一批迁移成功** ✅
+- WindowControls.tsx: useThemeContext → useAppStore ✅
+- 构建成功: 4.51s, TypeScript 0 errors ✅
+- 功能验证: ✅ 正常工作
+
+**重要发现**:
+- AppStore 返回元组: `[AppStore, AppActions]`
+- AppActions 是扁平结构 (所有操作合并)
+- 其他组件: 都是纯 Props (无需迁移) 或已迁移
+- 仅 App.tsx 仍使用旧 Context
 
 ### 新增的聚合 Hook
 1. **useThemeManagement** (~90 行) - 主题应用和缓存
