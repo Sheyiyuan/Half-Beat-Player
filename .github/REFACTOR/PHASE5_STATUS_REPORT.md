@@ -164,13 +164,13 @@ components/
 
 ## 关键文档
 
-| 文档 | 内容 | 位置 |
-|------|------|------|
-| Phase 3 总结 | 聚合 Hook 设计 | `PHASE3_FINAL_SUMMARY.md` |
-| Phase 4 总结 | 组件重组方案 | `PHASE4_COMPONENT_REORGANIZATION.md` |
-| Phase 5 迁移指南 | Store 迁移全景 | `PHASE5_STORE_MIGRATION.md` |
-| Phase 5-2 总结 | 第一批迁移成果 | `PHASE5_2_FIRST_BATCH.md` |
-| App.tsx 指南 | App.tsx 迁移详细步骤 | `APP_TSX_MIGRATION_GUIDE.md` |
+| 文档             | 内容                 | 位置                                 |
+| ---------------- | -------------------- | ------------------------------------ |
+| Phase 3 总结     | 聚合 Hook 设计       | `PHASE3_FINAL_SUMMARY.md`            |
+| Phase 4 总结     | 组件重组方案         | `PHASE4_COMPONENT_REORGANIZATION.md` |
+| Phase 5 迁移指南 | Store 迁移全景       | `PHASE5_STORE_MIGRATION.md`          |
+| Phase 5-2 总结   | 第一批迁移成果       | `PHASE5_2_FIRST_BATCH.md`            |
+| App.tsx 指南     | App.tsx 迁移详细步骤 | `APP_TSX_MIGRATION_GUIDE.md`         |
 
 ## 后续计划
 
@@ -190,21 +190,21 @@ components/
 
 ## 构建和性能
 
-| 指标 | 当前值 | 目标值 | 状态 |
-|------|--------|--------|------|
-| 构建时间 | 4.51s | < 5s | ✅ |
-| TypeScript 错误 | 0 | 0 | ✅ |
-| 应用启动时间 | < 1s | < 1s | ✅ |
-| 代码行数 (App) | 210 | < 300 | ✅ |
-| Hook 数量 | 9 | < 15 | ✅ |
+| 指标            | 当前值 | 目标值 | 状态 |
+| --------------- | ------ | ------ | ---- |
+| 构建时间        | 4.51s  | < 5s   | ✅    |
+| TypeScript 错误 | 0      | 0      | ✅    |
+| 应用启动时间    | < 1s   | < 1s   | ✅    |
+| 代码行数 (App)  | 210    | < 300  | ✅    |
+| Hook 数量       | 9      | < 15   | ✅    |
 
 ## 风险评估
 
-| 风险 | 概率 | 严重度 | 缓解措施 |
-|------|------|--------|---------|
-| Modal 映射遗漏 | 低 | 中 | 完整的映射检查清单 |
-| 类型不兼容 | 低 | 低 | 严格 TypeScript 检查 |
-| 功能回归 | 低 | 中 | 充分的手动测试 |
+| 风险           | 概率 | 严重度 | 缓解措施             |
+| -------------- | ---- | ------ | -------------------- |
+| Modal 映射遗漏 | 低   | 中     | 完整的映射检查清单   |
+| 类型不兼容     | 低   | 低     | 严格 TypeScript 检查 |
+| 功能回归       | 低   | 中     | 充分的手动测试       |
 
 ## 成功标准
 

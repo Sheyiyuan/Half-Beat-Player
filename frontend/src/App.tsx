@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { Box, MantineProvider } from "@mantine/core";
+import { Box, MantineProvider, useComputedColorScheme } from "@mantine/core";
 import * as Services from "../wailsjs/go/services/Service";
 
 // Hooks - Core layers
@@ -12,8 +12,8 @@ import { useAuth, useBVResolver, useFavoriteActions, useThemeEditor, useSearchAn
 // Hooks - UI aggregation
 import { useHitokoto, useUiDerived, useAppLifecycle, useAppEffects, useAppHandlers, useAppPanelsProps, useThemeManagement, useFavoritesManager, useThemeDraftState, useAppSearchState, useAppComputedState } from "./hooks/ui";
 
-// Contexts
-import { useThemeContext, useModalContext } from "./context";
+// Hooks - Store
+import { useAppStore } from "./hooks";
 
 // Components
 import AppModals from "./components/AppModals";
@@ -65,9 +65,39 @@ const App: React.FC = () => {
     const { updateSongWithCache } = useSongCache();
 
     // ========== 上下文 ==========
-    const { state: themeState, actions: themeActions } = useThemeContext();
-    const { themes, currentThemeId, themeColor, backgroundColor, backgroundOpacity, backgroundImageUrl, backgroundBlur, panelColor, panelOpacity, panelBlur, panelRadius, controlColor, controlOpacity, controlBlur, textColorPrimary, textColorSecondary, favoriteCardColor, cardOpacity, modalRadius, notificationRadius, componentRadius, coverRadius, modalColor, modalOpacity, modalBlur, windowControlsPos, computedColorScheme } = themeState;
-    const { setThemes, setCurrentThemeId, setThemeColor, setBackgroundColor, setBackgroundOpacity, setBackgroundImageUrl, setBackgroundBlur, setPanelColor, setPanelOpacity, setPanelBlur, setPanelRadius, setControlColor, setControlOpacity, setControlBlur, setTextColorPrimary, setTextColorSecondary, setFavoriteCardColor, setCardOpacity, setModalRadius, setNotificationRadius, setComponentRadius, setCoverRadius, setModalColor, setModalOpacity, setModalBlur, setWindowControlsPos } = themeActions;
+    const [store] = useAppStore();
+    const computedColorScheme = useComputedColorScheme('light');
+    
+    // 主题状态
+    const { themes, currentThemeId, themeColor, backgroundColor, backgroundOpacity, backgroundImageUrl, backgroundBlur, panelColor, panelOpacity, panelBlur, panelRadius, controlColor, controlOpacity, controlBlur, textColorPrimary, textColorSecondary, favoriteCardColor, cardOpacity, modalRadius, notificationRadius, componentRadius, coverRadius, modalColor, modalOpacity, modalBlur, windowControlsPos } = store.theme;
+    
+    // 主题操作 (从扁平的 store.actions 中获取)
+    const setThemes = store.actions.setThemes;
+    const setCurrentThemeId = store.actions.setCurrentThemeId;
+    const setThemeColor = store.actions.setThemeColor;
+    const setBackgroundColor = store.actions.setBackgroundColor;
+    const setBackgroundOpacity = store.actions.setBackgroundOpacity;
+    const setBackgroundImageUrl = store.actions.setBackgroundImageUrl;
+    const setBackgroundBlur = store.actions.setBackgroundBlur;
+    const setPanelColor = store.actions.setPanelColor;
+    const setPanelOpacity = store.actions.setPanelOpacity;
+    const setPanelBlur = store.actions.setPanelBlur;
+    const setPanelRadius = store.actions.setPanelRadius;
+    const setControlColor = store.actions.setControlColor;
+    const setControlOpacity = store.actions.setControlOpacity;
+    const setControlBlur = store.actions.setControlBlur;
+    const setTextColorPrimary = store.actions.setTextColorPrimary;
+    const setTextColorSecondary = store.actions.setTextColorSecondary;
+    const setFavoriteCardColor = store.actions.setFavoriteCardColor;
+    const setCardOpacity = store.actions.setCardOpacity;
+    const setModalRadius = store.actions.setModalRadius;
+    const setNotificationRadius = store.actions.setNotificationRadius;
+    const setComponentRadius = store.actions.setComponentRadius;
+    const setCoverRadius = store.actions.setCoverRadius;
+    const setModalColor = store.actions.setModalColor;
+    const setModalOpacity = store.actions.setModalOpacity;
+    const setModalBlur = store.actions.setModalBlur;
+    const setWindowControlsPos = store.actions.setWindowControlsPos as (v: string) => void;
 
     const auth = useAuth();
     const { isLoggedIn, userInfo, setIsLoggedIn, setUserInfo } = auth;
@@ -76,7 +106,45 @@ const App: React.FC = () => {
     const { bvPreview, bvModalOpen, bvSongName, bvSinger, bvTargetFavId, resolvingBV, sliceStart, sliceEnd, setBvPreview, setBvModalOpen, setBvSongName, setBvSinger, setBvTargetFavId, setResolvingBV, setSliceStart, setSliceEnd } = bvResolver;
 
     const hitokoto = useHitokoto();
-    const { modals, openModal, closeModal } = useModalContext();
+    
+    // Modal 状态和操作适配层
+    // 将 store.modals (xxxOpen 格式) 转换为 AppModals 期望的格式
+    const modals = {
+        themeModal: false, // 不使用（已废弃）
+        themeEditorModal: false, // 不使用（已废弃）
+        themeDetailModal: store.modals.themeDetailOpen,
+        addFavoriteModal: store.modals.addToFavoriteOpen,
+        playlistModal: store.modals.playlistOpen,
+        editFavModal: false, // 不使用（已废弃）
+        loginModal: store.modals.loginOpen,
+        settingsModal: store.modals.settingsOpen,
+        downloadModal: store.modals.songDetailOpen,
+        createFavModal: store.modals.createFavoriteOpen,
+        globalSearchModal: store.modals.globalSearchOpen,
+    };
+    
+    // Modal 操作映射
+    const createModalAdapters = (actions: any) => {
+        const modalMap: Record<string, { open: () => void; close: () => void }> = {
+            'loginModal': { open: actions.openLogin, close: actions.closeLogin },
+            'settingsModal': { open: actions.openSettings, close: actions.closeSettings },
+            'playlistModal': { open: actions.openPlaylist, close: actions.closePlaylist },
+            'themeManagerModal': { open: actions.openThemeManager, close: actions.closeThemeManager },
+            'themeDetailModal': { open: () => {}, close: actions.closeThemeDetail },
+            'globalSearchModal': { open: actions.openGlobalSearch, close: actions.closeGlobalSearch },
+            'bvAddModal': { open: actions.openBVAdd, close: actions.closeBVAdd },
+            'playlistManagerModal': { open: actions.openFavoriteList, close: actions.closeFavoriteList },
+            'createFavModal': { open: actions.openCreateFavorite, close: actions.closeCreateFavorite },
+            'addFavoriteModal': { open: actions.openAddToFavorite, close: actions.closeAddToFavorite },
+            'downloadManagerModal': { open: actions.openDownloadManager, close: actions.closeDownloadManager },
+            'downloadModal': { open: () => {}, close: actions.closeSongDetail },
+        };
+        return {
+            openModal: (name: string) => modalMap[name]?.open?.(),
+            closeModal: (name: string) => modalMap[name]?.close?.()
+        };
+    };
+    const { openModal, closeModal } = createModalAdapters(store.actions);
 
     // ========== 内部状态 ==========
     const [setting, setSetting] = useState<PlayerSetting | null>(null);
@@ -176,7 +244,7 @@ const App: React.FC = () => {
     };
 
     // ========== 构建 Props ==========
-    const { topBarProps, mainLayoutProps, controlsPanelProps } = useAppPanelsProps({ userInfo, hitokoto, setGlobalSearchTerm, openModal, setThemeColorDraft, setBackgroundColorDraft, setBackgroundOpacityDraft, setBackgroundImageUrlDraftSafe, setPanelColorDraft, setPanelOpacityDraft, themeColor, backgroundColor, backgroundOpacity, backgroundImageUrl, panelColor, panelOpacity, setUserInfo, setStatus, windowControlsPos, currentSong, panelBackground, panelStyles, controlBackground, controlStyles, favoriteCardBackground, textColorPrimary: derivedTextColorPrimary, textColorSecondary: derivedTextColorSecondary, componentRadius: derivedComponentRadius, coverRadius: derivedCoverRadius, computedColorScheme: (computedColorScheme === "auto" ? "light" : computedColorScheme) as "light" | "dark", placeholderCover: PLACEHOLDER_COVER, maxSkipLimit, formatTime, formatTimeWithMs, formatTimeLabel, parseTimeLabel, handleIntervalChange, handleSkipStartChange, handleSkipEndChange, handleStreamUrlChange, handleSongInfoUpdate: updateSongInfo, currentFav, currentFavSongs, searchQuery, setSearchQuery, playSong, addSong, downloadedSongIds, handleDownloadSong, handleAddSongToFavorite, handleRemoveSongFromPlaylist, confirmRemoveSongId, setConfirmRemoveSongId, playFavorite, handleDownloadAllFavorite, favorites, selectedFavId, setSelectedFavId, setConfirmDeleteFavId, playSingleSong, addCurrentToFavorite, createFavorite, handleEditFavorite, handleDeleteFavorite, confirmDeleteFavId, progressInInterval, intervalStart, intervalLength, duration, seek, playPrev, togglePlay, playNext, isPlaying, playMode, handlePlayModeToggle, handleDownloadCurrentSong, handleManageDownload, volume, changeVolume, songsCount: songs.length });
+    const { topBarProps, mainLayoutProps, controlsPanelProps } = useAppPanelsProps({ userInfo, hitokoto, setGlobalSearchTerm, openModal, setThemeColorDraft, setBackgroundColorDraft, setBackgroundOpacityDraft, setBackgroundImageUrlDraftSafe, setPanelColorDraft, setPanelOpacityDraft, themeColor, backgroundColor, backgroundOpacity, backgroundImageUrl, panelColor, panelOpacity, setUserInfo, setStatus, windowControlsPos, currentSong, panelBackground, panelStyles, controlBackground, controlStyles, favoriteCardBackground, textColorPrimary: derivedTextColorPrimary, textColorSecondary: derivedTextColorSecondary, componentRadius: derivedComponentRadius, coverRadius: derivedCoverRadius, computedColorScheme: computedColorScheme as "light" | "dark", placeholderCover: PLACEHOLDER_COVER, maxSkipLimit, formatTime, formatTimeWithMs, formatTimeLabel, parseTimeLabel, handleIntervalChange, handleSkipStartChange, handleSkipEndChange, handleStreamUrlChange, handleSongInfoUpdate: updateSongInfo, currentFav, currentFavSongs, searchQuery, setSearchQuery, playSong, addSong, downloadedSongIds, handleDownloadSong, handleAddSongToFavorite, handleRemoveSongFromPlaylist, confirmRemoveSongId, setConfirmRemoveSongId, playFavorite, handleDownloadAllFavorite, favorites, selectedFavId, setSelectedFavId, setConfirmDeleteFavId, playSingleSong, addCurrentToFavorite, createFavorite, handleEditFavorite, handleDeleteFavorite, confirmDeleteFavId, progressInInterval, intervalStart, intervalLength, duration, seek, playPrev, togglePlay, playNext, isPlaying, playMode, handlePlayModeToggle, handleDownloadCurrentSong, handleManageDownload, volume, changeVolume, songsCount: songs.length });
 
     // ========== 渲染 ==========
     return (
