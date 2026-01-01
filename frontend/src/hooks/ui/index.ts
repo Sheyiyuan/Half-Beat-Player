@@ -5,6 +5,7 @@ export * from './useAppEffects';
 export * from './useAppHandlers';
 export * from './useAppInitialize';
 export * from './useAppPanelsProps';
+export * from './useAppModalsProps';
 export * from './useThemeManagement';
 export * from './useFavoritesManager';
 export * from './useThemeDraftState';
