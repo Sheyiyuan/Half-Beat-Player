@@ -460,7 +460,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (themeColorScheme) {
             setMantineColorScheme(themeColorScheme);
         }
-    }, [themeColorScheme, setMantineColorScheme]);
+    }, [themeColorScheme]);
 
     // ========== Context Value ==========
     const contextValue: AppContextValue = {

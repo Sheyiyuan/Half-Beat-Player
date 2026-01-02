@@ -20,9 +20,9 @@ export const useLyricLoader = ({
             setLyric(null);
             return;
         }
-        
+
         let isMounted = true;
-        
+
         Services.GetLyricMapping(currentSong.id)
             .then(lyric => {
                 if (isMounted) {
@@ -34,7 +34,7 @@ export const useLyricLoader = ({
                     setLyric(null);
                 }
             });
-        
+
         return () => {
             isMounted = false;
         };

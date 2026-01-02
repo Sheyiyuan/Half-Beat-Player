@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode, useRef } from 'react';
 import { MantineColorScheme, useComputedColorScheme } from '@mantine/core';
 import { Theme, convertTheme, convertThemes } from '../types';
 import { DEFAULT_THEMES } from '../utils/constants';
@@ -156,6 +156,9 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const [windowControlsPos, setWindowControlsPos] = useState(defaultTheme.windowControlsPos || "right");
     const [colorScheme, setColorScheme] = useState(defaultTheme.colorScheme || "dark");
 
+    // 用于追踪是否已经初始化过，防止循环
+    const initializedRef = useRef(false);
+
     // ========== Actions ==========
 
     /**
@@ -240,15 +243,18 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         // 查找当前主题
         let targetTheme = themes.find(t => t.id === currentThemeId);
 
-        // 如果当前主题不存在，使用第一个主题
-        if (!targetTheme) {
+        // 如果当前主题不存在，且还未初始化过，使用第一个主题
+        if (!targetTheme && !initializedRef.current) {
             targetTheme = themes[0];
             setCurrentThemeId(targetTheme.id);
+            initializedRef.current = true;
             return;  // 等待 setCurrentThemeId 完成后再应用
         }
 
         // 应用主题
-        applyTheme(targetTheme);
+        if (targetTheme) {
+            applyTheme(targetTheme);
+        }
     }, [themes, currentThemeId, applyTheme]);
 
     // ========== Context Value ==========
