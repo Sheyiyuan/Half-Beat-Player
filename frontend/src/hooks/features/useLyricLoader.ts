@@ -16,14 +16,27 @@ export const useLyricLoader = ({
     setLyric,
 }: UseLyricLoaderProps) => {
     useEffect(() => {
-        if (!currentSong) return;
-        try {
-            Services.GetLyricMapping(currentSong.id)
-                .then(setLyric)
-                .catch(() => setLyric(null));
-        } catch (e) {
-            console.warn("获取歌词失败", e);
+        if (!currentSong) {
             setLyric(null);
+            return;
         }
-    }, [currentSong, setLyric]);
+        
+        let isMounted = true;
+        
+        Services.GetLyricMapping(currentSong.id)
+            .then(lyric => {
+                if (isMounted) {
+                    setLyric(lyric);
+                }
+            })
+            .catch(() => {
+                if (isMounted) {
+                    setLyric(null);
+                }
+            });
+        
+        return () => {
+            isMounted = false;
+        };
+    }, [currentSong?.id]);
 };
