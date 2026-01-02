@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -114,11 +115,17 @@ func (ap *AudioProxy) handleAudio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Copy relevant headers from client
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+	// Set comprehensive headers to bypass Bilibili restrictions
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 	req.Header.Set("Referer", "https://www.bilibili.com")
 	req.Header.Set("Origin", "https://www.bilibili.com")
 	req.Header.Set("Accept", "*/*")
+	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
+	req.Header.Set("Accept-Encoding", "gzip, deflate, br")
+	req.Header.Set("Sec-Fetch-Dest", "audio")
+	req.Header.Set("Sec-Fetch-Mode", "cors")
+	req.Header.Set("Sec-Fetch-Site", "cross-site")
+	req.Header.Set("Priority", "u=1, i")
 
 	// Handle Range request
 	if r.Header.Get("Range") != "" {
@@ -132,6 +139,48 @@ func (ap *AudioProxy) handleAudio(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 	fmt.Printf("[Proxy] Upstream status: %s, Content-Type: %s\n", resp.Status, resp.Header.Get("Content-Type"))
+
+	// 如果上游返回 403，尝试从本地缓存提供
+	if resp.StatusCode == http.StatusForbidden {
+		fmt.Printf("[Proxy] Got 403, attempting local cache fallback\n")
+		// 从 URL 中提取文件名（songId）
+		parsedURL, err := url.Parse(decodedURL)
+		if err == nil {
+			var fileName string
+			
+			// 尝试从 URL 路径末尾获取文件名
+			pathParts := strings.Split(parsedURL.Path, "/")
+			if len(pathParts) > 0 {
+				potentialFileName := pathParts[len(pathParts)-1]
+				if strings.HasSuffix(potentialFileName, ".m4s") || strings.HasSuffix(potentialFileName, ".mp4") {
+					fileName = potentialFileName
+				}
+			}
+			
+			if fileName != "" {
+				// 尝试从缓存或下载目录提供
+				cachePath := filepath.Join(ap.baseDir, "audio_cache", fileName)
+				if _, err := os.Stat(cachePath); err == nil {
+					fmt.Printf("[Proxy] Serving from cache: %s\n", cachePath)
+					ap.serveLocalFile(w, cachePath)
+					return
+				}
+				
+				downloadPath := filepath.Join(ap.baseDir, "downloads", fileName)
+				if _, err := os.Stat(downloadPath); err == nil {
+					fmt.Printf("[Proxy] Serving from downloads: %s\n", downloadPath)
+					ap.serveLocalFile(w, downloadPath)
+					return
+				}
+				
+				fmt.Printf("[Proxy] No local cache found for %s (cache: %s, downloads: %s)\n", fileName, cachePath, downloadPath)
+			}
+		}
+		
+		// 无法回退，返回 403
+		http.Error(w, "upstream forbidden and no local cache available", http.StatusForbidden)
+		return
+	}
 
 	// Copy response headers, but skip CORS headers to avoid conflicts; override Content-Type for audio
 	contentType := resp.Header.Get("Content-Type")
@@ -175,6 +224,35 @@ func (ap *AudioProxy) handleAudio(w http.ResponseWriter, r *http.Request) {
 
 	// Stream response body with timeout
 	io.Copy(w, resp.Body)
+}
+
+// serveLocalFile serves a local file with proper headers
+func (ap *AudioProxy) serveLocalFile(w http.ResponseWriter, filePath string) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		fmt.Printf("[Proxy] Error opening local file: %v\n", err)
+		http.Error(w, "file not found", http.StatusNotFound)
+		return
+	}
+	defer file.Close()
+
+	fileInfo, err := file.Stat()
+	if err != nil {
+		fmt.Printf("[Proxy] Error stating local file: %v\n", err)
+		http.Error(w, "stat error", http.StatusInternalServerError)
+		return
+	}
+
+	// Set response headers
+	w.Header().Set("Content-Type", "audio/mp4")
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
+	w.Header().Set("Accept-Ranges", "bytes")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	// Stream file
+	w.WriteHeader(http.StatusOK)
+	io.Copy(w, file)
 }
 
 // GetProxyURL returns the full proxy URL for an audio stream
