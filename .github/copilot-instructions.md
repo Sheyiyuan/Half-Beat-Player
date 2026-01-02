@@ -577,9 +577,3 @@ components/
 | 构建时间 | 5.2s+ | 4.63s | -11% |
 
 **项目状态**: 🎉 **前端重构完全就绪，可投入生产** 
-
-**详细文档**: 
-- Phase 3: [.github/REFACTOR/PHASE3_FINAL_SUMMARY.md](./PHASE3_FINAL_SUMMARY.md)
-- Phase 4: [.github/REFACTOR/PHASE4_COMPONENT_REORGANIZATION.md](./PHASE4_COMPONENT_REORGANIZATION.md)
-- Phase 5: [.github/REFACTOR/PHASE5_STORE_MIGRATION.md](./PHASE5_STORE_MIGRATION.md)
-- Phase 6: [.github/REFACTOR/PHASE6_COMPLETION_REPORT.md](./PHASE6_COMPLETION_REPORT.md)
