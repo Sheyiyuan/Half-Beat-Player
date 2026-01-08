@@ -18,15 +18,24 @@ generate_windows_ico() {
     mkdir -p build/windows
     
     if command -v convert >/dev/null 2>&1; then
-        # Use ImageMagick to create multi-resolution ICO file
-        echo "Using ImageMagick to generate multi-resolution ICO..."
+        # Use ImageMagick to create comprehensive multi-resolution ICO file
+        echo "Using ImageMagick to generate comprehensive multi-resolution ICO..."
         convert "$SOURCE_PNG" \
             \( -clone 0 -resize 16x16 \) \
+            \( -clone 0 -resize 20x20 \) \
+            \( -clone 0 -resize 24x24 \) \
             \( -clone 0 -resize 32x32 \) \
+            \( -clone 0 -resize 40x40 \) \
             \( -clone 0 -resize 48x48 \) \
+            \( -clone 0 -resize 64x64 \) \
+            \( -clone 0 -resize 96x96 \) \
+            \( -clone 0 -resize 128x128 \) \
             \( -clone 0 -resize 256x256 \) \
             -delete 0 build/windows/icon.ico
-        echo "✓ Generated build/windows/icon.ico with resolutions: 16x16, 32x32, 48x48, 256x256"
+        echo "✓ Generated build/windows/icon.ico with comprehensive resolutions:"
+        echo "  Small icons: 16x16, 20x20, 24x24"
+        echo "  Medium icons: 32x32, 40x40, 48x48, 64x64"
+        echo "  Large icons: 96x96, 128x128, 256x256"
         
         # Verify the generated ICO file
         if command -v identify >/dev/null 2>&1; then
@@ -35,10 +44,31 @@ generate_windows_ico() {
         fi
         
     elif command -v icotool >/dev/null 2>&1; then
-        # Fallback to icotool if ImageMagick is not available
-        echo "Using icotool to generate ICO..."
-        icotool -c -o build/windows/icon.ico "$SOURCE_PNG"
-        echo "✓ Generated build/windows/icon.ico using icotool"
+        # Fallback to icotool - generate multiple sizes manually
+        echo "Using icotool to generate multi-resolution ICO..."
+        
+        # Create temporary directory for individual icons
+        TEMP_DIR=$(mktemp -d)
+        trap "rm -rf $TEMP_DIR" EXIT
+        
+        # Generate individual PNG files for each size
+        for size in 16 20 24 32 40 48 64 96 128 256; do
+            if command -v convert >/dev/null 2>&1; then
+                convert "$SOURCE_PNG" -resize ${size}x${size} "$TEMP_DIR/icon_${size}.png"
+            else
+                # If no convert, just copy the original for the largest size
+                if [[ $size -eq 256 ]]; then
+                    cp "$SOURCE_PNG" "$TEMP_DIR/icon_${size}.png"
+                else
+                    echo "Warning: Cannot resize without ImageMagick, skipping ${size}x${size}"
+                    continue
+                fi
+            fi
+        done
+        
+        # Combine all sizes into ICO file
+        icotool -c -o build/windows/icon.ico "$TEMP_DIR"/icon_*.png
+        echo "✓ Generated build/windows/icon.ico using icotool with available resolutions"
         
     else
         echo "Warning: Neither ImageMagick nor icotool found"
