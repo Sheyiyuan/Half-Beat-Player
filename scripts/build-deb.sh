@@ -35,6 +35,7 @@ DEB_DIR="build/deb/${PKG_NAME}"
 # Ensure tools
 command -v jq >/dev/null || { echo "jq is required"; exit 1; }
 command -v dpkg-deb >/dev/null || { echo "dpkg-deb missing. sudo apt install dpkg-dev"; exit 1; }
+command -v gzip >/dev/null || { echo "gzip is required"; exit 1; }
 
 # Find wails
 WAILS_CMD=${WAILS_CMD:-}
@@ -73,6 +74,50 @@ install -m 0644 assets/icons/appicon-256.png "${DEB_DIR}/usr/share/pixmaps/${APP
 
 # Install license and copyright information
 install -m 0644 LICENSE "${DEB_DIR}/usr/share/doc/${APP_NAME}/copyright"
+
+# Create a proper Debian copyright file
+cat > "${DEB_DIR}/usr/share/doc/${APP_NAME}/copyright.debian" << 'EOF'
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: Half-Beat-Player
+Upstream-Contact: Sheyiyuan <sheyiyuantan90@qq.com>
+Source: https://github.com/Sheyiyuan/Half-Beat-Player
+
+Files: *
+Copyright: 2025 Sheyiyuan
+License: MIT
+
+License: MIT
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+ .
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+EOF
+
+# Create changelog
+cat > "${DEB_DIR}/usr/share/doc/${APP_NAME}/changelog" << EOF
+${APP_NAME} (${DEB_VERSION}) unstable; urgency=medium
+
+  * Version ${VERSION} release
+  * See https://github.com/Sheyiyuan/Half-Beat-Player/releases for details
+
+ -- Sheyiyuan <sheyiyuantan90@qq.com>  $(date -R)
+EOF
+
+# Compress changelog as required by Debian policy
+gzip -9 "${DEB_DIR}/usr/share/doc/${APP_NAME}/changelog"
 
 # Generate desktop entry on the fly (avoid missing template path in CI)
 cat > "${DEB_DIR}/usr/share/applications/half-beat.desktop" << 'EOF'
