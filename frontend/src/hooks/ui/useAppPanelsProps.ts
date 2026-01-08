@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { Favorite, Song } from "../../types";
 import type { ModalStates } from './useModalManager';
+import { useImageProxy } from "./useImageProxy";
 
 interface UseAppPanelsPropsParams {
     // TopBar deps
@@ -92,6 +93,8 @@ interface UseAppPanelsPropsParams {
 }
 
 export const useAppPanelsProps = (params: UseAppPanelsPropsParams) => {
+    const { getProxiedImageUrlSync } = useImageProxy();
+
     return useMemo(() => {
         const {
             userInfo,
@@ -280,7 +283,7 @@ export const useAppPanelsProps = (params: UseAppPanelsPropsParams) => {
             themeColor,
             computedColorScheme,
             currentSong,
-            cover: currentSong?.cover,
+            cover: currentSong?.cover ? getProxiedImageUrlSync(currentSong.cover) : undefined,
             progressInInterval,
             intervalStart,
             intervalLength,
@@ -313,5 +316,5 @@ export const useAppPanelsProps = (params: UseAppPanelsPropsParams) => {
         } as const;
 
         return { topBarProps, mainLayoutProps, controlsPanelProps } as const;
-    }, [params]);
+    }, [params, getProxiedImageUrlSync]);
 };

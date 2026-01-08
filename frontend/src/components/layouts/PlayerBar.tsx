@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ActionIcon, Box, Group, Image, Slider, Stack, Text } from "@mantine/core";
 import { Download, ListMusic, Music, Pause, Play, Repeat, Repeat1, Shuffle, SkipBack, SkipForward, SquarePlus, Volume, Volume1, Volume2, VolumeX } from "lucide-react";
 import { Song } from "../../types";
+import { useImageProxy } from "../../hooks/ui/useImageProxy";
 
 export type PlayerBarProps = {
     themeColor: string;
@@ -69,6 +70,7 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
     textColorPrimary,
     textColorSecondary,
 }) => {
+    const { getProxiedImageUrlSync } = useImageProxy();
     const isDownloaded = currentSong ? downloadedSongIds.has(currentSong.id) : false;
     const iconStyle = { color: textColorPrimary };
     const [isMuted, setIsMuted] = useState<boolean>(false);
@@ -106,7 +108,7 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
         <Group align="flex-start" gap="md">
             {cover ? (
                 <Image
-                    src={cover}
+                    src={getProxiedImageUrlSync(cover)}
                     w={100}
                     h={100}
                     radius={coverRadius}
