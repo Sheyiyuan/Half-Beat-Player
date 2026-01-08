@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ActionIcon, Box, Button, Card, Flex, Group, Image, NumberInput, RangeSlider, ScrollArea, Stack, Text, TextInput, Tooltip } from "@mantine/core";
 import { IconEdit, IconCheck, IconX } from "@tabler/icons-react";
 import { Song } from "../../types";
+import { useImageProxy } from "../../hooks/ui/useImageProxy";
 
 export type SongDetailCardProps = {
     song: Song | null;
@@ -51,6 +52,7 @@ const SongDetailCard: React.FC<SongDetailCardProps> = ({
     textColorPrimary,
     textColorSecondary,
 }) => {
+    const { getProxiedImageUrlSync } = useImageProxy();
     const [isEditing, setIsEditing] = useState(false);
     const [editName, setEditName] = useState("");
     const [editSinger, setEditSinger] = useState("");
@@ -111,7 +113,7 @@ const SongDetailCard: React.FC<SongDetailCardProps> = ({
                             }}
                         >
                             <Image
-                                src={song.cover || placeholderCover}
+                                src={getProxiedImageUrlSync(song.cover || placeholderCover)}
                                 w="100%"
                                 h="100%"
                                 radius={coverRadius}

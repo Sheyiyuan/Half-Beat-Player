@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"fmt"
+	"net/url"
 	"path/filepath"
 	"net"
 	"net/http"
@@ -63,6 +65,15 @@ func NewService(db *gorm.DB, dataDir string) *Service {
 
 func (s *Service) GetHTTPClient() *http.Client {
 	return s.httpClient
+}
+
+// GetImageProxyURL returns a proxied URL for images to bypass CORS restrictions
+func (s *Service) GetImageProxyURL(imageURL string) string {
+	if imageURL == "" {
+		return ""
+	}
+	// Use the same proxy port as audio (9999)
+	return fmt.Sprintf("http://127.0.0.1:9999/image?u=%s", url.QueryEscape(imageURL))
 }
 
 func (s *Service) SetAppContext(ctx context.Context) {

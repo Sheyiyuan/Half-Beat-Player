@@ -42,6 +42,8 @@ export function GetFavoriteCollectionInfo(arg1:number):Promise<models.BiliFavori
 
 export function GetHTTPClient():Promise<http.Client>;
 
+export function GetImageProxyURL(arg1:string):Promise<string>;
+
 export function GetLocalAudioURL(arg1:string):Promise<string>;
 
 export function GetLyricMapping(arg1:string):Promise<models.LyricMapping>;

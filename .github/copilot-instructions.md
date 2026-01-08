@@ -1,4 +1,4 @@
-# Half Beat Player - GitHub Copilot 指令（精简版）
+# Half Beat Player - GitHub Copilot 指令
 
 > **重要提示**：每次提交代码或完成重大功能更新时，必须同步更新此文档（只保留“仍然有效”的规则与最新变更）。
 
@@ -30,7 +30,7 @@ Half Beat Player 是基于 Bilibili API 的桌面音乐播放器（Wails v2）�
 ### 常用入口
 
 - `main.go`：应用入口 + AutoMigrate
-- `internal/proxy/proxy.go`：音频代理（绕过 Referer 限制）
+- `internal/proxy/proxy.go`：音频/图片代理（绕过 Referer 限制）
 - `frontend/src/App.tsx`：前端主入口
 - `frontend/src/components/`：布局/卡片/模态框
 
@@ -38,8 +38,9 @@ Half Beat Player 是基于 Bilibili API 的桌面音乐播放器（Wails v2）�
 
 1. 修改后端 Service 导出方法后，运行 `wails generate module` 更新前端绑定。
 2. 音频播放必须走本地代理（`internal/proxy/`），不要直接把 B 站直链塞给 `<audio>`。
-3. 并发：谨慎使用 goroutine；确保 context 可取消；后台任务尽量 best-effort，不阻塞播放。
-4. 资源管理：应用关闭时正确停止代理与关闭 DB。
+3. 图片资源（头像、封面）建议使用 `useImageProxy` Hook 处理，特别是在 Windows 环境下。
+4. 并发：谨慎使用 goroutine；确保 context 可取消；后台任务尽量 best-effort，不阻塞播放。
+5. 资源管理：应用关闭时正确停止代理与关闭 DB。
 
 ## 数据持久化与缓存（关键约束）
 
@@ -61,6 +62,35 @@ Half Beat Player 是基于 Bilibili API 的桌面音乐播放器（Wails v2）�
 
 - 前端：代理播放 URL 追加 `sid=<song.id>`
 - 后端代理：收到 `/audio` 且带 `sid` 时，后台 best-effort 拉取完整音频并写入 `audio_cache/<sid>.m4s`（不阻塞当前播放）
+
+## 图片代理系统（Windows 兼容性）
+
+### 问题背景
+
+Windows 环境下 B 站图片资源（头像、封面）因 Referer/CORS 限制无法直接加载。
+
+### 解决方案
+
+- 后端：`internal/proxy/proxy.go` 新增 `/image` 端点，设置适当请求头绕过限制
+- 前端：`useImageProxy` Hook 提供统一的图片 URL 转换接口
+
+### 使用方式
+
+```typescript
+import { useImageProxy } from '../../hooks/ui/useImageProxy';
+
+const MyComponent = () => {
+    const { getProxiedImageUrlSync } = useImageProxy();
+    
+    return <Image src={getProxiedImageUrlSync(originalUrl)} />;
+};
+```
+
+### 自动处理
+
+- 跳过本地资源（data:、blob:、127.0.0.1）
+- 错误时自动回退到原始 URL
+- 已更新的组件：TopBar（头像）、SongDetailCard（封面）、搜索/BV 模态框
 
 ## UI 约定（与 Wails 相关）
 
@@ -99,6 +129,7 @@ Half Beat Player 是基于 Bilibili API 的桌面音乐播放器（Wails v2）�
 
 ## 最近更新（2026-01-08）
 
+- **图片代理修复**：新增图片代理服务解决 Windows 上 B 站图片资源加载问题（头像、封面等）。
 - 顶栏可拖拽：TopBar 使用 `--wails-draggable`，交互元素 no-drag。
 - UI 文本：底部滚动标题不省略；列表项单行省略号。
 - 登录/播放记录：统一迁移到 SQLite 单行表（含旧文件迁移）。
@@ -135,9 +166,9 @@ Half Beat Player 是基于 Bilibili API 的桌面音乐播放器（Wails v2）�
 
 ### 常见错误速查
 
-| 错误 | 常见原因 | 解决方案 |
-|------|----------|----------|
+| 错误                         | 常见原因                         | 解决方案                |
+| ---------------------------- | -------------------------------- | ----------------------- |
 | `Can't find variable: xxx` | 使用了字段但忘了在参数解构中取出 | 检查函数签名/解构并补齐 |
-| `undefined` | 初始化/默认值遗漏 | 补齐默认值与 apply 逻辑 |
+| `undefined`                | 初始化/默认值遗漏                | 补齐默认值与 apply 逻辑 |
 
 最易出错的地方：**参数解构**。

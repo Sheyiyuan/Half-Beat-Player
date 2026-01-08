@@ -1,6 +1,7 @@
 import React from "react";
 import { AspectRatio, Button, Group, Image, Modal, NumberInput, RangeSlider, Select, Stack, Text, TextInput, ScrollArea } from "@mantine/core";
 import type { Favorite } from "../../types";
+import { useImageProxy } from "../../hooks/ui/useImageProxy";
 
 interface BVPreview {
     bvid?: string;
@@ -63,6 +64,7 @@ const BVAddModal: React.FC<BVAddModalProps> = ({
     panelStyles,
     derived,
 }) => {
+    const { getProxiedImageUrlSync } = useImageProxy();
     const modalStyles = derived ? {
         content: {
             backgroundColor: derived.modalBackground,
@@ -117,7 +119,7 @@ const BVAddModal: React.FC<BVAddModalProps> = ({
                                     />
                                 ) : (
                                     <Image
-                                        src={bvPreview.cover || undefined}
+                                        src={getProxiedImageUrlSync(bvPreview.cover || "")}
                                         alt={bvPreview.title}
                                         fit="cover"
                                         w="100%"

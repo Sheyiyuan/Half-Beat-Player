@@ -74,6 +74,10 @@ export function GetHTTPClient() {
   return window['go']['services']['Service']['GetHTTPClient']();
 }
 
+export function GetImageProxyURL(arg1) {
+  return window['go']['services']['Service']['GetImageProxyURL'](arg1);
+}
+
 export function GetLocalAudioURL(arg1) {
   return window['go']['services']['Service']['GetLocalAudioURL'](arg1);
 }

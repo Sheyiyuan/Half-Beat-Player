@@ -4,6 +4,7 @@ import { LogOut, Palette, Search, Settings as SettingsIcon } from "lucide-react"
 import { notifications } from "@mantine/notifications";
 import * as Services from "../../../wailsjs/go/services/Service";
 import { WindowControls } from "./";
+import { useImageProxy } from "../../hooks/ui/useImageProxy";
 
 interface UserInfo {
     username: string;
@@ -48,6 +49,8 @@ export const TopBar: React.FC<TopBarProps> = ({
     textColorPrimary,
     textColorSecondary,
 }) => {
+    const { getProxiedImageUrlSync } = useImageProxy();
+
     const handleLogout = async () => {
         try {
             await Services.Logout();
@@ -122,7 +125,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                         <Menu.Target>
                             <div className="app-no-drag">
                                 <Avatar
-                                    src={userInfo.face}
+                                    src={getProxiedImageUrlSync(userInfo.face)}
                                     alt={userInfo.username}
                                     size={28}
                                     radius={componentRadius}

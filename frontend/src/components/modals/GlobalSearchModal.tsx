@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { ActionIcon, AspectRatio, Badge, Button, Group, Image, Modal, Paper, ScrollArea, Stack, Text, TextInput } from "@mantine/core";
 import { Search } from "lucide-react";
 import type { Song, Favorite } from "../../types";
+import { useImageProxy } from "../../hooks/ui/useImageProxy";
 
 type GlobalSearchResult = { kind: "song"; song: Song } | { kind: "favorite"; favorite: Favorite };
 
@@ -40,6 +41,7 @@ const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     panelStyles,
     derived,
 }) => {
+    const { getProxiedImageUrlSync } = useImageProxy();
     const lastSearchedBVRef = useRef<string>("");
 
     const handleEnter = (hasResult: boolean) => {
@@ -221,7 +223,7 @@ const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                                                 <Group justify="space-between" align="flex-start" wrap="nowrap" gap="sm">
                                                     <AspectRatio ratio={16 / 9} w={120}>
                                                         <Image
-                                                            src={s.cover || undefined}
+                                                            src={getProxiedImageUrlSync(s.cover || "")}
                                                             alt={s.name}
                                                             fit="cover"
                                                             radius="sm"
