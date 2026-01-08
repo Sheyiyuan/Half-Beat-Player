@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,8 +10,13 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"half-beat-player/internal/models"
+
+	"gorm.io/gorm"
 )
 
+// Legacy file name for historical migration only.
 const cookieCacheFile = "sessdata.json"
 
 // ===== Login & Session =====
@@ -167,23 +173,54 @@ func (s *Service) saveCookies() error {
 		"saved_at": time.Now().Format(time.RFC3339),
 	}
 
-	filePath := filepath.Join(s.dataDir, cookieCacheFile)
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		return fmt.Errorf("编码 cookie 失败: %w", err)
+		return fmt.Errorf("encode cookie payload: %w", err)
+	}
+	_ = jsonData // keep the payload shape stable for migration/debug (not persisted as file anymore)
+
+	session := models.LoginSession{
+		ID:       1,
+		Sessdata: sessdataValue,
+		SavedAt:  time.Now(),
+	}
+	if err := s.db.Save(&session).Error; err != nil {
+		return fmt.Errorf("save login session to db: %w", err)
 	}
 
-	if err := os.WriteFile(filePath, jsonData, 0600); err != nil {
-		return fmt.Errorf("保存 cookie 失败: %w", err)
-	}
+	// Best-effort cleanup of legacy file.
+	_ = os.Remove(filepath.Join(s.dataDir, cookieCacheFile))
 
 	return nil
 }
 
 // restoreLogin 从文件恢复之前保存的登录状态
 func (s *Service) restoreLogin() error {
-	filePath := filepath.Join(s.dataDir, cookieCacheFile)
+	// 1) Prefer DB session
+	var session models.LoginSession
+	if err := s.db.First(&session, 1).Error; err == nil {
+		if session.Sessdata != "" {
+			biliURL := &url.URL{Scheme: "https", Host: "www.bilibili.com"}
+			cookies := []*http.Cookie{
+				{
+					Name:     "SESSDATA",
+					Value:    session.Sessdata,
+					Path:     "/",
+					Domain:   ".bilibili.com",
+					Expires:  time.Now().AddDate(0, 1, 0), // 默认一个月有效期
+					HttpOnly: true,
+					Secure:   true,
+				},
+			}
+			s.cookieJar.SetCookies(biliURL, cookies)
+		}
+		return nil
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return fmt.Errorf("load login session from db: %w", err)
+	}
 
+	// 2) Fallback to legacy file for one-time migration
+	filePath := filepath.Join(s.dataDir, cookieCacheFile)
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		// 文件不存在或无法读取，这是正常的第一次启动情况
@@ -192,7 +229,7 @@ func (s *Service) restoreLogin() error {
 
 	var cookieData map[string]string
 	if err := json.Unmarshal(data, &cookieData); err != nil {
-		return fmt.Errorf("解析保存的 cookie 失败: %w", err)
+		return fmt.Errorf("parse legacy cookie file: %w", err)
 	}
 
 	sessdata := cookieData["sessdata"]
@@ -214,6 +251,13 @@ func (s *Service) restoreLogin() error {
 		},
 	}
 	s.cookieJar.SetCookies(biliURL, cookies)
+
+	// Migrate to DB and remove legacy file best-effort.
+	migrated := models.LoginSession{ID: 1, Sessdata: sessdata, SavedAt: time.Now()}
+	if err := s.db.Save(&migrated).Error; err != nil {
+		return fmt.Errorf("migrate legacy cookie to db: %w", err)
+	}
+	_ = os.Remove(filePath)
 
 	return nil
 }
@@ -291,9 +335,13 @@ func (s *Service) Logout() error {
 	// Clear all cookies
 	s.cookieJar.SetCookies(&url.URL{Scheme: "https", Host: "www.bilibili.com"}, []*http.Cookie{})
 
-	// Delete saved cookie file
-	filePath := filepath.Join(s.dataDir, cookieCacheFile)
-	_ = os.Remove(filePath)
+	// Clear persisted session in DB
+	if err := s.db.Delete(&models.LoginSession{}, 1).Error; err != nil {
+		return fmt.Errorf("clear login session in db: %w", err)
+	}
+
+	// Best-effort cleanup of legacy file
+	_ = os.Remove(filepath.Join(s.dataDir, cookieCacheFile))
 
 	return nil
 }

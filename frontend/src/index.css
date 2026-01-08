@@ -18,18 +18,24 @@ body {
     background-color: transparent !important;
 }
 
-/* 窗口拖拽区域样式 */
-div[style*="WebkitAppRegion"] {
-    -webkit-app-region: drag;
-    user-select: none;
-}
+/*
+ * Wails Frameless Window Drag
+ *
+ * Wails v2 uses a CSS custom property to determine draggable regions:
+ *   --wails-draggable: drag
+ *
+ * The property is inherited by default, so we typically set it on a container
+ * (e.g. TopBar) and then override interactive elements to disable dragging.
+ */
 
-/* 确保可点击的元素能正常响应 */
+/* 确保可点击的元素不会触发拖拽 */
 .window-control,
 button,
 [role="button"],
-a {
-    -webkit-app-region: no-drag;
+a,
+.app-no-drag,
+[data-no-drag="true"] {
+    --wails-draggable: no-drag;
 }
 
 /* 兼容性毛玻璃方案 - 仅用于面板和播放控件 */
@@ -141,11 +147,19 @@ a {
     color: #b0b0b0 !important;
 }
 
-/* 按钮禁用状态背景色 */
-button:disabled,
-[role="button"][aria-disabled="true"] {
+/* 亮色主题：按钮禁用状态 */
+:not([data-mantine-color-scheme="dark"]) button:disabled,
+:not([data-mantine-color-scheme="dark"]) [role="button"][aria-disabled="true"] {
     background-color: #e8e8e8 !important;
     color: #b0b0b0 !important;
+    opacity: 0.6;
+}
+
+/* 暗色主题：按钮禁用状态 */
+[data-mantine-color-scheme="dark"] button:disabled,
+[data-mantine-color-scheme="dark"] [role="button"][aria-disabled="true"] {
+    background-color: rgba(100, 100, 100, 0.5) !important;
+    color: #888888 !important;
     opacity: 0.6;
 }
 

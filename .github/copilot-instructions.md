@@ -1,206 +1,143 @@
-# Half Beat Player - GitHub Copilot 指令
+# Half Beat Player - GitHub Copilot 指令（精简版）
 
-> **重要提示**: 每次提交代码或完成重大功能更新时，**必须**同时更新此文档，以确保 AI 助手掌握最新的项目状态。
+> **重要提示**：每次提交代码或完成重大功能更新时，必须同步更新此文档（只保留“仍然有效”的规则与最新变更）。
 
 ## 项目概述
 
-**Half Beat Player** 是一个基于 Bilibili API 的桌面音乐播放器，使用 Wails v2 框架构建。它旨在提供轻量、高效的音频播放体验，支持跳过视频片头片尾。
+Half Beat Player 是基于 Bilibili API 的桌面音乐播放器（Wails v2），支持跳过片头片尾。
 
-- **核心架构**: Wails v2 (Go 后端 + TS/React 前端)
-- **数据存储**: SQLite (GORM)
-- **核心功能**: B站扫码登录、BV 号解析、音频代理、歌单管理、系统媒体集成。
+- 架构：Wails v2（Go 后端 + TS/React 前端）
+- 数据：SQLite（GORM）
+- 关键能力：扫码登录、BV 解析、音频代理播放、歌单管理、下载管理
 
-## 技术栈规范
+## 技术栈与目录
 
-### Go 后端 (`internal/`)
-- **版本**: Go 1.22+
-- **错误处理**: 始终使用 `fmt.Errorf("context: %w", err)` 包装错误。
-- **并发**: 谨慎使用 Goroutine，确保 context 正确传递以支持取消。
-- **API 设计**: 在 `internal/services/service.go` 中定义方法，通过 Wails 绑定到前端。
-- **数据库**: 使用 GORM 进行操作，模型定义在 `internal/models/`。
+### 后端（Go）
 
-### TypeScript/React 前端 (`frontend/`)
-- **版本**: React 18, TypeScript 5.3+
-- **UI 框架**: Mantine v8 (使用 `@mantine/core`, `@mantine/hooks`, `@mantine/notifications`)。
-- **状态管理**: 优先使用 React Context (`frontend/src/context/`) 和自定义 Hooks (`frontend/src/hooks/`)。
-- **样式**: 结合 Mantine 主题系统与全局 CSS (`index.css`)。
-- **图标**: 使用 `lucide-react` 或 `@tabler/icons-react`。
+- 版本：Go 1.22+
+- 错误处理：统一用 `fmt.Errorf("context: %w", err)` 包装
+- API：在 `internal/services/service.go` 定义方法并通过 Wails 绑定
+- DB 模型：`internal/models/`
 
-## 项目结构参考
+### 前端（TS/React）
 
-| 路径 | 用途 |
-|-----|-----|
-| `main.go` | 应用入口，初始化数据库、服务和 Wails 运行时 |
-| `internal/services/` | 业务逻辑层 (登录、播放、歌单、搜索等) |
-| `internal/models/` | GORM 数据模型 |
-| `internal/proxy/` | 音频代理服务器，处理 B站音频流转发 |
-| `frontend/src/App.tsx` | 前端主入口 |
-| `frontend/src/components/` | 可复用的 UI 组件 |
-| `frontend/src/hooks/` | 业务逻辑封装 (播放器控制、数据获取等) |
+- React 18 + TypeScript 5.3+
+- UI：Mantine v8（`@mantine/core`, `@mantine/hooks`, `@mantine/notifications`）
+- 状态：以 `frontend/src/hooks/useAppStore.ts` 为单一数据入口（store + actions）
+- 样式：Mantine theme + `frontend/src/index.css`
+- 图标：`lucide-react` 或 `@tabler/icons-react`
 
-## 编码准则
+### 常用入口
 
-1. **Wails 绑定**: 修改后端 `Service` 方法后，需运行 `wails generate module` 更新前端绑定。
-2. **音频播放**: 播放地址通过 `internal/proxy/` 转发，以绕过 B站的 Referer 限制。
-3. **系统集成**: 
-   - Linux 使用 MPRIS2 (`godbus/dbus`)。
-   - Windows 使用 SMTC (`go-ole`)。
-   - 托盘功能仅限 Windows/Linux，功能保持简洁。
-4. **资源管理**: 确保在应用关闭时正确停止代理服务器和数据库连接。
+- `main.go`：应用入口 + AutoMigrate
+- `internal/proxy/proxy.go`：音频代理（绕过 Referer 限制）
+- `frontend/src/App.tsx`：前端主入口
+- `frontend/src/components/`：布局/卡片/模态框
 
-## 当前进度与计划
+## 开发约定（必须遵守）
 
-### ✅ 已完成
-- 核心播放逻辑与 B站 API 对接。
-- 扫码登录与用户信息同步。
-- 歌单管理与 BV 号解析。
-- 基础 UI 框架与主题系统。
-- **主题详情编辑器**: 支持 GUI 和 JSON 两种模式切换，JSON 模式包含完整的类型验证。
-- **主题查看功能**: 内置主题支持只读查看。
+1. 修改后端 Service 导出方法后，运行 `wails generate module` 更新前端绑定。
+2. 音频播放必须走本地代理（`internal/proxy/`），不要直接把 B 站直链塞给 `<audio>`。
+3. 并发：谨慎使用 goroutine；确保 context 可取消；后台任务尽量 best-effort，不阻塞播放。
+4. 资源管理：应用关闭时正确停止代理与关闭 DB。
 
-### 🛠️ 进行中 / 待办
-- [ ] **系统集成**: 实现 Linux MPRIS2 和 Windows SMTC 媒体控制。
-- [ ] **系统托盘**: 实现基础的托盘菜单（显示/隐藏/退出）。
-- [ ] **日志系统**: 建立后端日志记录机制。
-- [ ] **缓存优化**: 改进音频流和封面的本地缓存。
+## 数据持久化与缓存（关键约束）
 
-## 主题编辑功能（最新更新）
+### 登录会话 / 播放记录入库
 
-### 组件架构
-- **ThemeDetailModal** (`frontend/src/components/ThemeDetailModal.tsx`): 新的主题详情组件，支持两种模式
-  - GUI 模式: 使用 Mantine 组件进行可视化编辑（滑块、颜色选择器等）
-    - 使用 ScrollArea 包装，固定高度 500px，保证一致的视觉效果
-    - 支持滚动查看所有设置项
-  - JSON 模式: 直接编辑 JSON 配置，包含实时验证
-    - 使用 ScrollArea 包装，固定高度 500px，与 GUI 模式保持一致
-    - minRows 设置为 20，提供更好的初始显示效果
-    - 包含一键复制按钮，支持复制整个 JSON 配置到剪贴板
-    - 复制成功时显示绿色通知和图标反馈（Copy → Check）
-  - 两种模式完全等价，修改会自动同步
+- `LoginSession` 与 `PlayHistory` 采用“单行表”（ID=1）保存；首次读取支持从旧 JSON 文件一次性迁移并 best-effort 删除旧文件。
+- 关键路径：
+  - `internal/services/login.go`
+  - `internal/services/download.go`
+  - `internal/models/models.go`、`main.go`（AutoMigrate）
 
-- **ThemeManagerModal** (`frontend/src/components/ThemeManagerModal.tsx`): 主题管理界面
-  - 内置主题显示"详情"按钮：允许查看主题配置（只读模式）
-  - 自定义主题只显示"编辑"按钮：允许修改主题配置
-  - 自定义主题还显示"删除"按钮：支持删除主题
+### 音频缓存目录
 
-### 关键功能
-1. **双模式编辑（固定高度一致）**
-   - GUI 模式：用户友好的可视化编辑，ScrollArea 高度 500px
-   - JSON 模式：高级用户可直接编辑 JSON，ScrollArea 高度 500px
-   - Tab 切换时自动同步数据，高度保持一致
+- 缓存目录：`~/.config/half-beat/app_data/audio_cache`（Linux；`~/.config` 默认隐藏）
+- 启动时创建 `audio_cache`，确保目录可见。
+- `ClearAudioCache()`：清空目录内容但保留目录本身。
 
-2. **复制功能**
-   - JSON 模式下提供"复制 JSON"按钮
-   - 一键复制整个 JSON 配置到剪贴板
-   - 复制成功时显示绿色通知提示
-   - 按钮图标切换反馈（Copy → Check 图标，持续 2 秒）
+### 播放即缓存（落盘）
 
-3. **JSON 类型检查**（保存前强制检查）
-   - 验证所有必需字段存在
-   - 颜色值必须是有效的十六进制格式 (#RRGGBB)
-   - 数值字段检查范围（如不透明度 0-1，模糊 0-50px 等）
-   - 枚举字段验证（如 windowControlsPos: 'left'|'right'|'hidden'）
-   - 错误信息在 JSON 模式下即时显示
+- 前端：代理播放 URL 追加 `sid=<song.id>`
+- 后端代理：收到 `/audio` 且带 `sid` 时，后台 best-effort 拉取完整音频并写入 `audio_cache/<sid>.m4s`（不阻塞当前播放）
 
-4. **只读模式**
-   - 内置主题查看详情时为只读模式
-   - 所有输入字段禁用
-   - JSON 模式文本区域禁用编辑
-   - 仅展示"关闭"按钮
-   - 复制按钮隐藏在只读模式
+## UI 约定（与 Wails 相关）
 
-5. **按钮逻辑简化**
-   - 内置主题：选择 → 详情
-   - 自定义主题：选择 → 编辑 → 删除
+### 顶栏拖拽
 
-### 使用流程
-1. 打开主题管理器
-2. 内置主题点击"详情"查看（只读），自定义主题点击"编辑"修改
-3. 选择 GUI 或 JSON 模式
-4. JSON 模式可使用"复制 JSON"按钮复制配置
-5. JSON 模式修改后点击"应用 JSON 配置"
-6. 点击"保存"（编辑模式）或"关闭"（查看模式）
+- 使用 Wails CSS 自定义属性：`--wails-draggable: drag`
+- 可点击元素上使用 `--wails-draggable: no-drag` 以避免误拖拽（如 `.window-control`、`button`、`.app-no-drag`）
 
-### 相关 Hook 和处理
-- `useThemeEditor`: 主题编辑逻辑，`viewTheme` 方法用于打开查看/编辑模式
-- `useModalManager`: `themeDetailModal` 状态管理
-- `useAppHandlers`: `handleViewTheme` 处理函数调用 `themeEditor.viewTheme`
+### 文本省略号策略
 
-## 交互建议
-- 在处理 UI 问题时，优先考虑 Mantine 的组件属性。
-- 在处理后端逻辑时，注意 Wails 运行时的 context 生命周期。
-- 涉及 B站 API 时，参考 `internal/services/` 中已有的请求模式。
-- JSON 验证需要保证所有颜色值都是有效的十六进制格式，所有数值都在指定范围内。
-## 最近更新（亮色主题与动态颜色方案优化）
+- 底部播放条：歌名滚动展示时不使用省略号（由容器裁切）。
+- 列表/面板：标题/列表项空间不足时使用单行省略号（通常用 `truncate` 或 `lineClamp={1}`，并确保父容器 `minWidth: 0`）。
 
-### 亮色主题修改
-- **次要文字颜色**: 从 `#909296` 调整为 `#c1c2c5`，提升禁用状态下的可见性
-  - 次要文字（如标签、辅助信息）在亮色背景上更清晰
-  - 禁用状态元素的颜色对比度改善
+## 主题系统（要点）
 
-- **禁用状态样式 (CSS)**：在 `index.css` 中添加针对亮色主题的禁用状态优化
-  - Slider 轨道禁用颜色：透明灰色 `rgba(200, 200, 200, 0.4)`
-  - 禁用按钮背景：`#e8e8e8`，文字颜色：`#b0b0b0`
-  - Slider thumb 禁用颜色：`#c1c2c5`
-  - 确保在亮色背景下禁用元素仍有良好的对比度和可见性
+### 主题模型与序列化
 
-### 动态颜色方案（新增功能）
-- **自动 UI 适配**: 根据面板颜色亮度自动选择 Mantine 亮色或暗色主题
-  - 创建新工具函数 `getColorSchemeFromBackground()` 在 `frontend/src/utils/color.ts`
-  - 使用相对亮度公式判断颜色是否为亮色
-  - 在应用主题时自动调用 `setColorScheme()` 更新 Mantine 颜色方案
-  - 主题编辑/详情中的 JSON 编辑器也使用相同的颜色方案判断逻辑
-  - 确保 UI 库内置的控件（如 Slider、Button 等）能根据面板背景自动显示正确的对比度
+- 后端 Theme 模型精简为：`id`, `name`, `data(JSON)`, `isDefault`, `isReadOnly`（后端不强制 schema）。
+- 前端通过 `convertTheme()` 将 `data` 反序列化为完整 Theme 对象，并提供合理默认值。
 
-### 实现细节
-- 颜色判断算法：`brightness = (R*0.299 + G*0.587 + B*0.114) / 1000`，阈值 128
-- 支持处理带透明度的颜色值 (#RRGGBBAA)
-- Mantine 颜色方案切换只需调用 `setColorScheme('light'|'dark')`
-- ThemeDetailModal 中的 JSON 编辑器通过 `getColorSchemeFromBackground()` 动态获取 `colorMode`
+### colorScheme（亮/暗）
 
-## 主题编辑功能（最新更新）
-- **固定高度容器**: GUI 和 JSON 编辑面板都使用 `ScrollArea` 包装，高度固定为 500px
-  - `marginRight: -16, paddingRight: 16` 用于处理 ScrollArea 的 margin 问题
-  - 保证两种模式的视觉一致性和更好的空间利用
-  
-- **复制功能**: JSON 模式添加"复制 JSON"按钮
-  - 使用 `navigator.clipboard.writeText()` 实现剪贴板操作
-  - 按钮显示图标状态反馈：`copied ? <Check> : <Copy>`
-  - 复制成功时显示绿色通知，2 秒后自动复位
-  - 仅在非只读模式下显示
+- 字段：`colorScheme: 'light' | 'dark'`（默认 `dark`）
+- 应用主题时需同步调用 Mantine 的 `setColorScheme()`。
 
-- **JSON 高度调整**: minRows 从 15 增加到 20，提供更好的初始显示
+### 常见踩坑：重启回默认主题
 
-### ThemeManagerModal 优化
-- **按钮逻辑条件化**:
-  - 内置主题 (`theme.isReadOnly`): 仅显示"选择"和"详情"按钮
-  - 自定义主题 (!theme.isReadOnly): 显示"选择"、"编辑"和"删除"按钮
-  - 使用条件渲染而非禁用状态，更清晰的视觉反馈
+- 正确：主题选择/编辑后调用 `store.actions.applyTheme(theme)`，它会同步 UI 并写入 `localStorage`（`half-beat.currentThemeId`）。
+- 错误：只更新 UI setters / 只更新 `currentThemeId`，可能导致下次启动回退。
 
-### 相关代码片段
-```tsx
-// 复制 JSON 处理
-const handleCopyJson = useCallback(() => {
-    navigator.clipboard.writeText(jsonText).then(() => {
-        setCopied(true);
-        notifications.show({
-            message: "已复制到剪贴板",
-            color: "green",
-            autoClose: 1500,
-        });
-        setTimeout(() => setCopied(false), 2000);
-    });
-}, [jsonText]);
+### 主题详情/编辑（简述）
 
-// 固定高度 ScrollArea
-<ScrollArea style={{ height: "500px", marginRight: -16, paddingRight: 16 }}>
-    {/* 内容 */}
-</ScrollArea>
+- 支持 GUI 与 JSON 两种模式；两者等价并互相同步。
+- JSON 模式包含强校验、错误提示、复制 JSON（只读模式不显示复制）。
+- 两种模式容器高度固定为 500px（ScrollArea）。
 
-// 按钮条件渲染
-{theme.isReadOnly && <Button>详情</Button>}
-{!theme.isReadOnly && <>
-    <Button>编辑</Button>
-    <Button color="red">删除</Button>
-</>}
-```
+## 最近更新（2026-01-08）
+
+- 顶栏可拖拽：TopBar 使用 `--wails-draggable`，交互元素 no-drag。
+- UI 文本：底部滚动标题不省略；列表项单行省略号。
+- 登录/播放记录：统一迁移到 SQLite 单行表（含旧文件迁移）。
+- 缓存：音频缓存目录 `audio_cache` 启动即创建；清缓存保留目录；播放即缓存落盘到 `audio_cache/<sid>.m4s`。
+
+## ⚠️ 添加新字段时的关键检查清单
+
+当添加新的主题配置字段（如 `colorScheme`）时，必须在以下所有位置同步修改，否则容易出现 `Can't find variable` / `undefined`：
+
+### 1. 后端模型层
+
+- [ ] 在 Go 结构体中添加字段（`internal/models/models.go`）
+- [ ] 确保字段有正确的 JSON 标签
+
+### 2. 前端类型定义层
+
+- [ ] `frontend/wailsjs/go/models.ts`
+- [ ] `frontend/src/utils/constants.ts`
+- [ ] `frontend/src/types.ts`
+
+### 3. 状态管理层
+
+- [ ] 若字段参与 UI 状态：在 store/state 与 apply 逻辑中处理（优先跟随 `useAppStore` 体系）
+
+### 4. 组件层
+
+- [ ] Props 类型补齐
+- [ ] ⚠️ 关键：组件函数参数解构中显式解构该字段
+
+### 5. Hook 层
+
+- [ ] Hook 入参/返回类型补齐
+- [ ] ⚠️ 关键：Hook 函数参数解构中显式解构该字段
+
+### 常见错误速查
+
+| 错误 | 常见原因 | 解决方案 |
+|------|----------|----------|
+| `Can't find variable: xxx` | 使用了字段但忘了在参数解构中取出 | 检查函数签名/解构并补齐 |
+| `undefined` | 初始化/默认值遗漏 | 补齐默认值与 apply 逻辑 |
+
+最易出错的地方：**参数解构**。

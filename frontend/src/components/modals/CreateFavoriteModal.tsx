@@ -1,6 +1,6 @@
 import React from "react";
 import { Button, Group, Modal, Select, Stack, Text, TextInput, Loader } from "@mantine/core";
-import type { Favorite } from "../types";
+import type { Favorite } from "../../types";
 
 type CreateFavMode = "blank" | "duplicate" | "importMine" | "importFid";
 

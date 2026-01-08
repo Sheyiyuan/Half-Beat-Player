@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { ActionIcon, Group, Modal, Radio, Checkbox, Button } from "@mantine/core";
 import { Minus, Square, X, Copy } from "lucide-react";
 import { notifications } from "@mantine/notifications";
-import * as Services from "../../wailsjs/go/services/Service";
-import { useThemeContext } from "../context";
+import * as Services from "../../../wailsjs/go/services/Service";
+import { useAppStore } from "../../hooks";
 
 type ExitBehavior = "minimize" | "quit";
 const EXIT_BEHAVIOR_KEY = "half-beat.exitBehavior";
@@ -27,14 +27,14 @@ export const WindowControls: React.FC<WindowControlsProps> = ({
     const [exitModalOpen, setExitModalOpen] = useState(false);
     const [rememberChoice, setRememberChoice] = useState(false);
     const [exitChoice, setExitChoice] = useState<ExitBehavior>("minimize");
-    const { state: themeState } = useThemeContext();
+    const [store] = useAppStore();
 
-    // 优先使用 props，否则回退到 context (虽然 context 里没有 computed values，但可以作为兜底)
-    const themeColor = propThemeColor || themeState.themeColor;
+    // 优先使用 props，否则回退到 store theme state
+    const themeColor = propThemeColor || store.theme.themeColor;
     const controlBackground = propControlBackground;
-    const textColorPrimary = propTextColorPrimary || themeState.textColorPrimary;
-    const textColorSecondary = propTextColorSecondary || themeState.textColorSecondary;
-    const componentRadius = propComponentRadius ?? themeState.componentRadius;
+    const textColorPrimary = propTextColorPrimary || store.theme.textColorPrimary;
+    const textColorSecondary = propTextColorSecondary || store.theme.textColorSecondary;
+    const componentRadius = propComponentRadius ?? store.theme.componentRadius;
 
     // 定期检查窗口最大化状态
     useEffect(() => {

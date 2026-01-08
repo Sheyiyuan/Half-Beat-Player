@@ -25,6 +25,7 @@ const (
 	cacheDir        = "audio_cache" // 被动缓存
 	downloadsDir    = "downloads"   // 主动下载
 	coversDir       = "covers"      // 封面缓存
+	// Legacy file name for historical migration only.
 	playHistoryFile = "play_history.json"
 )
 
@@ -423,44 +424,80 @@ func (s *Service) GetAudioCacheSize() (int64, error) {
 func (s *Service) ClearAudioCache() error {
 	cachePath := filepath.Join(s.dataDir, cacheDir)
 	if _, err := os.Stat(cachePath); os.IsNotExist(err) {
+		if err := os.MkdirAll(cachePath, 0o755); err != nil {
+			return fmt.Errorf("create audio cache dir: %w", err)
+		}
 		return nil
 	}
-	return os.RemoveAll(cachePath)
+
+	// 清空目录内容但保留目录本身，便于在文件管理器中可见。
+	entries, err := os.ReadDir(cachePath)
+	if err != nil {
+		return fmt.Errorf("read audio cache dir: %w", err)
+	}
+	for _, entry := range entries {
+		p := filepath.Join(cachePath, entry.Name())
+		if err := os.RemoveAll(p); err != nil {
+			return fmt.Errorf("remove cache entry %s: %w", p, err)
+		}
+	}
+	return nil
 }
 
 // SavePlayHistory 保存播放历史
 func (s *Service) SavePlayHistory(favoriteID, songID string) error {
-	historyFile := filepath.Join(s.dataDir, playHistoryFile)
-	history := PlayHistory{
+	rec := models.PlayHistory{
+		ID:         1,
 		FavoriteID: favoriteID,
 		SongID:     songID,
 		Timestamp:  time.Now().Unix(),
+		UpdatedAt:  time.Now(),
+	}
+	if err := s.db.Save(&rec).Error; err != nil {
+		return fmt.Errorf("save play history to db: %w", err)
 	}
 
-	data, err := json.MarshalIndent(history, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(historyFile, data, 0o644)
+	// Best-effort cleanup of legacy file.
+	_ = os.Remove(filepath.Join(s.dataDir, playHistoryFile))
+	return nil
 }
 
 // GetPlayHistory 获取播放历史
 func (s *Service) GetPlayHistory() (PlayHistory, error) {
-	historyFile := filepath.Join(s.dataDir, playHistoryFile)
-	data, err := os.ReadFile(historyFile)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return PlayHistory{}, nil
+	var rec models.PlayHistory
+	dbErr := s.db.First(&rec, 1).Error
+	if dbErr == nil {
+		return PlayHistory{FavoriteID: rec.FavoriteID, SongID: rec.SongID, Timestamp: rec.Timestamp}, nil
+	} else if errors.Is(dbErr, gorm.ErrRecordNotFound) {
+		// One-time migration from legacy file if exists
+		historyFile := filepath.Join(s.dataDir, playHistoryFile)
+		data, readErr := os.ReadFile(historyFile)
+		if readErr != nil {
+			if os.IsNotExist(readErr) {
+				return PlayHistory{}, nil
+			}
+			return PlayHistory{}, fmt.Errorf("read legacy play history file: %w", readErr)
 		}
-		return PlayHistory{}, err
-	}
 
-	var history PlayHistory
-	if err := json.Unmarshal(data, &history); err != nil {
-		return PlayHistory{}, err
+		var history PlayHistory
+		if err := json.Unmarshal(data, &history); err != nil {
+			return PlayHistory{}, fmt.Errorf("parse legacy play history file: %w", err)
+		}
+
+		migrated := models.PlayHistory{
+			ID:         1,
+			FavoriteID: history.FavoriteID,
+			SongID:     history.SongID,
+			Timestamp:  history.Timestamp,
+			UpdatedAt:  time.Now(),
+		}
+		if err := s.db.Save(&migrated).Error; err != nil {
+			return PlayHistory{}, fmt.Errorf("migrate play history to db: %w", err)
+		}
+		_ = os.Remove(historyFile)
+		return history, nil
 	}
-	return history, nil
+	return PlayHistory{}, fmt.Errorf("load play history from db: %w", dbErr)
 }
 
 // OpenDatabaseFile opens the database file in the system file manager.

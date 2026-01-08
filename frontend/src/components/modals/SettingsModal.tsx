@@ -1,6 +1,6 @@
 import React from "react";
 import { Button, Group, Modal, Stack, Text } from "@mantine/core";
-import { SettingsExitBehavior } from "./SettingsExitBehavior";
+import { SettingsExitBehavior } from "../cards";
 
 interface SettingsModalProps {
     opened: boolean;
@@ -8,12 +8,9 @@ interface SettingsModalProps {
     appVersion: string | number;
     cacheSize: number;
     onClose: () => void;
-    onClearLoginCache: () => void;
-    onClearThemeCache: () => void;
     onOpenDownloadsFolder: () => void;
     onOpenDatabaseFile: () => void;
     onClearMusicCache: () => void;
-    onClearAllCache: () => void;
     panelStyles?: React.CSSProperties;
     derived?: any;
 }
@@ -24,12 +21,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     appVersion,
     cacheSize,
     onClose,
-    onClearLoginCache,
-    onClearThemeCache,
     onOpenDownloadsFolder,
     onOpenDatabaseFile,
     onClearMusicCache,
-    onClearAllCache,
     panelStyles,
     derived,
 }) => {
@@ -44,8 +38,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             radius={derived?.componentRadius}
             styles={{
                 content: {
-                    ...panelStyles,
-                    backgroundColor: derived?.panelBackground,
+                    backgroundColor: derived?.modalBackground,
                     color: derived?.textColorPrimary,
                 },
                 header: {
@@ -65,10 +58,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
                 <Text fw={600} mt="sm" c={derived?.textColorPrimary}>缓存</Text>
                 <Group>
-                    <Button variant="default" radius={derived?.componentRadius} onClick={onClearLoginCache} styles={{ root: { backgroundColor: derived?.controlBackground, color: derived?.textColorPrimary } }}>清除登录缓存</Button>
-                    <Button variant="default" radius={derived?.componentRadius} onClick={onClearThemeCache} styles={{ root: { backgroundColor: derived?.controlBackground, color: derived?.textColorPrimary } }}>清除主题缓存</Button>
                     <Button variant="default" radius={derived?.componentRadius} onClick={onClearMusicCache} styles={{ root: { backgroundColor: derived?.controlBackground, color: derived?.textColorPrimary } }}>清除音乐缓存 ({(cacheSize / 1024 / 1024).toFixed(2)} MB)</Button>
-                    <Button color={themeColor} radius={derived?.componentRadius} onClick={onClearAllCache}>清除所有缓存</Button>
                 </Group>
 
                 <Text fw={600} mt="sm" c={derived?.textColorPrimary}>下载</Text>

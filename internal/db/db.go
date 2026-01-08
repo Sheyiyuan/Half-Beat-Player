@@ -8,6 +8,7 @@ import (
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // Open opens (and migrates) a SQLite database at the given path.
@@ -16,7 +17,10 @@ func Open(dbPath string, migrate func(*gorm.DB) error) (*gorm.DB, error) {
 		return nil, fmt.Errorf("create db dir: %w", err)
 	}
 
-	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{
+		// 禁用 GORM 默认日志，防止 RecordNotFound 错误被打印
+		Logger: logger.Discard,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite: %w", err)
 	}

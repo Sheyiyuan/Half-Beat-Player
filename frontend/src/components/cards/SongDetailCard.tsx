@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ActionIcon, Box, Button, Card, Flex, Group, Image, NumberInput, RangeSlider, ScrollArea, Stack, Text, TextInput, Tooltip } from "@mantine/core";
 import { IconEdit, IconCheck, IconX } from "@tabler/icons-react";
-import { Song } from "../types";
+import { Song } from "../../types";
 
 export type SongDetailCardProps = {
     song: Song | null;
@@ -37,7 +37,6 @@ const SongDetailCard: React.FC<SongDetailCardProps> = ({
     placeholderCover,
     maxSkipLimit,
     formatTime,
-    formatTimeWithMs,
     formatTimeLabel,
     parseTimeLabel,
     onIntervalChange,
@@ -207,7 +206,7 @@ const SongDetailCard: React.FC<SongDetailCardProps> = ({
                                 max={maxSkipLimit}
                                 step={0.05}
                                 radius={componentRadius}
-                                label={(value) => formatTimeWithMs(value)}
+                                label={(value) => formatTime(value)}
                                 style={{ '--slider-color': themeColor } as any}
                             />
                             <Group gap="sm" grow>

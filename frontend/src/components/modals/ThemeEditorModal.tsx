@@ -1,5 +1,5 @@
 import React, { RefObject, useState, useEffect } from "react";
-import { Button, ColorInput, Group, Modal, Slider, Stack, Text, TextInput, Select, Fieldset, Divider } from "@mantine/core";
+import { Button, ColorInput, Group, Modal, Slider, Stack, Text, TextInput, Select, Fieldset, Divider, SegmentedControl } from "@mantine/core";
 
 export type ThemeEditorModalProps = {
     opened: boolean;
@@ -57,6 +57,8 @@ export type ThemeEditorModalProps = {
     onModalBlurChange: (value: number) => void;
     windowControlsPosDraft: string;
     onWindowControlsPosChange: (value: string) => void;
+    colorSchemeDraft: string;
+    onColorSchemeChange: (value: string) => void;
     onSubmit: () => Promise<void>;
     savingTheme: boolean;
     fileInputRef: RefObject<HTMLInputElement>;
@@ -121,6 +123,8 @@ const ThemeEditorModal: React.FC<ThemeEditorModalProps> = ({
     onModalBlurChange,
     windowControlsPosDraft,
     onWindowControlsPosChange,
+    colorSchemeDraft,
+    onColorSchemeChange,
     onSubmit,
     savingTheme,
     fileInputRef,
@@ -158,7 +162,6 @@ const ThemeEditorModal: React.FC<ThemeEditorModalProps> = ({
     };
     const modalStyles = derived ? {
         content: {
-            ...panelStyles,
             backgroundColor: derived.modalBackground,
             color: derived.textColorPrimary,
         },
@@ -213,6 +216,18 @@ const ThemeEditorModal: React.FC<ThemeEditorModalProps> = ({
                             size="sm"
                             styles={inputStyles}
                         />
+                        <Stack gap="xs">
+                            <Text size="sm" fw={500}>颜色方案</Text>
+                            <SegmentedControl
+                                value={colorSchemeDraft}
+                                onChange={(value) => onColorSchemeChange(value)}
+                                data={[
+                                    { label: '亮色', value: 'light' },
+                                    { label: '暗色', value: 'dark' },
+                                ]}
+                                fullWidth
+                            />
+                        </Stack>
                         <ColorInput
                             label="主题色"
                             value={themeColorDraft}

@@ -1,15 +1,6 @@
 import React from "react";
 import { Modal, Stack, TextInput, Group, Button } from "@mantine/core";
-import ThemeManagerModal from "./ThemeManagerModal";
-import ThemeDetailModal from "./ThemeDetailModal";
-import AddToFavoriteModal from "./AddToFavoriteModal";
-import PlaylistModal from "./PlaylistModal";
-import LoginModal from "./LoginModal";
-import SettingsModal from "./SettingsModal";
-import DownloadManagerModal from "./DownloadManagerModal";
-import CreateFavoriteModal from "./CreateFavoriteModal";
-import GlobalSearchModal from "./GlobalSearchModal";
-import BVAddModal from "./BVAddModal";
+import { ThemeManagerModal, ThemeDetailModal, AddToFavoriteModal, PlaylistModal, LoginModal, SettingsModal, DownloadManagerModal, CreateFavoriteModal, GlobalSearchModal, BVAddModal } from "./modals";
 import { Favorite, Song, Theme } from "../types";
 import { formatTime, formatTimeWithMs } from "../utils/time";
 
@@ -19,7 +10,7 @@ type GlobalSearchResult = { kind: "song"; song: Song } | { kind: "favorite"; fav
 export interface AppModalsProps {
     // modal state flags
     modals: {
-        themeModal: boolean;
+        themeManagerModal: boolean;
         themeEditorModal: boolean;
         themeDetailModal: boolean;
         addFavoriteModal: boolean;
@@ -63,6 +54,7 @@ export interface AppModalsProps {
     modalOpacityDraft: number;
     modalBlurDraft: number;
     windowControlsPosDraft: string;
+    colorSchemeDraft: string;
     savingTheme: boolean;
     fileDraftInputRef: React.RefObject<HTMLInputElement>;
 
@@ -137,6 +129,7 @@ export interface AppModalsProps {
     onModalOpacityChange: (v: number) => void;
     onModalBlurChange: (v: number) => void;
     onWindowControlsPosChange: (v: string) => void;
+    onColorSchemeChange: (v: string) => void;
     onSubmitTheme: () => Promise<void>;
     onCancelThemeEdit: () => void;
     onBackgroundFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -151,12 +144,9 @@ export interface AppModalsProps {
     onSaveEditFavorite: () => void;
 
     onLoginSuccess: () => void;
-    onClearLoginCache: () => void;
-    onClearThemeCache: () => void;
     onOpenDownloadsFolder: () => void;
     onOpenDatabaseFile: () => void;
     onClearMusicCache: () => void;
-    onClearAllCache: () => void;
 
     onDownloadModalClose: () => void;
     onOpenDownloadedFile: () => void;
@@ -228,6 +218,7 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
         modalOpacityDraft,
         modalBlurDraft,
         windowControlsPosDraft,
+        colorSchemeDraft,
         savingTheme,
         fileDraftInputRef,
         favorites,
@@ -290,6 +281,7 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
         onModalOpacityChange,
         onModalBlurChange,
         onWindowControlsPosChange,
+        onColorSchemeChange,
         onSubmitTheme,
         onCancelThemeEdit,
         onBackgroundFileChange,
@@ -301,12 +293,9 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
         onEditingFavNameChange,
         onSaveEditFavorite,
         onLoginSuccess,
-        onClearLoginCache,
-        onClearThemeCache,
         onOpenDownloadsFolder,
         onOpenDatabaseFile,
         onClearMusicCache,
-        onClearAllCache,
         onDownloadModalClose,
         onOpenDownloadedFile,
         onDeleteDownloadedFile,
@@ -342,8 +331,8 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
     return (
         <>
             <ThemeManagerModal
-                opened={modals.themeModal}
-                onClose={() => closeModal("themeModal")}
+                opened={modals.themeManagerModal}
+                onClose={() => closeModal("themeManagerModal")}
                 themes={themes}
                 currentThemeId={currentThemeId}
                 onSelectTheme={onSelectTheme}
@@ -412,6 +401,8 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
                 onModalBlurChange={onModalBlurChange}
                 windowControlsPosDraft={windowControlsPosDraft}
                 onWindowControlsPosChange={onWindowControlsPosChange}
+                colorSchemeDraft={colorSchemeDraft}
+                onColorSchemeChange={onColorSchemeChange}
                 onSubmit={onSubmitTheme}
                 savingTheme={savingTheme}
                 fileInputRef={fileDraftInputRef}
@@ -475,6 +466,8 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
                 onModalBlurChange={onModalBlurChange}
                 windowControlsPosDraft={windowControlsPosDraft}
                 onWindowControlsPosChange={onWindowControlsPosChange}
+                colorSchemeDraft={colorSchemeDraft}
+                onColorSchemeChange={onColorSchemeChange}
                 onSubmit={onSubmitTheme}
                 savingTheme={savingTheme}
                 fileInputRef={fileDraftInputRef}
@@ -569,12 +562,9 @@ const AppModals: React.FC<AppModalsProps> = (props) => {
                 themeColor={themeColor}
                 appVersion={appVersion}
                 cacheSize={cacheSize}
-                onClearLoginCache={onClearLoginCache}
-                onClearThemeCache={onClearThemeCache}
                 onOpenDownloadsFolder={onOpenDownloadsFolder}
                 onOpenDatabaseFile={onOpenDatabaseFile}
                 onClearMusicCache={onClearMusicCache}
-                onClearAllCache={onClearAllCache}
                 panelStyles={panelStyles}
                 derived={derived}
             />

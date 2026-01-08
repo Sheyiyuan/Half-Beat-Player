@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { ActionIcon, AspectRatio, Badge, Button, Group, Image, Modal, Paper, ScrollArea, Stack, Text, TextInput } from "@mantine/core";
 import { Search } from "lucide-react";
-import type { Song, Favorite } from "../types";
+import type { Song, Favorite } from "../../types";
 
 type GlobalSearchResult = { kind: "song"; song: Song } | { kind: "favorite"; favorite: Favorite };
 
@@ -91,7 +91,6 @@ const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
             radius={derived?.componentRadius}
             styles={{
                 content: {
-                    ...panelStyles,
                     backgroundColor: derived?.modalBackground,
                     color: derived?.textColorPrimary,
                 },

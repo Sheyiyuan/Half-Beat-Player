@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ActionIcon, Box, Group, Image, Slider, Stack, Text } from "@mantine/core";
 import { Download, ListMusic, Music, Pause, Play, Repeat, Repeat1, Shuffle, SkipBack, SkipForward, SquarePlus, Volume, Volume1, Volume2, VolumeX } from "lucide-react";
-import { Song } from "../types";
+import { Song } from "../../types";
 
 export type PlayerBarProps = {
     themeColor: string;
@@ -47,7 +47,6 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
     intervalLength,
     duration,
     formatTime,
-    formatTimeWithMs,
     seek,
     playPrev,
     togglePlay,
@@ -146,7 +145,7 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
                         step={0.05}
                         w="100%"
                         radius={componentRadius}
-                        label={(value) => formatTimeWithMs(intervalStart + value)}
+                        label={(value) => formatTime(intervalStart + value)}
                         style={{ '--slider-color': themeColor, marginTop: '12px' } as any}
                     />
                     <Group justify="space-between" align="center">
@@ -167,8 +166,6 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
                                 fw={600}
                                 style={{
                                     color: textColorPrimary,
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
                                     whiteSpace: "nowrap",
                                     animation: currentSong?.name && currentSong.name.length > 20 ? "scroll 10s linear infinite" : "none",
                                 }}

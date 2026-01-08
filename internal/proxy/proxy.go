@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -8,7 +9,10 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
+	"time"
 )
 
 type AudioProxy struct {
@@ -19,6 +23,9 @@ type AudioProxy struct {
 	baseDir    string
 	mu         sync.RWMutex
 	isRunning  bool
+
+	cacheMu      sync.Mutex
+	cacheInFlight map[string]struct{}
 }
 
 func NewAudioProxy(port int, httpClient *http.Client, baseDir string) *AudioProxy {
@@ -26,7 +33,93 @@ func NewAudioProxy(port int, httpClient *http.Client, baseDir string) *AudioProx
 		port:       port,
 		httpClient: httpClient,
 		baseDir:    baseDir,
+		cacheInFlight: map[string]struct{}{},
 	}
+}
+
+func (ap *AudioProxy) ensureCachedAsync(decodedURL, sid string) {
+	if sid == "" {
+		return
+	}
+	cacheDir := filepath.Join(ap.baseDir, "audio_cache")
+	cachePath := filepath.Join(cacheDir, sid+".m4s")
+
+	if _, err := os.Stat(cachePath); err == nil {
+		return
+	}
+
+	ap.cacheMu.Lock()
+	if _, ok := ap.cacheInFlight[sid]; ok {
+		ap.cacheMu.Unlock()
+		return
+	}
+	ap.cacheInFlight[sid] = struct{}{}
+	ap.cacheMu.Unlock()
+
+	go func() {
+		defer func() {
+			ap.cacheMu.Lock()
+			delete(ap.cacheInFlight, sid)
+			ap.cacheMu.Unlock()
+		}()
+
+		if err := os.MkdirAll(cacheDir, 0o755); err != nil {
+			fmt.Printf("[Proxy] Cache mkdir failed (%s): %v\n", cacheDir, err)
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+
+		req, err := http.NewRequestWithContext(ctx, "GET", decodedURL, nil)
+		if err != nil {
+			fmt.Printf("[Proxy] Cache request build failed (%s): %v\n", sid, err)
+			return
+		}
+		// 与实时代理一致的请求头（不带 Range，尝试获取完整文件）
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+		req.Header.Set("Referer", "https://www.bilibili.com")
+		req.Header.Set("Origin", "https://www.bilibili.com")
+		req.Header.Set("Accept", "*/*")
+
+		resp, err := ap.httpClient.Do(req)
+		if err != nil {
+			fmt.Printf("[Proxy] Cache upstream failed (%s): %v\n", sid, err)
+			return
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			// Range-only 或其他情况不缓存
+			fmt.Printf("[Proxy] Cache skip (%s): status=%d\n", sid, resp.StatusCode)
+			return
+		}
+
+		tmp := cachePath + ".part"
+		_ = os.Remove(tmp)
+		f, err := os.Create(tmp)
+		if err != nil {
+			fmt.Printf("[Proxy] Cache create failed (%s): %v\n", sid, err)
+			return
+		}
+		_, copyErr := io.Copy(f, resp.Body)
+		closeErr := f.Close()
+		if copyErr != nil {
+			_ = os.Remove(tmp)
+			fmt.Printf("[Proxy] Cache write failed (%s): %v\n", sid, copyErr)
+			return
+		}
+		if closeErr != nil {
+			_ = os.Remove(tmp)
+			fmt.Printf("[Proxy] Cache close failed (%s): %v\n", sid, closeErr)
+			return
+		}
+		if err := os.Rename(tmp, cachePath); err != nil {
+			_ = os.Remove(tmp)
+			fmt.Printf("[Proxy] Cache rename failed (%s): %v\n", sid, err)
+			return
+		}
+		fmt.Printf("[Proxy] Cached audio: %s\n", cachePath)
+	}()
 }
 
 func (ap *AudioProxy) Start() error {
@@ -107,6 +200,10 @@ func (ap *AudioProxy) handleAudio(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Printf("[Proxy] Fetching upstream: %s\n", decodedURL)
 
+	// 最佳努力：如果前端传了 sid，则后台尝试缓存成 audio_cache/<sid>.m4s
+	sid := r.URL.Query().Get("sid")
+	ap.ensureCachedAsync(decodedURL, sid)
+
 	// Create upstream request with auth headers
 	req, err := http.NewRequest("GET", decodedURL, nil)
 	if err != nil {
@@ -114,11 +211,17 @@ func (ap *AudioProxy) handleAudio(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Copy relevant headers from client
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+	// Set comprehensive headers to bypass Bilibili restrictions
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 	req.Header.Set("Referer", "https://www.bilibili.com")
 	req.Header.Set("Origin", "https://www.bilibili.com")
 	req.Header.Set("Accept", "*/*")
+	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
+	req.Header.Set("Accept-Encoding", "gzip, deflate, br")
+	req.Header.Set("Sec-Fetch-Dest", "audio")
+	req.Header.Set("Sec-Fetch-Mode", "cors")
+	req.Header.Set("Sec-Fetch-Site", "cross-site")
+	req.Header.Set("Priority", "u=1, i")
 
 	// Handle Range request
 	if r.Header.Get("Range") != "" {
@@ -132,6 +235,48 @@ func (ap *AudioProxy) handleAudio(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 	fmt.Printf("[Proxy] Upstream status: %s, Content-Type: %s\n", resp.Status, resp.Header.Get("Content-Type"))
+
+	// 如果上游返回 403，尝试从本地缓存提供
+	if resp.StatusCode == http.StatusForbidden {
+		fmt.Printf("[Proxy] Got 403, attempting local cache fallback\n")
+		// 从 URL 中提取文件名（songId）
+		parsedURL, err := url.Parse(decodedURL)
+		if err == nil {
+			var fileName string
+			
+			// 尝试从 URL 路径末尾获取文件名
+			pathParts := strings.Split(parsedURL.Path, "/")
+			if len(pathParts) > 0 {
+				potentialFileName := pathParts[len(pathParts)-1]
+				if strings.HasSuffix(potentialFileName, ".m4s") || strings.HasSuffix(potentialFileName, ".mp4") {
+					fileName = potentialFileName
+				}
+			}
+			
+			if fileName != "" {
+				// 尝试从缓存或下载目录提供
+				cachePath := filepath.Join(ap.baseDir, "audio_cache", fileName)
+				if _, err := os.Stat(cachePath); err == nil {
+					fmt.Printf("[Proxy] Serving from cache: %s\n", cachePath)
+					ap.serveLocalFile(w, r, cachePath)
+					return
+				}
+				
+				downloadPath := filepath.Join(ap.baseDir, "downloads", fileName)
+				if _, err := os.Stat(downloadPath); err == nil {
+					fmt.Printf("[Proxy] Serving from downloads: %s\n", downloadPath)
+					ap.serveLocalFile(w, r, downloadPath)
+					return
+				}
+				
+				fmt.Printf("[Proxy] No local cache found for %s (cache: %s, downloads: %s)\n", fileName, cachePath, downloadPath)
+			}
+		}
+		
+		// 无法回退，返回 403
+		http.Error(w, "upstream forbidden and no local cache available", http.StatusForbidden)
+		return
+	}
 
 	// Copy response headers, but skip CORS headers to avoid conflicts; override Content-Type for audio
 	contentType := resp.Header.Get("Content-Type")
@@ -175,6 +320,87 @@ func (ap *AudioProxy) handleAudio(w http.ResponseWriter, r *http.Request) {
 
 	// Stream response body with timeout
 	io.Copy(w, resp.Body)
+}
+
+// serveLocalFile serves a local file with proper headers and Range support
+func (ap *AudioProxy) serveLocalFile(w http.ResponseWriter, r *http.Request, filePath string) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		fmt.Printf("[Proxy] Error opening local file: %v\n", err)
+		http.Error(w, "file not found", http.StatusNotFound)
+		return
+	}
+	defer file.Close()
+
+	fileInfo, err := file.Stat()
+	if err != nil {
+		fmt.Printf("[Proxy] Error stating local file: %v\n", err)
+		http.Error(w, "stat error", http.StatusInternalServerError)
+		return
+	}
+
+	// Set response headers
+	w.Header().Set("Content-Type", "audio/mp4")
+	w.Header().Set("Accept-Ranges", "bytes")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	fileSize := fileInfo.Size()
+
+	// Handle Range requests
+	rangeHeader := r.Header.Get("Range")
+	if rangeHeader != "" {
+		ranges, err := parseRange(rangeHeader, fileSize)
+		if err == nil && len(ranges) == 1 {
+			ra := ranges[0]
+			w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", ra.start, ra.start+ra.length-1, fileSize))
+			w.Header().Set("Content-Length", fmt.Sprintf("%d", ra.length))
+			w.WriteHeader(http.StatusPartialContent)
+			file.Seek(ra.start, 0)
+			io.CopyN(w, file, ra.length)
+			return
+		}
+	}
+
+	// Full file response
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", fileSize))
+	w.WriteHeader(http.StatusOK)
+	io.Copy(w, file)
+}
+
+type httpRange struct {
+	start  int64
+	length int64
+}
+
+func parseRange(s string, size int64) ([]httpRange, error) {
+	if !strings.HasPrefix(s, "bytes=") {
+		return nil, fmt.Errorf("invalid range")
+	}
+	var ranges []httpRange
+	for _, ra := range strings.Split(s[6:], ",") {
+		ra = strings.TrimSpace(ra)
+		if ra == "" {
+			continue
+		}
+		parts := strings.Split(ra, "-")
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("invalid range")
+		}
+		start, err1 := strconv.ParseInt(parts[0], 10, 64)
+		end, err2 := strconv.ParseInt(parts[1], 10, 64)
+		if err1 != nil || err2 != nil || start < 0 || end < 0 || start > end {
+			return nil, fmt.Errorf("invalid range")
+		}
+		if start >= size {
+			return nil, fmt.Errorf("invalid range")
+		}
+		if end >= size {
+			end = size - 1
+		}
+		ranges = append(ranges, httpRange{start: start, length: end - start + 1})
+	}
+	return ranges, nil
 }
 
 // GetProxyURL returns the full proxy URL for an audio stream
@@ -226,7 +452,7 @@ func (ap *AudioProxy) handleLocal(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Let ServeFile handle Range and Content-Type (CORS already set at function start)
+	// Let serveLocalFile handle Range and Content-Type (CORS already set at function start)
 	fmt.Printf("[Proxy] Serving local file: %s\n", path)
-	http.ServeFile(w, r, path)
+	ap.serveLocalFile(w, r, path)
 }

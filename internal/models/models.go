@@ -50,35 +50,14 @@ type SongRef struct {
 }
 
 // Theme represents a theme configuration
+// Data field stores the complete theme configuration as JSON
+// Backend doesn't enforce schema, allowing flexible field changes on frontend
 type Theme struct {
-	ID                  string  `json:"id"`
-	Name                string  `json:"name"`
-	ThemeColor          string  `json:"themeColor"`
-	BackgroundColor     string  `json:"backgroundColor"`
-	BackgroundOpacity   float64 `json:"backgroundOpacity"`
-	BackgroundImage     string  `json:"backgroundImage"`
-	BackgroundBlur      float64 `json:"backgroundBlur"`      // Blur radius for background image (0-50)
-	PanelColor          string  `json:"panelColor"`
-	PanelOpacity        float64 `json:"panelOpacity"`
-	PanelBlur           float64 `json:"panelBlur"`            // Gaussian blur for panels (0-30)
-	PanelRadius         float64 `json:"panelRadius"`          // Border radius for panels (0-20)
-	ControlColor        string  `json:"controlColor"`        // Color for buttons/inputs
-	ControlOpacity      float64 `json:"controlOpacity"`      // Opacity for buttons/inputs
-	ControlBlur         float64 `json:"controlBlur"`         // Blur for buttons/inputs (0-20)
-	TextColorPrimary    string  `json:"textColorPrimary"`    // Primary text color
-	TextColorSecondary  string  `json:"textColorSecondary"`  // Secondary/dimmed text color
-	FavoriteCardColor   string  `json:"favoriteCardColor"`   // Color for favorite list cards
-	CardOpacity         float64 `json:"cardOpacity"`         // Opacity for cards (0-1)
-	ComponentRadius     float64 `json:"componentRadius"`       // Border radius for components like buttons/inputs (0-32)
-	ModalRadius         float64 `json:"modalRadius"`           // Border radius for modals (0-32)
-	NotificationRadius  float64 `json:"notificationRadius"`    // Border radius for notifications (0-32)
-	CoverRadius         float64 `json:"coverRadius"`           // Border radius for song covers (0-32)
-	ModalColor          string  `json:"modalColor"`            // Color for modal backgrounds
-	ModalOpacity        float64 `json:"modalOpacity"`          // Opacity for modals (0-1)
-	ModalBlur           float64 `json:"modalBlur"`             // Blur radius for modals (0-30)
-	WindowControlsPos   string  `json:"windowControlsPos"`    // Position of window controls: "left", "right", "hidden" (default: "right")
-	IsDefault           bool    `json:"isDefault"`
-	IsReadOnly          bool    `json:"isReadOnly"`
+	ID       string    `json:"id"`
+	Name     string    `json:"name"`
+	Data     string    `gorm:"type:longtext" json:"data"` // JSON string containing theme configuration
+	IsDefault bool    `json:"isDefault"`
+	IsReadOnly bool   `json:"isReadOnly"`
 }
 
 // PlayerSetting captures basic playback preferences.
@@ -94,6 +73,25 @@ type Playlist struct {
 	Queue        string    `gorm:"type:longtext" json:"queue"` // JSON array of song IDs
 	CurrentIndex int       `json:"currentIndex"`
 	UpdatedAt    time.Time `json:"updatedAt"`
+}
+
+// LoginSession stores persisted login cookie (SESSDATA) for restoring session.
+// Single-row table with ID=1.
+type LoginSession struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	Sessdata  string    `json:"sessdata"`
+	SavedAt   time.Time `json:"savedAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// PlayHistory stores last played favorite + song.
+// Single-row table with ID=1.
+type PlayHistory struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	FavoriteID string   `json:"favoriteId"`
+	SongID    string    `json:"songId"`
+	Timestamp int64     `json:"timestamp"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // LyricMapping caches text and offset.

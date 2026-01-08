@@ -118,13 +118,15 @@ export const usePlaySong = ({
                     throw new Error("无法获取代理播放地址");
                 }
 
+                const proxyUrlWithSid = song.id ? `${playInfo.ProxyURL}&sid=${encodeURIComponent(song.id)}` : playInfo.ProxyURL;
+
                 toPlay = {
                     ...song,
-                    streamUrl: playInfo.ProxyURL,
+                    streamUrl: proxyUrlWithSid,
                     streamUrlExpiresAt: playInfo.ExpiresAt,
                     updatedAt: new Date().toISOString()
                 } as any;
-                console.log("已更新 streamUrl:", playInfo.ProxyURL);
+                console.log("已更新 streamUrl:", proxyUrlWithSid);
                 console.log("过期时间:", playInfo.ExpiresAt);
 
                 // 尝试保存到数据库，但如果失败也不影响播放

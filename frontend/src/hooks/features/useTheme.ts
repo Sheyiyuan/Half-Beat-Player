@@ -60,12 +60,12 @@ export const useTheme = () => {
     const applyTheme = useCallback((theme: Theme) => {
         skipPersistRef.current = true;
         setCurrentThemeId(theme.id);
-        setThemeColor(theme.themeColor);
-        setBackgroundColor(theme.backgroundColor);
-        setBackgroundOpacity(theme.backgroundOpacity);
-        setBackgroundImageUrl(theme.backgroundImage);
-        setPanelColor(theme.panelColor);
-        setPanelOpacity(theme.panelOpacity);
+        setThemeColor(theme.themeColor || '#ffffff');
+        setBackgroundColor(theme.backgroundColor || '#ffffff');
+        setBackgroundOpacity(theme.backgroundOpacity ?? 1);
+        setBackgroundImageUrl(theme.backgroundImage || '');
+        setPanelColor(theme.panelColor || '#ffffff');
+        setPanelOpacity(theme.panelOpacity ?? 0.92);
         if (theme.colorScheme && (theme.colorScheme === 'light' || theme.colorScheme === 'dark')) {
             setColorScheme(theme.colorScheme as 'light' | 'dark');
         }

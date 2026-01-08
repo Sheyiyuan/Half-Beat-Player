@@ -36,12 +36,12 @@ export const usePlaybackControls = ({
 }: UsePlaybackControlsProps) => {
     /**
      * 播放下一首
-     * 注意：single 模式不应该调用这个函数，单曲循环在 onEnded 事件中处理
+     * 注意：single 模式下“播放结束”由 onEnded 做单曲循环；但用户手动点击“下一曲”仍应正常切歌。
      * 
      * 播放模式说明：
      * - loop: 列表循环，播放到最后一首后回到第一首
      * - random: 随机播放，随机选择下一首
-     * - single: 单曲循环，不调用此函数
+     * - single: 单曲循环（onEnded 重播）；手动切歌按列表顺序
      */
     const playNext = useCallback(() => {
         if (queue.length === 0) return;
@@ -69,17 +69,13 @@ export const usePlaybackControls = ({
             // 随机播放：随机选择下一首（可能重复）
             nextIdx = Math.floor(Math.random() * queue.length);
             console.log('[playNext] 随机模式，选择索引:', nextIdx);
-        } else if (playMode === "loop") {
-            // 列表循环：播放下一首，到最后一首后回到第一首
+        } else {
+            // 列表循环/单曲循环：手动切歌按列表顺序
             nextIdx = currentIndex + 1;
             if (nextIdx >= queue.length) {
                 nextIdx = 0;
             }
-            console.log('[playNext] 列表循环，当前索引:', currentIndex, '下一个索引:', nextIdx);
-        } else {
-            // single 模式不应该调用此函数
-            console.warn('[playNext] 单曲循环模式不应该调用 playNext');
-            return;
+            console.log('[playNext] 顺序切歌，当前索引:', currentIndex, '下一个索引:', nextIdx, '模式:', playMode);
         }
 
         setCurrentIndex(nextIdx);

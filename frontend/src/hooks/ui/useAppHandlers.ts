@@ -31,6 +31,7 @@ export const useAppHandlers = (config: {
     cardOpacityDraft: number;
     componentRadiusDraft: number;
     windowControlsPosDraft: string;
+    colorSchemeDraft: string;
     setBackgroundImageUrlDraftSafe: (url: string) => void;
     setBackgroundBlurDraft?: (blur: number) => void;
     setPanelBlurDraft?: (blur: number) => void;
@@ -119,6 +120,7 @@ export const useAppHandlers = (config: {
         cardOpacityDraft,
         componentRadiusDraft,
         windowControlsPosDraft,
+        colorSchemeDraft,
         setBackgroundImageUrlDraftSafe,
         favoriteActions,
         editingFavId,
@@ -306,34 +308,6 @@ export const useAppHandlers = (config: {
     };
 
     // ========== 设置弹窗 ==========
-    const handleClearLoginCache = async () => {
-        try {
-            await Services.Logout();
-        } catch { }
-        try {
-            localStorage.removeItem("half-beat.userInfo");
-        } catch { }
-        // 清空我的收藏夹列表缓存
-        config.myFavoriteImport?.clearCollections?.();
-        setUserInfo(null);
-        notifications.show({
-            title: "已清除登录缓存",
-            message: "需要重新扫码登录",
-            color: "green",
-        });
-    };
-
-    const handleClearThemeCache = () => {
-        try {
-            localStorage.removeItem("half-beat.customThemes");
-            saveCachedCustomThemes([]);
-        } catch { }
-        notifications.show({
-            title: "已清除主题缓存",
-            message: "已重置到默认主题",
-            color: "green",
-        });
-    };
 
     const handleOpenDownloadsFolder = async () => {
         try {
@@ -362,7 +336,8 @@ export const useAppHandlers = (config: {
     const handleClearMusicCache = async () => {
         try {
             await Services.ClearAudioCache();
-            setCacheSize(0);
+            const size = await Services.GetAudioCacheSize();
+            setCacheSize(size);
             notifications.show({
                 title: "已清除音乐缓存",
                 message: "已删除所有离线音乐文件",
@@ -375,22 +350,6 @@ export const useAppHandlers = (config: {
                 color: "red",
             });
         }
-    };
-
-    const handleClearAllCache = async () => {
-        try {
-            await Services.Logout();
-        } catch { }
-        try {
-            localStorage.clear();
-        } catch { }
-        setCacheSize(0);
-        setUserInfo(null);
-        notifications.show({
-            title: "已清除所有缓存",
-            message: "请重新配置与登录",
-            color: "green",
-        });
     };
 
     // ========== BV 模态 ==========
@@ -447,12 +406,9 @@ export const useAppHandlers = (config: {
         handleSliceEndChange,
         handleCreateFavoriteInModal,
         // 设置
-        handleClearLoginCache,
-        handleClearThemeCache,
         handleOpenDownloadsFolder,
         handleOpenDatabaseFile,
         handleClearMusicCache,
-        handleClearAllCache,
         // BV 模态
         handleConfirmBVAdd,
     };

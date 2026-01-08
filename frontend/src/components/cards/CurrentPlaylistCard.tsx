@@ -1,7 +1,7 @@
 import React from "react";
 import { ActionIcon, Button, Card, Flex, Group, ScrollArea, Stack, Text, TextInput, Transition } from "@mantine/core";
 import { Download, SquarePlus, Trash2 } from "lucide-react";
-import { Favorite, Song } from "../types";
+import { Favorite, Song } from "../../types";
 
 export type CurrentPlaylistCardProps = {
     panelBackground: string;
@@ -66,7 +66,9 @@ const CurrentPlaylistCard: React.FC<CurrentPlaylistCardProps> = ({
     return (
         <Card flex={1} shadow="sm" padding="md" withBorder miw={0} h="100%" className="glass-panel" style={{ ...panelStyles, minHeight: 0, backgroundColor: panelBackground, display: "flex", flexDirection: "column" }}>
             <Group justify="space-between" mb="sm">
-                <Text fw={600} size="sm" style={{ color: textColorPrimary }}>{currentFav?.title || "选择歌单"}</Text>
+                <Text fw={600} size="sm" style={{ color: textColorPrimary, flex: 1, minWidth: 0 }} lineClamp={1}>
+                    {currentFav?.title || "选择歌单"}
+                </Text>
                 <Group gap="xs">
                     <Button size="xs" variant="light" color={themeColor} disabled={!currentFav} onClick={onPlayAll} radius={componentRadius}>播放全部</Button>
                     <Button size="xs" variant="light" color={themeColor} disabled={!currentFav} onClick={onDownloadAll} radius={componentRadius}>下载全部</Button>
@@ -113,9 +115,13 @@ const CurrentPlaylistCard: React.FC<CurrentPlaylistCardProps> = ({
                                             color: isSelected ? "white" : textColorPrimary,
                                         }}
                                     >
-                                        <Stack gap={2} align="flex-start">
-                                            <Text fw={500} size="sm" style={{ color: "inherit" }}>{s.name}</Text>
-                                            <Text size="xs" style={{ color: isSelected ? "rgba(255,255,255,0.7)" : textColorSecondary }}>{s.singer || "未知歌手"}</Text>
+                                        <Stack gap={2} align="flex-start" style={{ width: "100%", minWidth: 0, overflow: "hidden" }}>
+                                            <Text fw={500} size="sm" style={{ color: "inherit", width: "100%" }} truncate>
+                                                {s.name}
+                                            </Text>
+                                            <Text size="xs" style={{ color: isSelected ? "rgba(255,255,255,0.7)" : textColorSecondary, width: "100%" }} truncate>
+                                                {s.singer || "未知歌手"}
+                                            </Text>
                                         </Stack>
                                     </Button>
                                     <Group gap={4} wrap="nowrap">

@@ -191,7 +191,7 @@ export const useAppPanelsProps = (params: UseAppPanelsPropsParams) => {
                 setBackgroundImageUrlDraftSafe(backgroundImageUrl);
                 setPanelColorDraft(panelColor);
                 setPanelOpacityDraft(panelOpacity);
-                openModal("themeModal");
+                openModal("themeManagerModal");
             },
             onSettingsClick: () => openModal("settingsModal"),
             onLoginClick: () => openModal("loginModal"),

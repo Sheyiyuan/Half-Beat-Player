@@ -94,10 +94,10 @@ Priority: optional
 Architecture: amd64
 Depends: libc6, libgtk-3-0, libwebkit2gtk-4.1-0 | libwebkit2gtk-4.0-37
 Maintainer: Sheyiyuan <sheyiyuantan90@qq.com>
-Description: 基于 B站 API 的音乐播放器
- Tomorin Player 是一款轻量的音乐播放器，采用 Wails v2 构建。
+Description: 基于 B站 API 的音乐播放器，实现你的「听视频」自由。
+ Half-Beat-Player 是一款轻量的音乐播放器，采用 Wails v2 构建。
  支持 B 站扫码登录、BV 号解析、收藏夹导入、歌单管理等功能。
-Homepage: https://github.com/Sheyiyuan/Tomorin-Player
+Homepage: https://github.com/Sheyiyuan/Half-Beat-Player
 EOF
 
 cat > "${DEB_DIR}/DEBIAN/postinst" << 'EOF'

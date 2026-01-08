@@ -153,7 +153,6 @@ export const useSettingsPersistence = ({
             } catch { }
             try {
                 localStorage.removeItem("half-beat.userInfo");
-                localStorage.removeItem("half-beat.customThemes");
             } catch { }
         };
         window.addEventListener("beforeunload", handleBeforeUnload);

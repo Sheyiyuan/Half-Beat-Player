@@ -1,7 +1,7 @@
 import React from "react";
 import { Paper } from "@mantine/core";
-import PlayerBar from "./PlayerBar";
-import { Song } from "../types";
+import { PlayerBar } from ".";
+import { Song } from "../../types";
 
 interface ControlsPanelProps {
     themeColor: string;

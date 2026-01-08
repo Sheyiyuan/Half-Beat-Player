@@ -1,6 +1,6 @@
 import React from "react";
 import { Button, Card, Group, ScrollArea, Stack, Text, Transition } from "@mantine/core";
-import { Favorite, Song } from "../types";
+import { Favorite, Song } from "../../types";
 
 export type FavoriteListCardProps = {
     panelBackground: string;
@@ -76,7 +76,9 @@ const FavoriteListCard: React.FC<FavoriteListCardProps> = ({
                                 }}
                             >
                                 <Stack gap={6}>
-                                    <Text fw={600} size="sm" style={{ color: isSelected ? "white" : textColorPrimary }}>{f.title}</Text>
+                                    <Text fw={600} size="sm" style={{ color: isSelected ? "white" : textColorPrimary }} lineClamp={1}>
+                                        {f.title}
+                                    </Text>
                                     <Text size="xs" style={{ color: isSelected ? "rgba(255,255,255,0.7)" : textColorSecondary }}>{f.songIds.length} 首</Text>
                                     <Group gap="xs" wrap="nowrap">
                                         <Button

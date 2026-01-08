@@ -1,10 +1,9 @@
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import { ActionIcon, Avatar, Button, Group, Menu, Text } from "@mantine/core";
 import { LogOut, Palette, Search, Settings as SettingsIcon } from "lucide-react";
 import { notifications } from "@mantine/notifications";
-import * as Services from "../../wailsjs/go/services/Service";
-import { useThemeContext } from "../context";
-import { WindowControls } from "./WindowControls";
+import * as Services from "../../../wailsjs/go/services/Service";
+import { WindowControls } from "./";
 
 interface UserInfo {
     username: string;
@@ -49,33 +48,6 @@ export const TopBar: React.FC<TopBarProps> = ({
     textColorPrimary,
     textColorSecondary,
 }) => {
-    const dragAreaRef = useRef<HTMLDivElement>(null);
-
-    // 实现窗口拖拽功能
-    useEffect(() => {
-        const dragArea = dragAreaRef.current;
-        if (!dragArea) return;
-
-        const handleMouseDown = (e: MouseEvent) => {
-            // 检查点击是否在可拖拽区域（hitokoto 文本区域）
-            if ((e.target as HTMLElement).closest(".window-control")) {
-                return;
-            }
-            if ((e.target as HTMLElement).closest("button") || (e.target as HTMLElement).closest("[role='button']")) {
-                return;
-            }
-
-            // 调用后端拖拽方法
-            Services.DragWindow();
-        };
-
-        dragArea.addEventListener("mousedown", handleMouseDown);
-
-        return () => {
-            dragArea.removeEventListener("mousedown", handleMouseDown);
-        };
-    }, []);
-
     const handleLogout = async () => {
         try {
             await Services.Logout();
@@ -102,11 +74,18 @@ export const TopBar: React.FC<TopBarProps> = ({
             className="glass-panel"
             style={{
                 ...panelStyles,
+                // Wails frameless window drag support
+                // The runtime listens for mousedown on elements whose computed style has --wails-draggable: drag
+                // CSS custom properties inherit, interactive elements are excluded in index.css
+                ["--wails-draggable" as any]: "drag",
                 minHeight: "52px",
                 padding: "8px 12px",
                 flex: "0 0 auto",
                 backgroundColor: panelBackground,
                 border: "1px solid var(--mantine-color-default-border)",
+                cursor: "grab",
+                userSelect: "none",
+                WebkitUserSelect: "none",
             }}
             wrap="nowrap"
         >
@@ -131,16 +110,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 </ActionIcon>
             </div>
 
-            <div
-                ref={dragAreaRef}
-                style={{
-                    flex: 1,
-                    textAlign: "center",
-                    cursor: "grab",
-                    userSelect: "none",
-                    WebkitUserSelect: "none",
-                } as React.CSSProperties}
-            >
+            <div style={{ flex: 1, textAlign: "center" }}>
                 <Text size="sm" style={{ textAlign: "center", color: textColorSecondary }}>
                     {hitokoto}
                 </Text>
@@ -150,16 +120,18 @@ export const TopBar: React.FC<TopBarProps> = ({
                 {userInfo ? (
                     <Menu trigger="hover" openDelay={100} closeDelay={400} position="bottom-end" withArrow radius={componentRadius}>
                         <Menu.Target>
-                            <Avatar
-                                src={userInfo.face}
-                                alt={userInfo.username}
-                                size={28}
-                                radius={componentRadius}
-                                style={{
-                                    border: "2px solid " + themeColor,
-                                    cursor: "pointer",
-                                }}
-                            />
+                            <div className="app-no-drag">
+                                <Avatar
+                                    src={userInfo.face}
+                                    alt={userInfo.username}
+                                    size={28}
+                                    radius={componentRadius}
+                                    style={{
+                                        border: "2px solid " + themeColor,
+                                        cursor: "pointer",
+                                    }}
+                                />
+                            </div>
                         </Menu.Target>
                         <Menu.Dropdown style={{ backgroundColor: panelBackground, backdropFilter: undefined, WebkitBackdropFilter: undefined }}>
                             <Menu.Label>

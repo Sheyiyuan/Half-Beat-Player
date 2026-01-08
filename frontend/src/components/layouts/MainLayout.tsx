@@ -1,9 +1,7 @@
 import React from "react";
 import { Flex } from "@mantine/core";
-import SongDetailCard from "./SongDetailCard";
-import CurrentPlaylistCard from "./CurrentPlaylistCard";
-import FavoriteListCard from "./FavoriteListCard";
-import { Song, Favorite, SongClass } from "../types";
+import { SongDetailCard, CurrentPlaylistCard, FavoriteListCard } from "../cards";
+import { Song, Favorite, SongClass } from "../../types";
 
 interface MainLayoutProps {
     // SongDetailCard props

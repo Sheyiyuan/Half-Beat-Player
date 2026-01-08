@@ -1,6 +1,6 @@
 import React from "react";
 import { Button, Modal, Stack, Text } from "@mantine/core";
-import { Favorite, Song } from "../types";
+import { Favorite, Song } from "../../types";
 
 export type AddToFavoriteModalProps = {
     opened: boolean;
@@ -23,7 +23,6 @@ const AddToFavoriteModal: React.FC<AddToFavoriteModalProps> = ({ opened, onClose
             overlayProps={{ blur: 10, opacity: 0.35 }}
             styles={{
                 content: {
-                    ...panelStyles,
                     backgroundColor: derived?.modalBackground,
                     color: derived?.textColorPrimary,
                 },

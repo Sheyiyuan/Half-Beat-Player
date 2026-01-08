@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 
 export interface ModalStates {
     loginModal: boolean;
-    themeModal: boolean;
+    themeManagerModal: boolean;
     themeEditorModal: boolean;
     themeDetailModal: boolean;
     settingsModal: boolean;
@@ -13,8 +13,8 @@ export interface ModalStates {
     globalSearchModal: boolean;
     downloadModal: boolean;
     createFavModal: boolean;
-    themeManagerModal: boolean;
     downloadManagerModal: boolean;
+    downloadTasksModal: boolean;
     bvAddModal: boolean;
     globalSearchTermModal: boolean;
     playlistManagerModal: boolean;
@@ -23,7 +23,7 @@ export interface ModalStates {
 export const useModalManager = () => {
     const [modals, setModals] = useState<ModalStates>({
         loginModal: false,
-        themeModal: false,
+        themeManagerModal: false,
         themeEditorModal: false,
         themeDetailModal: false,
         settingsModal: false,
@@ -34,8 +34,8 @@ export const useModalManager = () => {
         globalSearchModal: false,
         downloadModal: false,
         createFavModal: false,
-        themeManagerModal: false,
         downloadManagerModal: false,
+        downloadTasksModal: false,
         bvAddModal: false,
         globalSearchTermModal: false,
         playlistManagerModal: false,

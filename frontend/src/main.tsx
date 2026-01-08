@@ -12,7 +12,7 @@ import "@mantine/notifications/styles.css";
 import "./index.css";
 import "../wailsjs/runtime/runtime";
 import App from "./App";
-import { AppProvider, ThemeProvider, ModalProvider } from "./context";
+import { AppProvider } from "./context/AppContext";
 
 const container = document.getElementById("root");
 if (!container) throw new Error("Root container missing");
@@ -33,12 +33,9 @@ createRoot(container).render(
         >
             <Notifications position="top-right" zIndex={2000} />
             <AppProvider>
-                <ThemeProvider>
-                    <ModalProvider>
-                        <App />
-                    </ModalProvider>
-                </ThemeProvider>
+                <App />
             </AppProvider>
         </MantineProvider>
     </React.StrictMode>
 );
+
