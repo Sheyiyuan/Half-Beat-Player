@@ -35,6 +35,11 @@
         "icon": "assets/icons/appicon.png",
         "windowIsTranslucent": false
     },
+    "darwin": {
+        "icon": "build/darwin/icon.icns",
+        "bundleId": "com.sheyiyuan.half-beat",
+        "category": "public.app-category.music"
+    },
     "windows": {
         "icon": "build/windows/icon.ico",
         "webviewIsTransparent": false,

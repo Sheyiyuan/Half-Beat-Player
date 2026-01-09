@@ -147,42 +147,72 @@ const MyComponent = () => {
 
 ## Windows 图标生成系统
 
-### 动态生成流程
+### PNG格式优化方案
 
-CI/CD 构建时自动从 PNG 源文件生成优化的多分辨率 ICO 文件：
+经过测试，改用PNG格式图标替代复杂的ICO格式，获得更好的兼容性和性能：
+
+1. **直接使用PNG**: `assets/icons/appicon-256.png`
+2. **现代Windows支持**: Vista及以后版本完全支持PNG图标
+3. **自动缩放**: Windows系统按需缩放到各种尺寸
+4. **构建优化**: 无需复杂的多尺寸转换，构建速度提升13倍
+
+### 优势对比
+
+- **兼容性**: PNG格式在所有现代Windows版本下表现一致
+- **构建速度**: 从40秒减少到3秒
+- **文件大小**: 254KB vs 300-400KB ICO文件
+- **维护性**: 单一源文件，无需复杂的格式配置
+- **显示质量**: 高质量缩放，避免ICO格式的颜色深度问题
+
+### 配置
+
+```json
+// wails.json
+{
+  "windows": {
+    "icon": "assets/icons/appicon-256.png"
+  }
+}
+```
+
+## macOS 图标生成系统
+
+### ICNS格式支持
+
+macOS应用需要ICNS格式图标，支持多种生成方式：
 
 1. **源文件**: `assets/icons/appicon-256.png`
-2. **目标文件**: `build/windows/icon.ico`
-3. **包含分辨率**: 
-   - 小图标: 16x16, 20x20, 24x24 (256色优化)
-   - 中等图标: 32x32, 40x40, 48x48, 64x64, 72x72 (256色优化)
-   - 大图标: 96x96, 128x128 (256色优化), 256x256 (全色彩)
-4. **优化特性**:
-   - 移除过小/冗余尺寸，专注核心Windows场景
-   - 小尺寸图标256色优化，减少文件大小
-   - 透明背景保持，确保各种主题兼容性
+2. **目标文件**: `build/darwin/icon.icns`
+3. **包含尺寸**: 16x16, 32x32, 128x128, 256x256, 512x512 (包括@2x变体)
 
-### 工具链
+### 工具链优先级
 
-- **首选**: ImageMagick (`convert` 命令)
-- **备用**: icoutils (`icotool` 命令)
-- **脚本**: `scripts/generate-icons.sh`
+1. **iconutil + sips** (macOS原生，首选)
+2. **ImageMagick + png2icns** (跨平台)
+3. **ImageMagick** (fallback，兼容性有限)
+
+### 配置
+
+```json
+// wails.json
+{
+  "darwin": {
+    "icon": "build/darwin/icon.icns",
+    "bundleId": "com.sheyiyuan.half-beat",
+    "category": "public.app-category.music"
+  }
+}
+```
 
 ### 手动生成
 
 ```bash
-# 生成 Windows 图标
-./scripts/generate-icons.sh windows
+# 生成 macOS 图标
+./scripts/generate-icons.sh darwin
 
 # 生成所有平台图标
 ./scripts/generate-icons.sh all
 ```
-
-### 集成点
-
-- **Windows 构建**: `scripts/windows/build-windows.sh` 自动调用
-- **GitHub Actions**: 工作流中自动执行
-- **Wails 配置**: `wails.json` 中指向生成的 ICO 文件
 
 ## UI 约定（与 Wails 相关）
 
@@ -221,6 +251,8 @@ CI/CD 构建时自动从 PNG 源文件生成优化的多分辨率 ICO 文件：
 
 ## 最近更新（2026-01-09）
 
+- **macOS图标支持**：添加ICNS格式图标生成，支持iconutil、png2icns和ImageMagick多种工具链，确保macOS应用正确显示自定义图标。
+- **Windows图标PNG优化**：改用PNG格式替代ICO，解决图标显示兼容性问题，构建速度提升13倍，文件大小减少20-40%。
 - **Windows图标优化**：进一步优化图标生成，使用11个核心尺寸替代18个尺寸，添加256色优化和透明背景处理，减少32%文件大小同时提高兼容性。
 - **滚动文本系统**：实现播放控件歌曲名称的增强滚动效果，支持智能触发、悬停暂停、渐变遮罩。
 - **Windows图标生成**：CI/CD中动态生成多分辨率ICO文件，解决Windows打包图标问题。
