@@ -7,13 +7,16 @@ export type AddToFavoriteModalProps = {
     onClose: () => void;
     favorites: Favorite[];
     currentSong: Song | null;
+    pendingFavoriteSong?: Song | null;
     themeColor: string;
     onAdd: (fav: Favorite) => void;
     panelStyles?: React.CSSProperties;
     derived?: any;
 };
 
-const AddToFavoriteModal: React.FC<AddToFavoriteModalProps> = ({ opened, onClose, favorites, currentSong, themeColor, onAdd, panelStyles, derived }) => {
+const AddToFavoriteModal: React.FC<AddToFavoriteModalProps> = ({ opened, onClose, favorites, currentSong, pendingFavoriteSong, themeColor, onAdd, panelStyles, derived }) => {
+    // 优先使用 pendingFavoriteSong，如果没有则使用 currentSong
+    const targetSong = pendingFavoriteSong || currentSong;
     return (
         <Modal
             opened={opened}
@@ -41,7 +44,7 @@ const AddToFavoriteModal: React.FC<AddToFavoriteModalProps> = ({ opened, onClose
                     <Text c={derived?.textColorSecondary}>没有歌单</Text>
                 ) : (
                     favorites.map((fav) => {
-                        const isInFav = currentSong && fav.songIds.some(ref => ref.songId === currentSong.id) ? true : false;
+                        const isInFav = targetSong && fav.songIds.some(ref => ref.songId === targetSong.id) ? true : false;
                         return (
                             <Button
                                 key={fav.id}
@@ -49,7 +52,7 @@ const AddToFavoriteModal: React.FC<AddToFavoriteModalProps> = ({ opened, onClose
                                 color={themeColor}
                                 disabled={isInFav}
                                 onClick={() => {
-                                    if (currentSong && !isInFav) {
+                                    if (targetSong && !isInFav) {
                                         onAdd(fav);
                                     }
                                 }}

@@ -115,11 +115,11 @@ const CurrentPlaylistCard: React.FC<CurrentPlaylistCardProps> = ({
                                             color: isSelected ? "white" : textColorPrimary,
                                         }}
                                     >
-                                        <Stack gap={2} align="flex-start" style={{ width: "100%", minWidth: 0, overflow: "hidden" }}>
-                                            <Text fw={500} size="sm" style={{ color: "inherit", width: "100%" }} truncate>
+                                        <Stack gap={2} align="flex-start" style={{ width: "100%", minWidth: 0, overflow: "hidden", textAlign: "left" }}>
+                                            <Text fw={500} size="sm" style={{ color: "inherit", width: "100%", textAlign: "left" }} truncate>
                                                 {s.name}
                                             </Text>
-                                            <Text size="xs" style={{ color: isSelected ? "rgba(255,255,255,0.7)" : textColorSecondary, width: "100%" }} truncate>
+                                            <Text size="xs" style={{ color: isSelected ? "rgba(255,255,255,0.7)" : textColorSecondary, width: "100%", textAlign: "left" }} truncate>
                                                 {s.singer || "未知歌手"}
                                             </Text>
                                         </Stack>

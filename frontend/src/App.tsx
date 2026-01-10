@@ -22,7 +22,7 @@ import { AppPanels } from "./components/layouts";
 // Utils
 import { formatTime, formatTimeLabel, parseTimeLabel, formatTimeWithMs } from "./utils/time";
 import { APP_VERSION, PLACEHOLDER_COVER, DEFAULT_THEMES } from "./utils/constants";
-import { LyricMapping, PlayerSetting } from "./types";
+import { LyricMapping, PlayerSetting, Song } from "./types";
 
 // Wails runtime
 declare global {
@@ -151,6 +151,7 @@ const App: React.FC = () => {
     // ========== 内部状态 ==========
     const [setting, setSetting] = useState<PlayerSetting | null>(null);
     const [lyric, setLyric] = useState<LyricMapping | null>(null);
+    const [pendingFavoriteSong, setPendingFavoriteSong] = useState<Song | null>(null);
 
     // ========== Refs ==========
     const playingRef = useRef<string | null>(null);
@@ -183,7 +184,10 @@ const App: React.FC = () => {
 
     const { playSong } = usePlaySong({ queue, selectedFavId, setQueue, setCurrentIndex, setCurrentSong, setIsPlaying, setStatus, setSongs, playbackRetryRef });
 
-    const playlistActions = usePlaylistActions({ queue, setQueue, currentIndex, setCurrentIndex, setCurrentSong, setIsPlaying, currentFav, favorites, setFavorites, setStatus, setConfirmRemoveSongId, openModal, closeModal, playSong });
+    const songOperations = useSongOperations({ currentSong, songs, favorites, setSongs, setCurrentSong, setFavorites, playSong });
+    const { addSong, updateStreamUrl, addCurrentToFavorite, addSongToFavorite, updateSongInfo } = songOperations;
+
+    const playlistActions = usePlaylistActions({ queue, setQueue, currentIndex, setCurrentIndex, currentSong, setCurrentSong, setIsPlaying, currentFav, favorites, setFavorites, setStatus, setConfirmRemoveSongId, openModal, closeModal, playSong, addCurrentToFavorite, addSongToFavorite, setPendingFavoriteSong, pendingFavoriteSong });
 
     const themeEditor = useThemeEditor({ themes, setThemes, defaultThemes: DEFAULT_THEMES, currentThemeId, computedColorScheme, saveCachedCustomThemes, applyThemeToUi: store.actions.applyTheme, getCustomThemesFromState: getCustomThemes, editingThemeId, setEditingThemeId, newThemeName, setNewThemeName, themeColorDraft, setThemeColorDraft, backgroundColorDraft, setBackgroundColorDraft, backgroundOpacityDraft, setBackgroundOpacityDraft, backgroundImageUrlDraft, setBackgroundImageUrlDraftSafe, backgroundBlurDraft, setBackgroundBlurDraft, panelColorDraft, setPanelColorDraft, panelOpacityDraft, setPanelOpacityDraft, panelBlurDraft, setPanelBlurDraft, panelRadiusDraft, setPanelRadiusDraft, controlColorDraft, setControlColorDraft, controlOpacityDraft, setControlOpacityDraft, controlBlurDraft, setControlBlurDraft, textColorPrimaryDraft, setTextColorPrimaryDraft, textColorSecondaryDraft, setTextColorSecondaryDraft, favoriteCardColorDraft, setFavoriteCardColorDraft, cardOpacityDraft, setCardOpacityDraft, modalRadiusDraft, setModalRadiusDraft, notificationRadiusDraft, setNotificationRadiusDraft, componentRadiusDraft, setComponentRadiusDraft, coverRadiusDraft, setCoverRadiusDraft, modalColorDraft, setModalColorDraft, modalOpacityDraft, setModalOpacityDraft, modalBlurDraft, setModalBlurDraft, windowControlsPosDraft, setWindowControlsPosDraft, colorSchemeDraft, setColorSchemeDraft, setSavingTheme, openModal, closeModal });
 
@@ -207,9 +211,6 @@ const App: React.FC = () => {
 
     const settingsPersistence = useSettingsPersistence({ setting, playMode, volume, currentThemeId: currentThemeId || "", themeColor, backgroundColor, backgroundOpacity, backgroundImageUrl, panelColor, panelOpacity, panelBlur, panelRadius, controlColor, controlOpacity, textColorPrimary, textColorSecondary, favoriteCardColor, componentRadius, modalRadius, notificationRadius, coverRadius, windowControlsPos, setSetting, skipPersistRef });
     const { persistSettings, settingsLoadedRef } = settingsPersistence;
-
-    const songOperations = useSongOperations({ currentSong, songs, favorites, setSongs, setCurrentSong, setFavorites, playSong });
-    const { addSong, updateStreamUrl, addCurrentToFavorite, updateSongInfo } = songOperations;
 
     usePlaylistPersistence({ queue, currentIndex });
     useLyricLoader({ currentSong, setLyric });
@@ -300,6 +301,7 @@ const App: React.FC = () => {
                     queue={queue}
                     currentIndex={currentIndex}
                     currentSong={currentSong}
+                    pendingFavoriteSong={pendingFavoriteSong}
                     globalSearchTerm={globalSearchTerm}
                     globalSearchResults={globalSearchResults}
                     remoteResults={remoteResults}

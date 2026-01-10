@@ -79,6 +79,24 @@ a,
     background-color: transparent !important;
 }
 
+@keyframes scrollText {
+    0% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(0);
+    }
+
+    75% {
+        transform: translateX(calc(-100% + 300px));
+    }
+
+    100% {
+        transform: translateX(calc(-100% + 300px));
+    }
+}
+
 @keyframes smoothScroll {
     0% {
         transform: translate3d(0, 0, 0);

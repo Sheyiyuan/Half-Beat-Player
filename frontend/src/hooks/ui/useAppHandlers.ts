@@ -231,7 +231,7 @@ export const useAppHandlers = (config: {
     };
 
     // ========== 播放列表处理 ==========
-    const handleAddSongToFavorite = playlistActions.addSongToFavorite;
+    const handleAddSongToFavorite = playlistActions.addSongToFavoriteFromList;
     const handleRemoveSongFromPlaylist = playlistActions.removeSongFromPlaylist;
     const handleAddToFavoriteFromModal = playlistActions.addToFavoriteFromModal;
     const handlePlaylistSelect = playlistActions.playlistSelect;

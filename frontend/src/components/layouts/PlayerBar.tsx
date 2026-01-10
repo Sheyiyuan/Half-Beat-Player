@@ -1,9 +1,10 @@
-import React, { useState, memo, useCallback, useMemo } from "react";
-import { ActionIcon, Box, Group, Image, Slider, Stack, Text } from "@mantine/core";
+import React, { useState } from "react";
+import { ActionIcon, Box, Group, Image, Slider, Stack, Text, Modal, Button } from "@mantine/core";
 import { Download, ListMusic, Music, Pause, Play, Repeat, Repeat1, Shuffle, SkipBack, SkipForward, SquarePlus, Volume, Volume1, Volume2, VolumeX } from "lucide-react";
-import { Song } from "../../types";
+import { Song, Favorite } from "../../types";
 import { useImageProxy } from "../../hooks/ui/useImageProxy";
-import { ScrollingText } from "../ui/ScrollingText";
+import * as Services from "../../../wailsjs/go/services/Service";
+import { convertFavorites } from "../../types";
 
 export type PlayerBarProps = {
     themeColor: string;
@@ -23,7 +24,7 @@ export type PlayerBarProps = {
     isPlaying: boolean;
     playMode: "loop" | "random" | "single";
     onTogglePlayMode: () => void;
-    onAddToFavorite: () => void;
+    // onAddToFavorite: () => void; // 移除这个 prop，使用独立实现
     onShowPlaylist: () => void;
     onDownloadSong: () => void;
     onManageDownload: () => void;
@@ -39,7 +40,7 @@ export type PlayerBarProps = {
     textColorSecondary?: string;
 };
 
-const PlayerBarComponent: React.FC<PlayerBarProps> = ({
+const PlayerBar: React.FC<PlayerBarProps> = ({
     themeColor,
     computedColorScheme,
     currentSong,
@@ -56,7 +57,7 @@ const PlayerBarComponent: React.FC<PlayerBarProps> = ({
     isPlaying,
     playMode,
     onTogglePlayMode,
-    onAddToFavorite,
+    // onAddToFavorite, // 移除这个参数
     onShowPlaylist,
     onDownloadSong,
     onManageDownload,
@@ -72,21 +73,83 @@ const PlayerBarComponent: React.FC<PlayerBarProps> = ({
     textColorSecondary,
 }) => {
     const { getProxiedImageUrlSync } = useImageProxy();
-
-    // 本地化音量控制状态，避免全局状态污染
+    const isDownloaded = currentSong ? downloadedSongIds.has(currentSong.id) : false;
     const [isMuted, setIsMuted] = useState<boolean>(false);
     const [previousVolume, setPreviousVolume] = useState<number>(volume || 0.5);
+    const [showFavoriteModal, setShowFavoriteModal] = useState<boolean>(false);
+    const [availableFavorites, setAvailableFavorites] = useState<Favorite[]>([]);
 
-    // 缓存计算结果
-    const isDownloaded = useMemo(() =>
-        currentSong ? downloadedSongIds.has(currentSong.id) : false,
-        [currentSong, downloadedSongIds]
-    );
+    // 独立的添加到收藏夹处理函数，不依赖外部状态
+    const handleAddToFavoriteClick = async (e: React.MouseEvent) => {
+        // 完全阻止事件传播
+        e.preventDefault();
+        e.stopPropagation();
+        // e.stopImmediatePropagation(); // React 事件没有这个方法
 
-    const iconStyle = useMemo(() => ({ color: textColorPrimary }), [textColorPrimary]);
+        console.log('=== handleAddToFavoriteClick START ===');
+        console.log('Current song:', currentSong?.name);
 
-    // 使用 useCallback 稳定事件处理器
-    const handleMuteToggle = useCallback(() => {
+        if (!currentSong) {
+            console.log('No current song, returning');
+            return;
+        }
+
+        try {
+            console.log('Fetching favorites...');
+            // 获取收藏夹列表
+            const rawFavorites = await Services.ListFavorites();
+            const favorites = convertFavorites(rawFavorites || []);
+            console.log('Found favorites:', favorites.length);
+
+            if (favorites.length === 0) {
+                console.log('没有收藏夹可用');
+                return;
+            }
+
+            setAvailableFavorites(favorites);
+            setShowFavoriteModal(true);
+            console.log('Modal opened');
+        } catch (error) {
+            console.error('获取收藏夹列表失败:', error);
+        }
+
+        console.log('=== handleAddToFavoriteClick END ===');
+    };
+
+    const handleAddToSpecificFavorite = async (favorite: Favorite, e?: React.MouseEvent) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        console.log('handleAddToSpecificFavorite called for:', favorite.title);
+
+        if (!currentSong) return;
+
+        try {
+            // 检查是否已存在
+            const alreadyExists = favorite.songIds.some(ref => ref.songId === currentSong.id);
+            if (alreadyExists) {
+                console.log('歌曲已在收藏夹中');
+                setShowFavoriteModal(false);
+                return;
+            }
+
+            // 添加歌曲到收藏夹
+            const updatedFavorite = {
+                ...favorite,
+                songIds: [...favorite.songIds, { id: 0, songId: currentSong.id, favoriteId: favorite.id }],
+            };
+
+            await Services.SaveFavorite(updatedFavorite as any);
+            console.log(`成功添加到收藏夹: ${favorite.title}`);
+            setShowFavoriteModal(false);
+        } catch (error) {
+            console.error('添加到收藏夹失败:', error);
+        }
+    };
+
+    const handleMuteToggle = () => {
         if (isMuted) {
             // 取消静音，恢复到之前的音量
             setIsMuted(false);
@@ -97,46 +160,26 @@ const PlayerBarComponent: React.FC<PlayerBarProps> = ({
             setIsMuted(true);
             changeVolume(0);
         }
-    }, [isMuted, volume, previousVolume, changeVolume]);
+    };
 
-    const handleVolumeChange = useCallback((value: number) => {
+    const handleVolumeChange = (value: number) => {
         // 当用户调节音量滑块时，自动取消静音状态
         if (isMuted) {
             setIsMuted(false);
         }
         changeVolume(value);
-    }, [isMuted, changeVolume]);
+    };
 
-    const handleSeek = useCallback((v: number) => {
-        seek(intervalStart + v);
-    }, [seek, intervalStart]);
-
-    // 缓存音量图标
-    const volumeIcon = useMemo(() => {
+    const getVolumeIcon = () => {
         if (isMuted) return <VolumeX size={16} />;
         if (volume === 0) return <Volume size={16} />;
         if (volume < 0.5) return <Volume1 size={16} />;
         return <Volume2 size={16} />;
-    }, [isMuted, volume]);
+    };
 
-    // 缓存播放模式图标和标题
-    const playModeConfig = useMemo(() => {
-        switch (playMode) {
-            case "loop":
-                return { icon: <Repeat size={16} />, title: "列表循环" };
-            case "random":
-                return { icon: <Shuffle size={16} />, title: "随机" };
-            case "single":
-                return { icon: <Repeat1 size={16} />, title: "单曲循环" };
-            default:
-                return { icon: <Repeat size={16} />, title: "列表循环" };
-        }
-    }, [playMode]);
-
-    // 缓存封面组件
-    const coverComponent = useMemo(() => {
-        if (cover) {
-            return (
+    return (
+        <Group align="flex-start" gap="md">
+            {cover ? (
                 <Image
                     src={getProxiedImageUrlSync(cover)}
                     w={100}
@@ -145,41 +188,33 @@ const PlayerBarComponent: React.FC<PlayerBarProps> = ({
                     fit="cover"
                     style={{ flexShrink: 0, minWidth: 100, minHeight: 100, maxWidth: 100, maxHeight: 100 }}
                 />
-            );
-        }
-
-        return (
-            <Box
-                w={100}
-                h={100}
-                bg={controlBackground || (computedColorScheme === "dark" ? "dark.6" : "gray.2")}
-                style={{
-                    borderRadius: coverRadius,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                    minWidth: 100,
-                    minHeight: 100,
-                    maxWidth: 100,
-                    maxHeight: 100,
-                    ...controlStyles,
-                }}
-            >
-                <Music size={48} color={textColorSecondary || "currentColor"} />
-            </Box>
-        );
-    }, [cover, coverRadius, controlBackground, computedColorScheme, controlStyles, textColorSecondary, getProxiedImageUrlSync]);
-
-    return (
-        <Group align="flex-start" gap="md">
-            {coverComponent}
+            ) : (
+                <Box
+                    w={100}
+                    h={100}
+                    bg={controlBackground || (computedColorScheme === "dark" ? "dark.6" : "gray.2")}
+                    style={{
+                        borderRadius: coverRadius,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        minWidth: 100,
+                        minHeight: 100,
+                        maxWidth: 100,
+                        maxHeight: 100,
+                        ...controlStyles,
+                    }}
+                >
+                    <Music size={48} color={textColorSecondary || "currentColor"} />
+                </Box>
+            )}
 
             <Stack gap="sm" style={{ flex: 1 }}>
                 <Stack gap="xs">
                     <Slider
                         value={progressInInterval}
-                        onChange={handleSeek}
+                        onChange={(v) => seek(intervalStart + v)}
                         min={0}
                         max={intervalLength || 1}
                         step={0.05}
@@ -200,17 +235,31 @@ const PlayerBarComponent: React.FC<PlayerBarProps> = ({
 
                 <Group justify="space-between" align="center" gap="md">
                     <Stack gap={0} style={{ flex: 1, minWidth: 0, maxWidth: 300 }}>
-                        <ScrollingText
-                            text={currentSong?.name || "未选择歌曲"}
-                            containerWidth={300}
-                            speed={60}
-                            pauseDuration={2}
-                            enabled={true}
-                            fallbackColor={controlBackground || (computedColorScheme === "dark" ? "rgba(26, 27, 30, 0.9)" : "rgba(255, 255, 255, 0.9)")}
-                            size="lg"
-                            fw={600}
-                            style={{ color: textColorPrimary }}
-                        />
+                        <div
+                            style={{
+                                width: '100%',
+                                maxWidth: 300,
+                                overflow: 'hidden',
+                                position: 'relative',
+                                whiteSpace: 'nowrap',
+                            }}
+                        >
+                            <Text
+                                size="lg"
+                                fw={600}
+                                style={{
+                                    color: textColorPrimary,
+                                    whiteSpace: 'nowrap',
+                                    display: 'inline-block',
+                                    animation: (currentSong?.name && currentSong.name.length > 20)
+                                        ? 'scrollText 8s linear infinite'
+                                        : 'none',
+                                }}
+                                title={currentSong?.name}
+                            >
+                                {currentSong?.name || "未选择歌曲"}
+                            </Text>
+                        </div>
                         <Text
                             size="sm"
                             style={{
@@ -266,7 +315,7 @@ const PlayerBarComponent: React.FC<PlayerBarProps> = ({
                             variant="default"
                             size="lg"
                             radius={componentRadius}
-                            onClick={onAddToFavorite}
+                            onClick={handleAddToFavoriteClick}
                             title="添加到收藏"
                             disabled={!currentSong}
                             style={{ ...controlStyles, borderColor: "transparent", color: textColorPrimary }}
@@ -315,10 +364,10 @@ const PlayerBarComponent: React.FC<PlayerBarProps> = ({
                             size="lg"
                             radius={componentRadius}
                             onClick={onTogglePlayMode}
-                            title={`播放模式: ${playModeConfig.title}`}
+                            title={`播放模式: ${playMode === "loop" ? "列表循环" : playMode === "random" ? "随机" : "单曲循环"}`}
                             style={{ ...controlStyles, borderColor: "transparent", color: textColorPrimary }}
                         >
-                            {playModeConfig.icon}
+                            {playMode === "loop" ? <Repeat size={16} /> : playMode === "random" ? <Shuffle size={16} /> : <Repeat1 size={16} />}
                         </ActionIcon>
                         <Group gap={6} align="center">
                             <ActionIcon
@@ -329,7 +378,7 @@ const PlayerBarComponent: React.FC<PlayerBarProps> = ({
                                 title={isMuted ? "取消静音" : "静音"}
                                 style={{ ...controlStyles, borderColor: "transparent", color: textColorPrimary }}
                             >
-                                {volumeIcon}
+                                {getVolumeIcon()}
                             </ActionIcon>
                             <Slider
                                 value={Math.round(volume * 100)}
@@ -347,30 +396,38 @@ const PlayerBarComponent: React.FC<PlayerBarProps> = ({
                     </Group>
                 </Group>
             </Stack>
+
+            {/* 独立的添加到收藏夹模态框 */}
+            <Modal
+                opened={showFavoriteModal}
+                onClose={() => setShowFavoriteModal(false)}
+                title="添加到歌单"
+                centered
+                size="sm"
+            >
+                <Stack gap="md">
+                    {availableFavorites.length === 0 ? (
+                        <Text>没有歌单</Text>
+                    ) : (
+                        availableFavorites.map((fav) => {
+                            const isInFav = currentSong && fav.songIds.some(ref => ref.songId === currentSong.id) ? true : false;
+                            return (
+                                <Button
+                                    key={fav.id}
+                                    variant={isInFav ? "light" : "default"}
+                                    color={themeColor}
+                                    disabled={isInFav}
+                                    onClick={(e) => handleAddToSpecificFavorite(fav, e)}
+                                >
+                                    {fav.title} {isInFav ? "✓ (已添加)" : ""}
+                                </Button>
+                            );
+                        })
+                    )}
+                </Stack>
+            </Modal>
         </Group>
     );
 };
-
-// 使用 React.memo 优化，自定义比较函数
-const PlayerBar = memo(PlayerBarComponent, (prevProps, nextProps) => {
-    // 比较关键的 props，避免不必要的重新渲染
-    return (
-        prevProps.currentSong?.id === nextProps.currentSong?.id &&
-        prevProps.currentSong?.name === nextProps.currentSong?.name &&
-        prevProps.currentSong?.singer === nextProps.currentSong?.singer &&
-        prevProps.cover === nextProps.cover &&
-        prevProps.progressInInterval === nextProps.progressInInterval &&
-        prevProps.isPlaying === nextProps.isPlaying &&
-        prevProps.volume === nextProps.volume &&
-        prevProps.playMode === nextProps.playMode &&
-        prevProps.themeColor === nextProps.themeColor &&
-        prevProps.textColorPrimary === nextProps.textColorPrimary &&
-        prevProps.textColorSecondary === nextProps.textColorSecondary &&
-        prevProps.componentRadius === nextProps.componentRadius &&
-        prevProps.coverRadius === nextProps.coverRadius &&
-        prevProps.songsCount === nextProps.songsCount &&
-        prevProps.downloadedSongIds === nextProps.downloadedSongIds
-    );
-});
 
 export default PlayerBar;

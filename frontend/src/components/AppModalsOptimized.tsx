@@ -62,6 +62,7 @@ export interface AppModalsProps {
     queue: Song[];
     currentIndex: number;
     currentSong: Song | null;
+    pendingFavoriteSong?: Song | null;
 
     // search / global
     globalSearchTerm: string;
@@ -228,6 +229,7 @@ const AppModalsOptimized: React.FC<AppModalsProps> = React.memo((props) => {
         queue,
         currentIndex,
         currentSong,
+        pendingFavoriteSong,
         globalSearchTerm,
         globalSearchResults,
         remoteResults,
@@ -490,6 +492,7 @@ const AppModalsOptimized: React.FC<AppModalsProps> = React.memo((props) => {
                     onClose={() => closeModal("addFavoriteModal")}
                     favorites={favorites}
                     currentSong={currentSong}
+                    pendingFavoriteSong={pendingFavoriteSong}
                     themeColor={themeColor}
                     onAdd={onAddToFavorite}
                     panelStyles={panelStyles}

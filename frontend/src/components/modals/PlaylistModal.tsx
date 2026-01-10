@@ -119,11 +119,11 @@ const PlaylistModal: React.FC<PlaylistModalProps> = React.memo(({
                                     <Group gap="xs" wrap="nowrap" style={{ flex: 1, minWidth: 0 }}>
                                         <GripVertical size={20} style={{ flexShrink: 0, cursor: 'grab' }} color={derived?.textColorSecondary} />
                                         <div
-                                            style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
+                                            style={{ flex: 1, minWidth: 0, cursor: 'pointer', textAlign: 'left' }}
                                             onClick={() => onSelect(song, index)}
                                         >
-                                            <Text fw={index === currentIndex ? 600 : 400} truncate c={index === currentIndex ? themeColorHighlight : derived?.textColorPrimary}>{song.name}</Text>
-                                            <Text size="sm" c={derived?.textColorSecondary} truncate>{song.singer}</Text>
+                                            <Text fw={index === currentIndex ? 600 : 400} truncate c={index === currentIndex ? themeColorHighlight : derived?.textColorPrimary} style={{ textAlign: 'left' }}>{song.name}</Text>
+                                            <Text size="sm" c={derived?.textColorSecondary} truncate style={{ textAlign: 'left' }}>{song.singer}</Text>
                                         </div>
                                     </Group>
                                     <Group gap="xs" wrap="nowrap" style={{ flexShrink: 0 }}>
