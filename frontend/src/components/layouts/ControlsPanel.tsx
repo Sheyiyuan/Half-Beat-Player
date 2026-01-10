@@ -21,7 +21,7 @@ interface ControlsPanelProps {
     isPlaying: boolean;
     playMode: "loop" | "random" | "single";
     onTogglePlayMode: () => void;
-    onAddToFavorite: () => void;
+    // onAddToFavorite: () => void; // 移除，使用 PlayerBar 内部实现
     onShowPlaylist: () => void;
     onDownloadSong: () => void;
     onManageDownload: () => void;
@@ -57,7 +57,7 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
     isPlaying,
     playMode,
     onTogglePlayMode,
-    onAddToFavorite,
+    // onAddToFavorite, // 移除
     onShowPlaylist,
     onDownloadSong,
     onManageDownload,
@@ -104,7 +104,7 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({
                 isPlaying={isPlaying}
                 playMode={playMode}
                 onTogglePlayMode={onTogglePlayMode}
-                onAddToFavorite={onAddToFavorite}
+                // onAddToFavorite={onAddToFavorite} // 移除，使用 PlayerBar 内部实现
                 onShowPlaylist={onShowPlaylist}
                 onDownloadSong={onDownloadSong}
                 onManageDownload={onManageDownload}

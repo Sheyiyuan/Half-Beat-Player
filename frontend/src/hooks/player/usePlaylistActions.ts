@@ -9,6 +9,7 @@ interface UsePlaylistActionsProps {
     setQueue: (queue: Song[]) => void;
     currentIndex: number;
     setCurrentIndex: (index: number) => void;
+    currentSong: Song | null;
     setCurrentSong: (song: Song | null) => void;
     setIsPlaying: (playing: boolean) => void;
     currentFav: Favorite | null;
@@ -19,6 +20,10 @@ interface UsePlaylistActionsProps {
     openModal: (name: keyof ModalStates) => void;
     closeModal: (name: keyof ModalStates) => void;
     playSong: (song: Song, list?: Song[]) => Promise<void>;
+    addCurrentToFavorite: (favId: string) => Promise<void>;
+    addSongToFavorite: (song: Song, favId: string) => Promise<void>;
+    setPendingFavoriteSong: (song: Song | null) => void;
+    pendingFavoriteSong: Song | null;
 }
 
 export const usePlaylistActions = ({
@@ -26,6 +31,7 @@ export const usePlaylistActions = ({
     setQueue,
     currentIndex,
     setCurrentIndex,
+    currentSong,
     setCurrentSong,
     setIsPlaying,
     currentFav,
@@ -36,12 +42,21 @@ export const usePlaylistActions = ({
     openModal,
     closeModal,
     playSong,
+    addCurrentToFavorite,
+    addSongToFavorite,
+    setPendingFavoriteSong,
+    pendingFavoriteSong,
 }: UsePlaylistActionsProps) => {
 
-    const addSongToFavorite = useCallback((song: Song) => {
-        setCurrentSong(song);
+    const addSongToFavoriteFromList = useCallback((song: Song) => {
+        console.log(`=== addSongToFavorite START for: ${song.name} ===`);
+
+        // 使用 pendingFavoriteSong 而不是临时切换 currentSong
+        setPendingFavoriteSong(song);
         openModal("addFavoriteModal");
-    }, [setCurrentSong, openModal]);
+
+        console.log('Opened modal for song:', song.name);
+    }, [setPendingFavoriteSong, openModal]);
 
     const removeSongFromPlaylist = useCallback(async (song: Song) => {
         if (!currentFav) return;
@@ -60,10 +75,46 @@ export const usePlaylistActions = ({
         }
     }, [currentFav, setFavorites, setConfirmRemoveSongId]);
 
-    const addToFavoriteFromModal = useCallback((fav: Favorite) => {
-        setStatus(`已添加到歌单: ${fav.title}`);
-        closeModal("addFavoriteModal");
-    }, [setStatus, closeModal]);
+    const addToFavoriteFromModal = useCallback(async (fav: Favorite) => {
+        try {
+            // 优先使用 pendingFavoriteSong，如果没有则使用 currentSong
+            const targetSong = pendingFavoriteSong || currentSong;
+            if (!targetSong) {
+                console.log('没有目标歌曲');
+                return;
+            }
+
+            if (pendingFavoriteSong) {
+                // 使用 addSongToFavorite 处理 pending 歌曲
+                await addSongToFavorite(pendingFavoriteSong, fav.id);
+            } else {
+                // 使用 addCurrentToFavorite 处理当前歌曲
+                await addCurrentToFavorite(fav.id);
+            }
+
+            // 立即显示成功状态，不等待
+            setStatus(`已添加到歌单: ${fav.title}`);
+
+            // 清除 pending 状态
+            setPendingFavoriteSong(null);
+
+            // 稍微延迟关闭模态框，让用户看到反馈
+            setTimeout(() => {
+                closeModal("addFavoriteModal");
+            }, 300);
+        } catch (error) {
+            console.error('Failed to add song to favorite:', error);
+            setStatus(`添加失败: ${error}`);
+
+            // 清除 pending 状态
+            setPendingFavoriteSong(null);
+
+            // 出错时也关闭模态框
+            setTimeout(() => {
+                closeModal("addFavoriteModal");
+            }, 1000);
+        }
+    }, [pendingFavoriteSong, currentSong, addSongToFavorite, addCurrentToFavorite, setStatus, setPendingFavoriteSong, closeModal]);
 
     const playlistSelect = useCallback((song: Song, index: number) => {
         setCurrentIndex(index);
@@ -116,7 +167,7 @@ export const usePlaylistActions = ({
     }, [queue, setQueue, currentIndex, setCurrentIndex, setIsPlaying, setCurrentSong, playSong]);
 
     return {
-        addSongToFavorite,
+        addSongToFavoriteFromList,
         removeSongFromPlaylist,
         addToFavoriteFromModal,
         playlistSelect,

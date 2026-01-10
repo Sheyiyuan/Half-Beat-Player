@@ -1,8 +1,10 @@
 import React, { useState } from "react";
-import { ActionIcon, Box, Group, Image, Slider, Stack, Text } from "@mantine/core";
+import { ActionIcon, Box, Group, Image, Slider, Stack, Text, Modal, Button } from "@mantine/core";
 import { Download, ListMusic, Music, Pause, Play, Repeat, Repeat1, Shuffle, SkipBack, SkipForward, SquarePlus, Volume, Volume1, Volume2, VolumeX } from "lucide-react";
-import { Song } from "../../types";
+import { Song, Favorite } from "../../types";
 import { useImageProxy } from "../../hooks/ui/useImageProxy";
+import * as Services from "../../../wailsjs/go/services/Service";
+import { convertFavorites } from "../../types";
 
 export type PlayerBarProps = {
     themeColor: string;
@@ -22,7 +24,7 @@ export type PlayerBarProps = {
     isPlaying: boolean;
     playMode: "loop" | "random" | "single";
     onTogglePlayMode: () => void;
-    onAddToFavorite: () => void;
+    // onAddToFavorite: () => void; // 移除这个 prop，使用独立实现
     onShowPlaylist: () => void;
     onDownloadSong: () => void;
     onManageDownload: () => void;
@@ -55,7 +57,7 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
     isPlaying,
     playMode,
     onTogglePlayMode,
-    onAddToFavorite,
+    // onAddToFavorite, // 移除这个参数
     onShowPlaylist,
     onDownloadSong,
     onManageDownload,
@@ -72,9 +74,80 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
 }) => {
     const { getProxiedImageUrlSync } = useImageProxy();
     const isDownloaded = currentSong ? downloadedSongIds.has(currentSong.id) : false;
-    const iconStyle = { color: textColorPrimary };
     const [isMuted, setIsMuted] = useState<boolean>(false);
     const [previousVolume, setPreviousVolume] = useState<number>(volume || 0.5);
+    const [showFavoriteModal, setShowFavoriteModal] = useState<boolean>(false);
+    const [availableFavorites, setAvailableFavorites] = useState<Favorite[]>([]);
+
+    // 独立的添加到收藏夹处理函数，不依赖外部状态
+    const handleAddToFavoriteClick = async (e: React.MouseEvent) => {
+        // 完全阻止事件传播
+        e.preventDefault();
+        e.stopPropagation();
+        // e.stopImmediatePropagation(); // React 事件没有这个方法
+
+        console.log('=== handleAddToFavoriteClick START ===');
+        console.log('Current song:', currentSong?.name);
+
+        if (!currentSong) {
+            console.log('No current song, returning');
+            return;
+        }
+
+        try {
+            console.log('Fetching favorites...');
+            // 获取收藏夹列表
+            const rawFavorites = await Services.ListFavorites();
+            const favorites = convertFavorites(rawFavorites || []);
+            console.log('Found favorites:', favorites.length);
+
+            if (favorites.length === 0) {
+                console.log('没有收藏夹可用');
+                return;
+            }
+
+            setAvailableFavorites(favorites);
+            setShowFavoriteModal(true);
+            console.log('Modal opened');
+        } catch (error) {
+            console.error('获取收藏夹列表失败:', error);
+        }
+
+        console.log('=== handleAddToFavoriteClick END ===');
+    };
+
+    const handleAddToSpecificFavorite = async (favorite: Favorite, e?: React.MouseEvent) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        console.log('handleAddToSpecificFavorite called for:', favorite.title);
+
+        if (!currentSong) return;
+
+        try {
+            // 检查是否已存在
+            const alreadyExists = favorite.songIds.some(ref => ref.songId === currentSong.id);
+            if (alreadyExists) {
+                console.log('歌曲已在收藏夹中');
+                setShowFavoriteModal(false);
+                return;
+            }
+
+            // 添加歌曲到收藏夹
+            const updatedFavorite = {
+                ...favorite,
+                songIds: [...favorite.songIds, { id: 0, songId: currentSong.id, favoriteId: favorite.id }],
+            };
+
+            await Services.SaveFavorite(updatedFavorite as any);
+            console.log(`成功添加到收藏夹: ${favorite.title}`);
+            setShowFavoriteModal(false);
+        } catch (error) {
+            console.error('添加到收藏夹失败:', error);
+        }
+    };
 
     const handleMuteToggle = () => {
         if (isMuted) {
@@ -242,7 +315,7 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
                             variant="default"
                             size="lg"
                             radius={componentRadius}
-                            onClick={onAddToFavorite}
+                            onClick={handleAddToFavoriteClick}
                             title="添加到收藏"
                             disabled={!currentSong}
                             style={{ ...controlStyles, borderColor: "transparent", color: textColorPrimary }}
@@ -323,6 +396,36 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
                     </Group>
                 </Group>
             </Stack>
+
+            {/* 独立的添加到收藏夹模态框 */}
+            <Modal
+                opened={showFavoriteModal}
+                onClose={() => setShowFavoriteModal(false)}
+                title="添加到歌单"
+                centered
+                size="sm"
+            >
+                <Stack gap="md">
+                    {availableFavorites.length === 0 ? (
+                        <Text>没有歌单</Text>
+                    ) : (
+                        availableFavorites.map((fav) => {
+                            const isInFav = currentSong && fav.songIds.some(ref => ref.songId === currentSong.id) ? true : false;
+                            return (
+                                <Button
+                                    key={fav.id}
+                                    variant={isInFav ? "light" : "default"}
+                                    color={themeColor}
+                                    disabled={isInFav}
+                                    onClick={(e) => handleAddToSpecificFavorite(fav, e)}
+                                >
+                                    {fav.title} {isInFav ? "✓ (已添加)" : ""}
+                                </Button>
+                            );
+                        })
+                    )}
+                </Stack>
+            </Modal>
         </Group>
     );
 };

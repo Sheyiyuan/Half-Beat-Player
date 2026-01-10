@@ -297,7 +297,7 @@ export const useAppPanelsProps = (params: UseAppPanelsPropsParams) => {
             isPlaying,
             playMode,
             onTogglePlayMode: handlePlayModeToggle,
-            onAddToFavorite: () => openModal("addFavoriteModal"),
+            // onAddToFavorite: () => openModal("addFavoriteModal"), // 移除，使用 PlayerBar 内部实现
             onShowPlaylist: () => openModal("playlistModal"),
             onDownloadSong: handleDownloadCurrentSong,
             onManageDownload: handleManageDownload,

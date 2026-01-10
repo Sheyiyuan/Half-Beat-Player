@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import type { Song, Favorite } from '../../types';
 import { convertSongs, convertFavorites } from '../../types';
 import * as Services from '../../../wailsjs/go/services/Service';
@@ -22,6 +22,12 @@ export const useSongOperations = ({
     setFavorites,
     playSong,
 }: UseSongOperationsProps) => {
+    // 使用 ref 来避免依赖问题
+    const currentSongRef = useRef(currentSong);
+
+    useEffect(() => {
+        currentSongRef.current = currentSong;
+    }, [currentSong]);
     /**
      * 添加新歌曲
      */
@@ -85,25 +91,80 @@ export const useSongOperations = ({
     }, [songs, currentSong, setSongs, setCurrentSong]);
 
     /**
-     * 将当前歌曲添加到收藏夹
+     * 将指定歌曲添加到收藏夹 - 完全独立的实现，不影响播放器
+     */
+    const addSongToFavorite = useCallback(async (song: Song, favId: string) => {
+        try {
+            const [currentFavorites] = await Promise.all([
+                Services.ListFavorites()
+            ]);
+
+            const favorites = convertFavorites(currentFavorites || []);
+
+            // 找到目标收藏夹
+            const target = favorites.find((f) => f.id === favId);
+            if (!target) {
+                console.log('找不到目标收藏夹');
+                return;
+            }
+
+            // 检查歌曲是否已经在收藏夹中
+            const alreadyExists = target.songIds.some(ref => ref.songId === song.id);
+            if (alreadyExists) {
+                console.log('歌曲已在收藏夹中');
+                return;
+            }
+
+            // 创建更新后的收藏夹
+            const updatedFavorite = {
+                ...target,
+                songIds: [...target.songIds, { id: 0, songId: song.id, favoriteId: favId }],
+            };
+
+            // 保存到数据库
+            await Services.SaveFavorite(updatedFavorite as any);
+
+            // 异步更新UI状态，不阻塞当前操作
+            setTimeout(async () => {
+                try {
+                    const refreshedFavorites = await Services.ListFavorites();
+                    setFavorites(convertFavorites(refreshedFavorites || []));
+                } catch (error) {
+                    console.error('更新收藏夹UI失败:', error);
+                }
+            }, 200);
+
+            console.log('成功添加歌曲到收藏夹');
+        } catch (error) {
+            console.error('添加到收藏夹失败:', error);
+            throw error;
+        }
+    }, [setFavorites]);
+
+    /**
+     * 将当前歌曲添加到收藏夹 - 完全独立的实现，不影响播放器
      */
     const addCurrentToFavorite = useCallback(async (favId: string) => {
-        if (!currentSong) return;
-        const target = favorites.find((f) => f.id === favId);
-        if (!target) return;
-        const next = {
-            ...target,
-            songIds: [...target.songIds, { id: 0, songId: currentSong.id, favoriteId: favId }],
-        };
-        await Services.SaveFavorite(next as any);
-        const rawRefreshed = await Services.ListFavorites();
-        setFavorites(convertFavorites(rawRefreshed || []));
-    }, [currentSong, favorites, setFavorites]);
+        // 直接从数据库获取最新数据，避免依赖状态
+        try {
+            const song = currentSongRef.current;
+            if (!song) {
+                console.log('没有当前播放的歌曲');
+                return;
+            }
+
+            return addSongToFavorite(song, favId);
+        } catch (error) {
+            console.error('添加当前歌曲到收藏夹失败:', error);
+            throw error;
+        }
+    }, [addSongToFavorite]);
 
     return {
         addSong,
         updateStreamUrl,
         updateSongInfo,
         addCurrentToFavorite,
+        addSongToFavorite,
     };
 };
