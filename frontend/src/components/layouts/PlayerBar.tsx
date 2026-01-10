@@ -3,8 +3,6 @@ import { ActionIcon, Box, Group, Image, Slider, Stack, Text } from "@mantine/cor
 import { Download, ListMusic, Music, Pause, Play, Repeat, Repeat1, Shuffle, SkipBack, SkipForward, SquarePlus, Volume, Volume1, Volume2, VolumeX } from "lucide-react";
 import { Song } from "../../types";
 import { useImageProxy } from "../../hooks/ui/useImageProxy";
-import { ScrollingText } from "../ui/ScrollingText";
-import { useScrollingText } from "../../hooks/ui/useScrollingText";
 
 export type PlayerBarProps = {
     themeColor: string;
@@ -77,14 +75,6 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
     const iconStyle = { color: textColorPrimary };
     const [isMuted, setIsMuted] = useState<boolean>(false);
     const [previousVolume, setPreviousVolume] = useState<number>(volume || 0.5);
-
-    // 使用滚动文本Hook
-    const scrollingText = useScrollingText({
-        text: currentSong?.name || "",
-        containerWidth: 300,
-        speed: 60, // 每秒60像素的滚动速度
-        pauseDuration: 2, // 两端各暂停2秒
-    });
 
     const handleMuteToggle = () => {
         if (isMuted) {
@@ -172,28 +162,31 @@ const PlayerBar: React.FC<PlayerBarProps> = ({
 
                 <Group justify="space-between" align="center" gap="md">
                     <Stack gap={0} style={{ flex: 1, minWidth: 0, maxWidth: 300 }}>
-                        <Box
-                            className={scrollingText.containerClassName}
+                        <div
                             style={{
-                                ...scrollingText.containerStyle,
-                                '--text-bg-color': controlBackground || (computedColorScheme === "dark" ? "rgba(26, 27, 30, 0.9)" : "rgba(255, 255, 255, 0.9)"),
+                                width: '100%',
+                                maxWidth: 300,
+                                overflow: 'hidden',
+                                position: 'relative',
+                                whiteSpace: 'nowrap',
                             }}
                         >
                             <Text
-                                ref={scrollingText.textRef as any}
                                 size="lg"
                                 fw={600}
-                                className={scrollingText.textClassName}
                                 style={{
                                     color: textColorPrimary,
-                                    whiteSpace: "nowrap",
-                                    ...scrollingText.animationStyle,
+                                    whiteSpace: 'nowrap',
+                                    display: 'inline-block',
+                                    animation: (currentSong?.name && currentSong.name.length > 20)
+                                        ? 'scrollText 8s linear infinite'
+                                        : 'none',
                                 }}
                                 title={currentSong?.name}
                             >
                                 {currentSong?.name || "未选择歌曲"}
                             </Text>
-                        </Box>
+                        </div>
                         <Text
                             size="sm"
                             style={{

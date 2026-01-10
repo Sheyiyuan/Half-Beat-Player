@@ -274,6 +274,10 @@ export namespace models {
 	    lyricOffset: number;
 	    skipStartTime: number;
 	    skipEndTime: number;
+	    pageNumber: number;
+	    pageTitle: string;
+	    videoTitle: string;
+	    totalPages: number;
 	    createdAt: time.Time;
 	    updatedAt: time.Time;
 	
@@ -297,6 +301,10 @@ export namespace models {
 	        this.lyricOffset = source["lyricOffset"];
 	        this.skipStartTime = source["skipStartTime"];
 	        this.skipEndTime = source["skipEndTime"];
+	        this.pageNumber = source["pageNumber"];
+	        this.pageTitle = source["pageTitle"];
+	        this.videoTitle = source["videoTitle"];
+	        this.totalPages = source["totalPages"];
 	        this.createdAt = this.convertValues(source["createdAt"], time.Time);
 	        this.updatedAt = this.convertValues(source["updatedAt"], time.Time);
 	    }

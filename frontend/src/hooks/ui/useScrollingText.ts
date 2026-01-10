@@ -57,6 +57,13 @@ export const useScrollingText = ({
             const containerWidthPx = containerRect.width;
             const textWidthPx = textRect.width;
 
+            console.log('滚动文本测量:', {
+                text,
+                containerWidth: containerWidthPx,
+                textWidth: textWidthPx,
+                needsScroll: textWidthPx > containerWidthPx
+            });
+
             // 只有当文本宽度超过容器宽度时才启用滚动
             const needsScroll = textWidthPx > containerWidthPx && textWidthPx > 0;
             setShouldScroll(needsScroll);
@@ -72,6 +79,14 @@ export const useScrollingText = ({
                 const totalDuration = scrollTime + (pauseDuration * 2);
 
                 setAnimationDuration(totalDuration);
+
+                console.log('滚动动画参数:', {
+                    distance,
+                    scrollTime,
+                    totalDuration,
+                    speed,
+                    pauseDuration
+                });
             }
         };
 

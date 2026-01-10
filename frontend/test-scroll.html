@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>滚动文本测试</title>
+    <style>
+        .test-container {
+            width: 200px;
+            height: 50px;
+            border: 1px solid #ccc;
+            overflow: hidden;
+            position: relative;
+            background: #f0f0f0;
+            margin: 20px;
+        }
+
+        .test-text {
+            white-space: nowrap;
+            animation: testScroll 5s linear infinite;
+        }
+
+        @keyframes testScroll {
+            0% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(0);
+            }
+
+            75% {
+                transform: translateX(-100px);
+            }
+
+            100% {
+                transform: translateX(-100px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>滚动文本测试</h1>
+
+    <div class="test-container">
+        <div class="test-text">这是一个很长的歌曲标题，应该会滚动显示</div>
+    </div>
+
+    <p>如果上面的文本在滚动，说明CSS动画工作正常。</p>
+</body>
+
+</html>

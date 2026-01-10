@@ -44,19 +44,14 @@ export const ScrollingText: React.FC<ScrollingTextProps> = ({
             style={{
                 ...containerStyle,
                 ['--text-bg-color' as any]: fallbackColor || 'rgba(0, 0, 0, 0.9)',
-                ...style,
-            }}
+                ...(typeof style === 'object' ? style : {}),
+            } as React.CSSProperties}
         >
             <Text
                 {...textProps}
                 ref={textRef as any}
                 className={textClassName}
-                styles={{
-                    root: {
-                        ...animationStyle,
-                        ...(typeof textProps.styles === 'object' && textProps.styles?.root ? textProps.styles.root : {}),
-                    }
-                }}
+                style={animationStyle as React.CSSProperties}
                 title={text}
             >
                 {text}
