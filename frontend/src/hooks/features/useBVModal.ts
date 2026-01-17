@@ -58,37 +58,80 @@ export const useBVModal = ({
         const end = sliceEnd > 0 ? Math.max(start, sliceEnd) : songDuration;
 
         try {
-            // 1. 创建流源
-            let sourceId: string;
+            // 1. 获取分P信息（多P将拆分为多首）
+            let pagesToAdd: Song[] = [];
             try {
-                sourceId = await Services.CreateStreamSource(
-                    bvPreview.bvid,
-                    bvPreview.url,
-                    bvPreview.expiresAt
-                );
+                const rawPages = await Services.SearchBVID(bvPreview.bvid || '');
+                const converted = convertSongs(rawPages || []);
+                pagesToAdd = converted.filter((s) => !s.id || s.id.trim() === '');
             } catch (err) {
-                throw new Error(`创建流源失败: ${err instanceof Error ? err.message : String(err)}`);
+                console.warn('获取分P信息失败，回退为单首添加:', err);
             }
 
-            // 2. 创建新的独立歌曲实例（不使用 BVID 作为 ID）
-            const newSong = new SongClass({
-                id: '', // 每个实例都有独立的 ID
-                bvid: bvPreview.bvid,
-                name: bvSongName || bvPreview.title,
-                singer: bvSinger,
-                singerId: '',
-                cover: bvPreview.cover || '',
-                sourceId: sourceId,
-                lyric: '',
-                lyricOffset: 0,
-                skipStartTime: start,
-                skipEndTime: end,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-            });
+            if (pagesToAdd.length === 0) {
+                pagesToAdd = [{
+                    id: '',
+                    bvid: bvPreview.bvid || '',
+                    name: bvSongName || bvPreview.title || '',
+                    singer: bvSinger || '',
+                    singerId: '',
+                    cover: bvPreview.cover || '',
+                    coverLocal: '',
+                    sourceId: '',
+                    streamUrl: '',
+                    streamUrlExpiresAt: '',
+                    lyric: '',
+                    lyricOffset: 0,
+                    skipStartTime: start,
+                    skipEndTime: end,
+                    pageNumber: 1,
+                    pageTitle: '',
+                    videoTitle: bvPreview.title || '',
+                    totalPages: 1,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                } as Song];
+            }
+
+            // 2. 为每个分P创建独立流源与歌曲实例
+            const newSongs: Song[] = [];
+            const createdSourceIds: string[] = [];
+
+            for (const page of pagesToAdd) {
+                const pageNumber = page.pageNumber > 0 ? page.pageNumber : 1;
+                const playInfo = await Services.GetPlayURL(page.bvid || bvPreview.bvid || '', pageNumber);
+                const sourceId = await Services.CreateStreamSource(
+                    page.bvid || bvPreview.bvid || '',
+                    playInfo.RawURL,
+                    playInfo.ExpiresAt
+                );
+                createdSourceIds.push(sourceId);
+
+                const displayName = pagesToAdd.length > 1 ? (page.name || bvPreview.title || '') : (bvSongName || page.name || bvPreview.title || '');
+
+                newSongs.push(new SongClass({
+                    id: '',
+                    bvid: page.bvid || bvPreview.bvid || '',
+                    name: displayName,
+                    singer: bvSinger || page.singer || '',
+                    singerId: '',
+                    cover: page.cover || bvPreview.cover || '',
+                    sourceId: sourceId,
+                    lyric: '',
+                    lyricOffset: 0,
+                    skipStartTime: start,
+                    skipEndTime: end,
+                    pageNumber: page.pageNumber || 1,
+                    pageTitle: page.pageTitle || '',
+                    videoTitle: page.videoTitle || bvPreview.title || '',
+                    totalPages: page.totalPages || pagesToAdd.length || 1,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                }));
+            }
 
             try {
-                await Services.UpsertSongs([newSong as any]);
+                await Services.UpsertSongs(newSongs as any);
             } catch (err) {
                 throw new Error(`保存歌曲失败: ${err instanceof Error ? err.message : String(err)}`);
             }
@@ -104,14 +147,15 @@ export const useBVModal = ({
             setSongs(refreshed);
 
             // 找到刚添加的歌曲（按 sourceId 和 skipStartTime 匹配）
-            const added = refreshed.find((s) => s.sourceId === sourceId && s.skipStartTime === start) || refreshed[refreshed.length - 1];
+            const sourceIdSet = new Set(createdSourceIds);
+            const addedSongs = refreshed.filter((s) => sourceIdSet.has(s.sourceId) && s.skipStartTime === start);
 
-            if (added && targetFavId) {
+            if (addedSongs.length > 0 && targetFavId) {
                 const fav = favorites.find((f) => f.id === targetFavId);
                 if (fav) {
                     const updatedFav = {
                         ...fav,
-                        songIds: [...fav.songIds, { id: 0, songId: added.id, favoriteId: fav.id }],
+                        songIds: [...fav.songIds, ...addedSongs.map((s) => ({ id: 0, songId: s.id, favoriteId: fav.id }))],
                     };
                     try {
                         await Services.SaveFavorite(updatedFav as any);
@@ -132,9 +176,10 @@ export const useBVModal = ({
                 }
             }
 
+            const addedCount = newSongs.length;
             notifications.show({
                 title: '添加成功',
-                message: `${bvSongName || bvPreview.title} 已加入${targetFavId ? '' : '库'}${targetFavId ? '。' : ''}`,
+                message: `${addedCount} 首歌曲已加入${targetFavId ? '' : '库'}${targetFavId ? '。' : ''}`,
                 color: 'teal',
             });
 

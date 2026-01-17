@@ -110,7 +110,8 @@ export const usePlaySong = ({
             try {
                 console.log("URL 过期或缺失，正在获取新的播放地址:", song.bvid);
                 setStatus(`正在获取播放地址: ${song.name}`);
-                const playInfo = await Services.GetPlayURL(song.bvid, 0);
+                const pageNumber = song.pageNumber && song.pageNumber > 0 ? song.pageNumber : 1;
+                const playInfo = await Services.GetPlayURL(song.bvid, pageNumber);
                 console.log("获取到播放信息:", playInfo);
 
                 if (!playInfo || !playInfo.ProxyURL) {

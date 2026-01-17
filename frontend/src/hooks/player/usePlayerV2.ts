@@ -183,7 +183,8 @@ export const usePlayer = ({
         // 刷新远程 URL
         if (!toPlay.streamUrl || toPlay.streamUrl === song.streamUrl) {
             try {
-                const playInfo = await Services.GetPlayURL(song.bvid, 0);
+                const pageNumber = song.pageNumber && song.pageNumber > 0 ? song.pageNumber : 1;
+                const playInfo = await Services.GetPlayURL(song.bvid, pageNumber);
                 if (playInfo?.ProxyURL && playInfo.ProxyURL !== '') {
                     const now = new Date();
                     const proxyUrlWithSid = song.id ? `${playInfo.ProxyURL}&sid=${encodeURIComponent(song.id)}` : playInfo.ProxyURL;

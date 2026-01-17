@@ -149,7 +149,11 @@ func (s *Service) DownloadSong(songID string) (string, error) {
 			if song.BVID == "" {
 				return "", fmt.Errorf("歌曲缺少 BVID，无法解析播放地址")
 			}
-			info, err := s.GetPlayURL(song.BVID, 1)
+			p := song.PageNumber
+			if p <= 0 {
+				p = 1
+			}
+			info, err := s.GetPlayURL(song.BVID, p)
 			if err != nil {
 				return "", err
 			}
@@ -161,7 +165,11 @@ func (s *Service) DownloadSong(songID string) (string, error) {
 		if song.BVID == "" {
 			return "", fmt.Errorf("歌曲缺少 BVID，无法解析播放地址")
 		}
-		info, err := s.GetPlayURL(song.BVID, 1)
+		p := song.PageNumber
+		if p <= 0 {
+			p = 1
+		}
+		info, err := s.GetPlayURL(song.BVID, p)
 		if err != nil {
 			return "", err
 		}
@@ -177,7 +185,10 @@ func (s *Service) DownloadSong(songID string) (string, error) {
 		return "", fmt.Errorf("创建下载目录失败: %w", err)
 	}
 
-	filename := fmt.Sprintf("%s.m4s", song.ID)
+	filename := s.getLocalAudioFilename(song)
+	if filename == "" {
+		return "", fmt.Errorf("无法生成本地文件名")
+	}
 	dstPath := filepath.Join(dstDir, filename)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
@@ -270,23 +281,71 @@ func (s *Service) DownloadSong(songID string) (string, error) {
 	return dstPath, nil
 }
 
+func (s *Service) getLocalAudioFilename(song models.Song) string {
+	page := song.PageNumber
+	if page <= 0 {
+		page = 1
+	}
+
+	if song.ID != "" && song.ID != song.BVID {
+		return fmt.Sprintf("%s.m4s", song.ID)
+	}
+
+	if song.BVID != "" {
+		if song.TotalPages > 1 || song.PageNumber > 1 {
+			return fmt.Sprintf("%s-P%d.m4s", song.BVID, page)
+		}
+		return fmt.Sprintf("%s.m4s", song.BVID)
+	}
+
+	if song.ID != "" {
+		return fmt.Sprintf("%s.m4s", song.ID)
+	}
+
+	return ""
+}
+
 // GetLocalAudioURL returns a local proxy URL for a cached audio file if it exists,
 // otherwise returns an empty string.
 func (s *Service) GetLocalAudioURL(songID string) (string, error) {
 	if songID == "" {
 		return "", fmt.Errorf("songID 不能为空")
 	}
-	fname := fmt.Sprintf("%s.m4s", songID)
-	path := filepath.Join(s.dataDir, cacheDir, fname)
-	if _, err := os.Stat(path); err == nil {
-		urlStr := fmt.Sprintf("http://127.0.0.1:%d/local?f=%s", 9999, url.QueryEscape(fname))
-		return urlStr, nil
+
+	var song models.Song
+	fname := ""
+	allowLegacy := true
+	if err := s.db.First(&song, "id = ?", songID).Error; err == nil {
+		fname = s.getLocalAudioFilename(song)
+		if song.TotalPages > 1 || song.PageNumber > 1 {
+			allowLegacy = false
+		}
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return "", fmt.Errorf("查询歌曲失败: %w", err)
 	}
-	path2 := filepath.Join(s.dataDir, downloadsDir, fname)
-	if _, err := os.Stat(path2); err == nil {
-		urlStr := fmt.Sprintf("http://127.0.0.1:%d/local?f=%s", 9999, url.QueryEscape(fname))
-		return urlStr, nil
+
+	legacy := fmt.Sprintf("%s.m4s", songID)
+	candidates := []string{}
+	if fname != "" {
+		candidates = append(candidates, fname)
 	}
+	if allowLegacy && legacy != fname {
+		candidates = append(candidates, legacy)
+	}
+
+	for _, candidate := range candidates {
+		path := filepath.Join(s.dataDir, cacheDir, candidate)
+		if _, err := os.Stat(path); err == nil {
+			urlStr := fmt.Sprintf("http://127.0.0.1:%d/local?f=%s", 9999, url.QueryEscape(candidate))
+			return urlStr, nil
+		}
+		path2 := filepath.Join(s.dataDir, downloadsDir, candidate)
+		if _, err := os.Stat(path2); err == nil {
+			urlStr := fmt.Sprintf("http://127.0.0.1:%d/local?f=%s", 9999, url.QueryEscape(candidate))
+			return urlStr, nil
+		}
+	}
+
 	return "", nil
 }
 
