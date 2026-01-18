@@ -6,6 +6,8 @@
 
 **基于 B站 API 的音乐播放器，实现电脑上的「听视频」自由**
 
+当前版本：v1.1.0（2026-01-18）
+
 _使用 Wails v2 构建的跨平台桌面应用_
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -140,7 +142,7 @@ wails build
 可以通过环境变量注入版本号，否则将从 `frontend/package.json` 读取：
 
 ```bash
-export APP_VERSION=1.0.0
+export APP_VERSION=1.1.0
 ```
 
 #### 2. Linux 打包 (DEB/RPM)
@@ -212,7 +214,8 @@ export APP_VERSION=1.0.0
 
 ## 更新日志
 
-- 最新发布与变更请查看 GitHub Releases：
+- 最新发布与变更请查看本仓库的变更记录与 GitHub Releases：
+  - [CHANGELOG](CHANGELOG.md)
   - [Releases](https://github.com/Sheyiyuan/Half-Beat-Player/releases)
   - [Tags](https://github.com/Sheyiyuan/Half-Beat-Player/tags)
 
