@@ -3,12 +3,13 @@ package services
 import (
 	"context"
 	"fmt"
-	"net/url"
-	"path/filepath"
+	"half-beat-player/internal/proxy"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
+	"net/url"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -22,49 +23,69 @@ type Service struct {
 	httpClient *http.Client
 	dataDir    string // 数据目录用于存储 cookie
 	appCtx     context.Context
+	audioProxy *proxy.AudioProxy
 }
 
 func NewService(db *gorm.DB, dataDir string) *Service {
-    jar, _ := cookiejar.New(nil)
+	jar, _ := cookiejar.New(nil)
 
-    // 创建具有合理超时的 HTTP Transport
-    transport := &http.Transport{
-        DialContext: (&net.Dialer{
-            Timeout:   10 * time.Second, // 连接超时
-            KeepAlive: 30 * time.Second,
-        }).DialContext,
-        TLSHandshakeTimeout: 10 * time.Second,
-        IdleConnTimeout:     90 * time.Second,
-        MaxIdleConns:        100,
-        MaxIdleConnsPerHost: 10,
-    }
+	// 创建具有合理超时的 HTTP Transport
+	transport := &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   10 * time.Second, // 连接超时
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		TLSHandshakeTimeout: 10 * time.Second,
+		IdleConnTimeout:     90 * time.Second,
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 10,
+	}
 
-    client := &http.Client{
-        Jar:       jar,
-        Transport: transport,
-        Timeout:   30 * time.Second, // 默认请求超时
-    }
+	client := &http.Client{
+		Jar:       jar,
+		Transport: transport,
+		Timeout:   30 * time.Second, // 默认请求超时
+	}
 
-    // 确保数据目录存在（跨平台用户级路径）
-    _ = os.MkdirAll(dataDir, 0o755)
+	// 确保数据目录存在（跨平台用户级路径）
+	_ = os.MkdirAll(dataDir, 0o755)
 	// 确保音频缓存目录存在，便于用户可见且避免首次写入失败
 	_ = os.MkdirAll(filepath.Join(dataDir, cacheDir), 0o755)
 
-    service := &Service{
-        db:         db,
-        cookieJar:  jar,
-        httpClient: client,
-        dataDir:    dataDir,
-    }
+	service := &Service{
+		db:         db,
+		cookieJar:  jar,
+		httpClient: client,
+		dataDir:    dataDir,
+	}
 
-    // 在启动时尝试恢复之前的登录状态
-    _ = service.restoreLogin()
+	// 在启动时尝试恢复之前的登录状态
+	_ = service.restoreLogin()
 
-    return service
+	return service
 }
 
 func (s *Service) GetHTTPClient() *http.Client {
 	return s.httpClient
+}
+
+func (s *Service) SetAudioProxy(ap *proxy.AudioProxy) {
+	s.audioProxy = ap
+}
+
+// EnsureAudioProxyRunning attempts to start the local audio proxy.
+// It is safe to call multiple times.
+func (s *Service) EnsureAudioProxyRunning() error {
+	if s.audioProxy == nil {
+		return fmt.Errorf("audio proxy not initialised")
+	}
+	if s.audioProxy.IsRunning() {
+		return nil
+	}
+	if err := s.audioProxy.Start(); err != nil {
+		return fmt.Errorf("start audio proxy: %w", err)
+	}
+	return nil
 }
 
 // GetImageProxyURL returns a proxied URL for images to bypass CORS restrictions

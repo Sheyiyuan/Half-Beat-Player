@@ -351,6 +351,23 @@ export namespace models {
 
 }
 
+export namespace proxy {
+	
+	export class AudioProxy {
+	
+	
+	    static createFrom(source: any = {}) {
+	        return new AudioProxy(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	
+	    }
+	}
+
+}
+
 export namespace services {
 	
 	export class ExportData {

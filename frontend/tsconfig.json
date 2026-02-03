@@ -20,6 +20,9 @@
     "include": [
         "src"
     ],
+    "exclude": [
+        "src/components/AppModals.original.tsx"
+    ],
     "references": [
         {
             "path": "./tsconfig.node.json"

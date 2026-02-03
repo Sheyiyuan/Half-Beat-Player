@@ -16,6 +16,7 @@ interface UsePlaybackControlsProps {
     playSong: (song: Song, list?: Song[]) => Promise<void>;
     playbackRetryRef: React.MutableRefObject<Map<string, number>>;
     isHandlingErrorRef?: React.MutableRefObject<Set<string>>;
+    onBeforePlay?: () => void;
 }
 
 export const usePlaybackControls = ({
@@ -33,6 +34,7 @@ export const usePlaybackControls = ({
     playSong,
     playbackRetryRef,
     isHandlingErrorRef,
+    onBeforePlay,
 }: UsePlaybackControlsProps) => {
     /**
      * 播放下一首
@@ -140,6 +142,11 @@ export const usePlaybackControls = ({
         const target = Math.max(intervalStart, Math.min(audio.currentTime || 0, intervalEnd));
         audio.currentTime = target;
         if (audio.paused) {
+            try {
+                onBeforePlay?.();
+            } catch (e) {
+                console.warn('onBeforePlay 执行失败:', e);
+            }
             const playPromise = audio.play();
             if (playPromise !== undefined) {
                 playPromise
@@ -167,6 +174,11 @@ export const usePlaybackControls = ({
                         if (err.name === 'NotAllowedError' && !audio.muted) {
                             console.log("尝试静音播放来绕过浏览器限制...");
                             audio.muted = true;
+                            try {
+                                onBeforePlay?.();
+                            } catch (e) {
+                                console.warn('onBeforePlay 执行失败:', e);
+                            }
                             audio.play()
                                 .then(() => {
                                     console.log("静音播放成功");
@@ -182,7 +194,7 @@ export const usePlaybackControls = ({
         } else {
             audio.pause();
         }
-    }, [audioRef, currentSong, intervalStart, intervalEnd, setIsPlaying, playSong, queue]);
+    }, [audioRef, currentSong, intervalStart, intervalEnd, setIsPlaying, playSong, queue, onBeforePlay]);
 
     /**
      * 改变音量

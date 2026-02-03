@@ -84,12 +84,13 @@ func run() error {
 
 	// Initialize audio proxy
 	audioProxy = proxy.NewAudioProxy(9999, backend.GetHTTPClient(), dataDir)
+	backend.SetAudioProxy(audioProxy)
 
 	return wails.Run(&options.App{
-		Title:      "half-beat",
-		Width:      1280,
-		Height:     800,
-		Frameless:  true,
+		Title:     "half-beat",
+		Width:     1280,
+		Height:    800,
+		Frameless: true,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

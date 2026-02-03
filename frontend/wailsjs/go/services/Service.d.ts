@@ -5,6 +5,7 @@ import {models} from '../models';
 import {services} from '../models';
 import {http} from '../models';
 import {context} from '../models';
+import {proxy} from '../models';
 
 export function ClearAudioCache():Promise<void>;
 
@@ -29,6 +30,8 @@ export function DeleteUnreferencedSongs():Promise<number>;
 export function DownloadSong(arg1:string):Promise<string>;
 
 export function DragWindow():Promise<void>;
+
+export function EnsureAudioProxyRunning():Promise<void>;
 
 export function ExportData():Promise<services.ExportData>;
 
@@ -115,6 +118,8 @@ export function SearchLocalSongs(arg1:string):Promise<Array<models.Song>>;
 export function Seed():Promise<void>;
 
 export function SetAppContext(arg1:context.Context):Promise<void>;
+
+export function SetAudioProxy(arg1:proxy.AudioProxy):Promise<void>;
 
 export function SetCurrentTheme(arg1:string):Promise<void>;
 

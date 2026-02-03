@@ -50,6 +50,10 @@ export function DragWindow() {
   return window['go']['services']['Service']['DragWindow']();
 }
 
+export function EnsureAudioProxyRunning() {
+  return window['go']['services']['Service']['EnsureAudioProxyRunning']();
+}
+
 export function ExportData() {
   return window['go']['services']['Service']['ExportData']();
 }
@@ -220,6 +224,10 @@ export function Seed() {
 
 export function SetAppContext(arg1) {
   return window['go']['services']['Service']['SetAppContext'](arg1);
+}
+
+export function SetAudioProxy(arg1) {
+  return window['go']['services']['Service']['SetAudioProxy'](arg1);
 }
 
 export function SetCurrentTheme(arg1) {

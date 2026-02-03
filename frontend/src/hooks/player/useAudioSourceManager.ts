@@ -92,7 +92,14 @@ export const useAudioSourceManager = ({
                 console.warn('onBeforePlay 执行失败:', e);
             }
             audio.play().catch((err) => {
-                console.error("播放失败:", err);
+                const name = err instanceof Error ? err.name : '';
+                // Switching src/load can trigger transient AbortError/InvalidStateError.
+                // Keep play intent and let canplay/loadedmetadata retry.
+                if (name === 'AbortError' || name === 'InvalidStateError') {
+                    console.warn('播放被中断/状态未就绪，等待媒体就绪后重试:', err);
+                    return;
+                }
+                console.error('播放失败:', err);
                 setIsPlaying(false);
             });
         } else if (!isPlaying && !audio.paused) {

@@ -24,17 +24,23 @@ type AudioProxy struct {
 	mu         sync.RWMutex
 	isRunning  bool
 
-	cacheMu      sync.Mutex
+	cacheMu       sync.Mutex
 	cacheInFlight map[string]struct{}
 }
 
 func NewAudioProxy(port int, httpClient *http.Client, baseDir string) *AudioProxy {
 	return &AudioProxy{
-		port:       port,
-		httpClient: httpClient,
-		baseDir:    baseDir,
+		port:          port,
+		httpClient:    httpClient,
+		baseDir:       baseDir,
 		cacheInFlight: map[string]struct{}{},
 	}
+}
+
+func (ap *AudioProxy) IsRunning() bool {
+	ap.mu.RLock()
+	defer ap.mu.RUnlock()
+	return ap.isRunning
 }
 
 func (ap *AudioProxy) ensureCachedAsync(decodedURL, sid string) {
@@ -150,7 +156,26 @@ func (ap *AudioProxy) Start() error {
 	ap.isRunning = true
 
 	go func() {
-		_ = server.Serve(listener)
+		err := server.Serve(listener)
+		if err != nil && err != http.ErrServerClosed {
+			fmt.Printf("[Proxy] Server exited unexpectedly: %v\n", err)
+		}
+
+		ap.mu.Lock()
+		shouldCloseServer := ap.server == server
+		shouldCloseListener := ap.listener == listener
+		ap.server = nil
+		ap.listener = nil
+		ap.isRunning = false
+		ap.mu.Unlock()
+
+		// Best-effort: ensure port is released.
+		if shouldCloseServer {
+			_ = server.Close()
+		}
+		if shouldCloseListener {
+			_ = listener.Close()
+		}
 	}()
 
 	return nil
@@ -244,7 +269,7 @@ func (ap *AudioProxy) handleAudio(w http.ResponseWriter, r *http.Request) {
 		parsedURL, err := url.Parse(decodedURL)
 		if err == nil {
 			var fileName string
-			
+
 			// 尝试从 URL 路径末尾获取文件名
 			pathParts := strings.Split(parsedURL.Path, "/")
 			if len(pathParts) > 0 {
@@ -253,7 +278,7 @@ func (ap *AudioProxy) handleAudio(w http.ResponseWriter, r *http.Request) {
 					fileName = potentialFileName
 				}
 			}
-			
+
 			if fileName != "" {
 				// 尝试从缓存或下载目录提供
 				cachePath := filepath.Join(ap.baseDir, "audio_cache", fileName)
@@ -262,18 +287,18 @@ func (ap *AudioProxy) handleAudio(w http.ResponseWriter, r *http.Request) {
 					ap.serveLocalFile(w, r, cachePath)
 					return
 				}
-				
+
 				downloadPath := filepath.Join(ap.baseDir, "downloads", fileName)
 				if _, err := os.Stat(downloadPath); err == nil {
 					fmt.Printf("[Proxy] Serving from downloads: %s\n", downloadPath)
 					ap.serveLocalFile(w, r, downloadPath)
 					return
 				}
-				
+
 				fmt.Printf("[Proxy] No local cache found for %s (cache: %s, downloads: %s)\n", fileName, cachePath, downloadPath)
 			}
 		}
-		
+
 		// 无法回退，返回 403
 		http.Error(w, "upstream forbidden and no local cache available", http.StatusForbidden)
 		return
