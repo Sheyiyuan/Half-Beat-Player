@@ -15,6 +15,7 @@ import {
 } from '../types/contexts';
 import { Theme, convertTheme, convertThemes } from '../../types';
 import { DEFAULT_THEMES } from '../../utils/constants';
+import { normalizeThemeImageUrl } from '../../utils/image';
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
@@ -100,7 +101,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setThemeColor(theme.themeColor || '#ffffff');
         setBackgroundColor(theme.backgroundColor || '#ffffff');
         setBackgroundOpacity(theme.backgroundOpacity ?? 1);
-        setBackgroundImageUrl(theme.backgroundImage || "");
+        setBackgroundImageUrl(normalizeThemeImageUrl(theme.backgroundImage || ""));
         setBackgroundBlur(theme.backgroundBlur ?? 0);
         setPanelColor(theme.panelColor || '#ffffff');
         setPanelOpacity(theme.panelOpacity ?? 0.92);
@@ -140,7 +141,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }, [setMantineColorScheme]);
 
     const setBackgroundImageUrlSafe = useCallback((url: string) => {
-        setBackgroundImageUrl(url.trim());
+        setBackgroundImageUrl(normalizeThemeImageUrl(url));
     }, []);
 
     // ========== 稳定的 Actions 对象 ==========

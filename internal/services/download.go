@@ -22,9 +22,9 @@ import (
 
 // 音频与封面存储相关常量
 const (
-	cacheDir        = "audio_cache" // 被动缓存
-	downloadsDir    = "downloads"   // 主动下载
-	coversDir       = "covers"      // 封面缓存
+	cacheDir     = "audio_cache" // 被动缓存
+	downloadsDir = "downloads"   // 主动下载
+	coversDir    = "covers"      // 封面缓存
 	// Legacy file name for historical migration only.
 	playHistoryFile = "play_history.json"
 )
@@ -145,7 +145,7 @@ func (s *Service) DownloadSong(songID string) (string, error) {
 	// Ensure we have a valid audio URL
 	var audioURL string
 	if song.StreamURL != "" && song.StreamURLExpiresAt.After(time.Now().Add(30*time.Second)) {
-		if strings.Contains(song.StreamURL, "127.0.0.1:9999/audio") {
+		if isLocalProxyAudioURL(song.StreamURL) {
 			if song.BVID == "" {
 				return "", fmt.Errorf("歌曲缺少 BVID，无法解析播放地址")
 			}
@@ -336,13 +336,11 @@ func (s *Service) GetLocalAudioURL(songID string) (string, error) {
 	for _, candidate := range candidates {
 		path := filepath.Join(s.dataDir, cacheDir, candidate)
 		if _, err := os.Stat(path); err == nil {
-			urlStr := fmt.Sprintf("http://127.0.0.1:%d/local?f=%s", 9999, url.QueryEscape(candidate))
-			return urlStr, nil
+			return s.getLocalProxyURL(candidate), nil
 		}
 		path2 := filepath.Join(s.dataDir, downloadsDir, candidate)
 		if _, err := os.Stat(path2); err == nil {
-			urlStr := fmt.Sprintf("http://127.0.0.1:%d/local?f=%s", 9999, url.QueryEscape(candidate))
-			return urlStr, nil
+			return s.getLocalProxyURL(candidate), nil
 		}
 	}
 
@@ -397,6 +395,20 @@ func (s *Service) OpenDownloadsFolder() error {
 		return fmt.Errorf("打开文件管理器失败: %w", err)
 	}
 	return nil
+}
+
+func (s *Service) getLocalProxyURL(fileName string) string {
+	if s.audioProxy != nil {
+		return s.audioProxy.GetLocalProxyURL(fileName)
+	}
+	return fmt.Sprintf("http://127.0.0.1:9999/local?f=%s", url.QueryEscape(fileName))
+}
+
+func isLocalProxyAudioURL(raw string) bool {
+	if raw == "" {
+		return false
+	}
+	return strings.Contains(raw, "127.0.0.1:") && strings.Contains(raw, "/audio")
 }
 
 // IsSongDownloaded checks if the song exists in the downloads directory

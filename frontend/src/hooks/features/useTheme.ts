@@ -8,6 +8,7 @@ import { useComputedColorScheme, useMantineColorScheme } from '@mantine/core';
 import type { Theme } from '../../types';
 import { storage, STORAGE_KEYS } from '../../utils/storage';
 import { DEFAULT_THEMES } from '../../utils/constants';
+import { normalizeThemeImageUrl } from '../../utils/image';
 
 export interface UseThemeReturn {
     // 主题列表
@@ -63,7 +64,7 @@ export const useTheme = () => {
         setThemeColor(theme.themeColor || '#ffffff');
         setBackgroundColor(theme.backgroundColor || '#ffffff');
         setBackgroundOpacity(theme.backgroundOpacity ?? 1);
-        setBackgroundImageUrl(theme.backgroundImage || '');
+        setBackgroundImageUrl(normalizeThemeImageUrl(theme.backgroundImage || ''));
         setPanelColor(theme.panelColor || '#ffffff');
         setPanelOpacity(theme.panelOpacity ?? 0.92);
         if (theme.colorScheme && (theme.colorScheme === 'light' || theme.colorScheme === 'dark')) {
@@ -73,7 +74,7 @@ export const useTheme = () => {
 
     // 安全设置背景图片（直接设置，不需要避免重复）
     const setBackgroundImageUrlSafe = useCallback((url: string) => {
-        setBackgroundImageUrl(url);
+        setBackgroundImageUrl(normalizeThemeImageUrl(url));
     }, []);
 
     // 缓存自定义主题

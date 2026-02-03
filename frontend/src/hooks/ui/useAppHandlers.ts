@@ -169,8 +169,19 @@ export const useAppHandlers = (config: {
     const handleSubmitTheme = () => themeEditor.submitTheme();
     const handleCloseThemeEditor = themeEditor.closeThemeEditor;
     const handleClearBackgroundImageDraft = () => setBackgroundImageUrlDraftSafe("");
-    const handleBackgroundFileDraft = (e: React.ChangeEvent<HTMLInputElement>) => {
-        void loadBackgroundFile(e, setBackgroundImageUrlDraftSafe);
+    const handleBackgroundFileDraft = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const dataUrl = await loadBackgroundFile(e);
+        if (!dataUrl) return;
+        try {
+            const proxyUrl = await Services.SaveThemeImageFromDataURL(dataUrl);
+            setBackgroundImageUrlDraftSafe(proxyUrl);
+        } catch (err) {
+            notifications.show({
+                title: '背景图保存失败',
+                message: `${err}`,
+                color: 'red',
+            });
+        }
     };
 
     // ========== 收藏夹处理 ==========

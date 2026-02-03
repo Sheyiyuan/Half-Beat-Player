@@ -53,17 +53,53 @@ export const compressImageToWebp = async (
  * 从文件输入加载并压缩背景图片
  */
 export const loadBackgroundFile = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-    setter: (value: string) => void
-) => {
+    e: React.ChangeEvent<HTMLInputElement>
+): Promise<string | null> => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) return null;
     try {
         const compressed = await compressImageToWebp(file);
-        setter(compressed);
+        return compressed;
     } catch (err) {
         console.error("压缩图片失败", err);
+        return null;
     } finally {
         e.target.value = "";
     }
+};
+
+/**
+ * 规范化主题背景图 URL：统一走后端代理
+ */
+export const normalizeThemeImageUrl = (rawUrl: string): string => {
+    const trimmed = rawUrl.trim();
+    if (!trimmed) return "";
+
+    if (trimmed.startsWith("data:") || trimmed.startsWith("blob:")) {
+        return trimmed;
+    }
+
+    if (isLocalProxyUrl(trimmed)) {
+        return trimmed;
+    }
+
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+        const baseUrl = getCachedProxyBaseUrl();
+        return `${baseUrl}/image?u=${encodeURIComponent(trimmed)}`;
+    }
+
+    return trimmed;
+};
+
+const getCachedProxyBaseUrl = (): string => {
+    const cached = localStorage.getItem("half-beat.proxyBaseUrl");
+    if (cached && cached.startsWith("http://127.0.0.1:")) {
+        return cached.replace(/\/$/, "");
+    }
+    return "http://127.0.0.1:9999";
+};
+
+const isLocalProxyUrl = (value: string): boolean => {
+    if (!value.startsWith("http://127.0.0.1:")) return false;
+    return value.includes("/image") || value.includes("/theme-image") || value.includes("/audio") || value.includes("/local");
 };

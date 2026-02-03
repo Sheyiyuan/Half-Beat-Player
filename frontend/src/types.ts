@@ -58,6 +58,7 @@ export interface Theme extends models.Theme {
     backgroundColor?: string;
     backgroundOpacity?: number;
     backgroundImage?: string;
+    backgroundImageSourceUrl?: string;
     backgroundBlur?: number;
     // 面板设置
     panelColor?: string;
@@ -175,6 +176,7 @@ export function convertTheme(t: any): Theme {
         backgroundColor: themeConfig.backgroundColor || '#0a0e27',
         backgroundOpacity: themeConfig.backgroundOpacity ?? 1,
         backgroundImage: themeConfig.backgroundImage || '',
+        backgroundImageSourceUrl: themeConfig.backgroundImageSourceUrl || '',
         backgroundBlur: themeConfig.backgroundBlur ?? 0,
         panelColor: themeConfig.panelColor || '#1a1f3a',
         panelOpacity: themeConfig.panelOpacity ?? 0.6,

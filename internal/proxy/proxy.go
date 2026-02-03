@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mime"
 	"net"
 	"net/http"
 	"net/url"
@@ -140,6 +141,7 @@ func (ap *AudioProxy) Start() error {
 	mux.HandleFunc("/audio", ap.handleAudio)
 	mux.HandleFunc("/local", ap.handleLocal)
 	mux.HandleFunc("/image", ap.handleImage)
+	mux.HandleFunc("/theme-image", ap.handleThemeImage)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf("127.0.0.1:%d", ap.port),
@@ -434,9 +436,24 @@ func (ap *AudioProxy) GetProxyURL(audioURL string) string {
 	return fmt.Sprintf("http://127.0.0.1:%d/audio?u=%s", ap.port, url.QueryEscape(audioURL))
 }
 
+// GetBaseURL returns the base URL for the proxy server
+func (ap *AudioProxy) GetBaseURL() string {
+	return fmt.Sprintf("http://127.0.0.1:%d", ap.port)
+}
+
 // GetImageProxyURL returns the full proxy URL for an image
 func (ap *AudioProxy) GetImageProxyURL(imageURL string) string {
 	return fmt.Sprintf("http://127.0.0.1:%d/image?u=%s", ap.port, url.QueryEscape(imageURL))
+}
+
+// GetLocalProxyURL returns the full proxy URL for a local audio file
+func (ap *AudioProxy) GetLocalProxyURL(fileName string) string {
+	return fmt.Sprintf("http://127.0.0.1:%d/local?f=%s", ap.port, url.QueryEscape(fileName))
+}
+
+// GetThemeImageProxyURL returns the full proxy URL for a local theme image
+func (ap *AudioProxy) GetThemeImageProxyURL(fileName string) string {
+	return fmt.Sprintf("http://127.0.0.1:%d/theme-image?f=%s", ap.port, url.QueryEscape(fileName))
 }
 
 // handleLocal serves cached local audio files under baseDir/audio_cache via /local?f=filename
@@ -575,4 +592,58 @@ func (ap *AudioProxy) handleImage(w http.ResponseWriter, r *http.Request) {
 
 	// Stream response body
 	io.Copy(w, resp.Body)
+}
+
+// handleThemeImage serves local cached theme images under baseDir/theme_images via /theme-image?f=filename
+func (ap *AudioProxy) handleThemeImage(w http.ResponseWriter, r *http.Request) {
+	// Set CORS headers first for all responses
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Range")
+
+	// Handle preflight
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	fname := r.URL.Query().Get("f")
+	if fname == "" {
+		http.Error(w, "missing f parameter", http.StatusBadRequest)
+		return
+	}
+	// Prevent path traversal: only allow basename
+	if fname != filepath.Base(fname) {
+		http.Error(w, "invalid filename", http.StatusBadRequest)
+		return
+	}
+
+	path := filepath.Join(ap.baseDir, "theme_images", fname)
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			http.Error(w, "file not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "stat error", http.StatusInternalServerError)
+		return
+	}
+
+	// Best-effort Content-Type
+	if ext := filepath.Ext(fileInfo.Name()); ext != "" {
+		if ct := mime.TypeByExtension(ext); ct != "" {
+			w.Header().Set("Content-Type", ct)
+		}
+	}
+
+	// Cache headers
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+
+	// For HEAD requests, don't stream the body
+	if r.Method == "HEAD" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	http.ServeFile(w, r, path)
 }

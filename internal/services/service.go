@@ -88,13 +88,31 @@ func (s *Service) EnsureAudioProxyRunning() error {
 	return nil
 }
 
+// GetProxyBaseURL returns the base URL for the local proxy (backward compatible fallback).
+func (s *Service) GetProxyBaseURL() string {
+	if s.audioProxy != nil {
+		return s.audioProxy.GetBaseURL()
+	}
+	return "http://127.0.0.1:9999"
+}
+
 // GetImageProxyURL returns a proxied URL for images to bypass CORS restrictions
 func (s *Service) GetImageProxyURL(imageURL string) string {
 	if imageURL == "" {
 		return ""
 	}
-	// Use the same proxy port as audio (9999)
+	if s.audioProxy != nil {
+		return s.audioProxy.GetImageProxyURL(imageURL)
+	}
+	// Backward compatible fallback
 	return fmt.Sprintf("http://127.0.0.1:9999/image?u=%s", url.QueryEscape(imageURL))
+}
+
+func (s *Service) getAudioProxyURL(audioURL string) string {
+	if s.audioProxy != nil {
+		return s.audioProxy.GetProxyURL(audioURL)
+	}
+	return fmt.Sprintf("http://127.0.0.1:9999/audio?u=%s", url.QueryEscape(audioURL))
 }
 
 func (s *Service) SetAppContext(ctx context.Context) {

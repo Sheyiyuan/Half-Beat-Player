@@ -61,6 +61,8 @@ export function GetPlayerSetting():Promise<models.PlayerSetting>;
 
 export function GetPlaylist():Promise<models.Playlist>;
 
+export function GetProxyBaseURL():Promise<string>;
+
 export function GetThemes():Promise<Array<models.Theme>>;
 
 export function GetUserInfo():Promise<services.UserInfo>;
@@ -108,6 +110,10 @@ export function SavePlayHistory(arg1:string,arg2:string):Promise<void>;
 export function SavePlayerSetting(arg1:models.PlayerSetting):Promise<void>;
 
 export function SavePlaylist(arg1:string,arg2:number):Promise<void>;
+
+export function SaveThemeImageFromDataURL(arg1:string):Promise<string>;
+
+export function SaveThemeImageFromURL(arg1:string):Promise<string>;
 
 export function SearchBVID(arg1:string):Promise<Array<models.Song>>;
 

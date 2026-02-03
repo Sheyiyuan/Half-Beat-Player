@@ -113,6 +113,16 @@ export const useAppLifecycle = ({
                 }
             }
 
+            if (typeof Services.GetProxyBaseURL === "function") {
+                Services.GetProxyBaseURL()
+                    .then((baseUrl) => {
+                        if (baseUrl && baseUrl.startsWith("http://127.0.0.1:")) {
+                            localStorage.setItem("half-beat.proxyBaseUrl", baseUrl.replace(/\/$/, ""));
+                        }
+                    })
+                    .catch(() => { });
+            }
+
             try {
                 const cachedUserInfo = localStorage.getItem("half-beat.userInfo");
                 if (cachedUserInfo) {
