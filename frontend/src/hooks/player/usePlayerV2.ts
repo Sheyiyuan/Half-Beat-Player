@@ -9,11 +9,12 @@
  * - 歌曲播放逻辑
  */
 
-import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import { useRef, useState, useCallback, useMemo } from 'react';
 import { notifications } from '@mantine/notifications';
 import type { Song } from '../../types';
 import { convertSongs } from '../../types';
 import * as Services from '../../../wailsjs/go/services/Service';
+import { useAudioPlayer } from './useAudioPlayer';
 
 // ========== Types ==========
 
@@ -80,7 +81,8 @@ export const usePlayer = ({
     setStatus,
 }: UsePlayerProps): UsePlayerReturn => {
     // ========== State ==========
-    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const audioPlayer = useAudioPlayer(currentSong, 0.5);
+    const audioRef = audioPlayer.audioRef as React.RefObject<HTMLAudioElement>;
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
     const [duration, setDuration] = useState(0);
@@ -90,50 +92,38 @@ export const usePlayer = ({
     const playbackRetryRef = useRef<Map<string, number>>(new Map());
     const isHandlingErrorRef = useRef<Set<string>>(new Set());
 
-    // ========== Initialize Audio Element ==========
-    useEffect(() => {
-        if (!audioRef.current) {
-            audioRef.current = new Audio();
-            audioRef.current.crossOrigin = 'anonymous';
-
-            // 音频事件处理...后续补充
-        }
-    }, []);
-
     // ========== Sync Volume ==========
-    useEffect(() => {
-        if (audioRef.current) {
-            audioRef.current.volume = volume;
-        }
-    }, [volume]);
+    // useAudioPlayer 内部已同步到 audio 元素，这里只维护本 Hook 的 state
 
     // ========== Play/Pause/Seek Actions ==========
     const play = useCallback(async () => {
         if (!audioRef.current) return;
         try {
+            audioPlayer.ensureWebAudioReady?.();
             await audioRef.current.play();
             setIsPlaying(true);
         } catch (error) {
             console.error('播放失败:', error);
             setIsPlaying(false);
         }
-    }, []);
+    }, [audioRef, audioPlayer.ensureWebAudioReady]);
 
     const pause = useCallback(() => {
         if (!audioRef.current) return;
         audioRef.current.pause();
         setIsPlaying(false);
-    }, []);
+    }, [audioRef]);
 
     const seek = useCallback((time: number) => {
         if (!audioRef.current) return;
         audioRef.current.currentTime = time;
         setProgress(time);
-    }, []);
+    }, [audioRef]);
 
     const handleVolumeChange = useCallback((newVolume: number) => {
         setVolume(newVolume);
-    }, []);
+        audioPlayer.actions.setVolume(newVolume);
+    }, [audioPlayer.actions]);
 
     // ========== Play Song ==========
     const playSong = useCallback(async (song: Song, list?: Song[]) => {

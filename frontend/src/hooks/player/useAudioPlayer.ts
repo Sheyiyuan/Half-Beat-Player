@@ -5,6 +5,27 @@
 
 import { useRef, useState, useEffect, useCallback } from 'react';
 import type { Song } from '../../types';
+import { acquireSharedAudioEngine, releaseSharedAudioEngine, resetSharedAudioEngineToNativeOutput } from '../../utils/sharedAudioEngine';
+
+const getDefaultWebAudioDisableReason = (): string | null => {
+    // Wails on Linux uses WebKitGTK. MediaElementSource routing can intermittently produce silence.
+    // Prefer native <audio> output for reliability.
+    const w = window as unknown as { wails?: unknown; go?: unknown };
+    let isWails = false;
+    try {
+        // Avoid touching window.wails.Callback directly — Wails runtime is injected asynchronously.
+        const wailsAny = (w as any).wails;
+        isWails = Boolean((w as any).go || (wailsAny && typeof wailsAny === 'object' && 'Callback' in wailsAny));
+    } catch {
+        isWails = Boolean((w as any).go);
+    }
+
+    const ua = navigator.userAgent ?? '';
+    const isLinux = /Linux/i.test(ua);
+    const isWebKit = /AppleWebKit/i.test(ua) && !/Chrome|Chromium|Edg/i.test(ua);
+    if (isWails && isLinux && isWebKit) return 'wails-linux-webkit';
+    return null;
+};
 
 export interface AudioPlayerState {
     isPlaying: boolean;
@@ -29,11 +50,7 @@ export interface UseAudioPlayerReturn {
 
 export const useAudioPlayer = (currentSong: Song | null, initialVolume?: number, volumeCompensationDb: number = 0) => {
     const audioRef = useRef<HTMLAudioElement | null>(null);
-    const audioContextRef = useRef<AudioContext | null>(null);
-    const gainNodeRef = useRef<GainNode | null>(null);
-    const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
-    const originalPlayRef = useRef<((...args: any[]) => Promise<void>) | null>(null);
-    const audioMountedRef = useRef(false);
+    const engineRef = useRef<ReturnType<typeof acquireSharedAudioEngine> | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
     const [duration, setDuration] = useState(0);
@@ -42,73 +59,87 @@ export const useAudioPlayer = (currentSong: Song | null, initialVolume?: number,
     // 初始化音频元素（注意：在 Wails/Linux WebKit 下，new Audio() + WebAudio 路由可能导致无声；
     // 挂到 DOM 的 <audio> 更稳）
     useEffect(() => {
-        if (!audioRef.current) {
-            const el = document.createElement('audio');
-            el.crossOrigin = 'anonymous';
-            el.preload = 'metadata';
-            el.style.position = 'fixed';
-            el.style.left = '-99999px';
-            el.style.width = '1px';
-            el.style.height = '1px';
-            el.style.opacity = '0';
-            el.setAttribute('aria-hidden', 'true');
-            document.body.appendChild(el);
-            audioRef.current = el;
-            audioMountedRef.current = true;
+        const engine = acquireSharedAudioEngine();
+        engineRef.current = engine;
+        audioRef.current = engine.audio;
+
+        if (!engine.webAudioDisabled) {
+            const reason = getDefaultWebAudioDisableReason();
+            if (reason) {
+                engine.webAudioDisabled = true;
+                engine.webAudioDisabledReason = reason;
+                // Ensure we are actually using native output (WebKit may go silent when routed via WebAudio).
+                // Only reset when we already touched WebAudio, to avoid unnecessary element replacement.
+                if (engine.audioContext || engine.sourceNode || engine.gainNode || engine.playPatched) {
+                    resetSharedAudioEngineToNativeOutput(engine);
+                    audioRef.current = engine.audio;
+                }
+            }
         }
+
+        return () => {
+            engineRef.current = null;
+            releaseSharedAudioEngine();
+        };
     }, []);
 
     // 在首次播放时建立 WebAudio 链路并确保 resume（避免启动阶段就创建 AudioContext 导致策略/无声问题）
     const ensureWebAudioReady = useCallback(() => {
         const audio = audioRef.current;
+        const engine = engineRef.current;
+        if (!engine) return;
         if (!audio) return;
 
-        if (!audioContextRef.current) {
-            const AudioContextCtor = window.AudioContext || (window as any).webkitAudioContext;
+        if (engine.webAudioDisabled) return;
+
+        if (!engine.audioContext) {
+            const w = window as Window & { webkitAudioContext?: typeof AudioContext };
+            const AudioContextCtor = window.AudioContext || w.webkitAudioContext;
             if (AudioContextCtor) {
-                audioContextRef.current = new AudioContextCtor();
+                engine.audioContext = new AudioContextCtor();
             }
         }
-        const ctx = audioContextRef.current;
+        const ctx = engine.audioContext;
         if (!ctx) return;
 
-        if (!gainNodeRef.current) {
-            gainNodeRef.current = ctx.createGain();
-            gainNodeRef.current.gain.value = 1;
+        if (!engine.gainNode) {
+            engine.gainNode = ctx.createGain();
+            engine.gainNode.gain.value = 1;
         }
 
-        if (!sourceNodeRef.current) {
+        if (!engine.sourceNode) {
             try {
-                sourceNodeRef.current = ctx.createMediaElementSource(audio);
-                sourceNodeRef.current.connect(gainNodeRef.current);
-                gainNodeRef.current.connect(ctx.destination);
+                engine.sourceNode = ctx.createMediaElementSource(audio);
+                engine.sourceNode.connect(engine.gainNode);
+                engine.gainNode.connect(ctx.destination);
             } catch (err) {
                 console.warn('创建音频增益节点失败，回退到原生音量控制:', err);
             }
         }
 
         // 注入 play：无论谁调用 audio.play()，都尽量先 resume
-        if (!originalPlayRef.current) {
-            originalPlayRef.current = (audio.play as any).bind(audio);
-            (audio as any).play = async (...args: any[]) => {
+        if (!engine.playPatched) {
+            engine.originalPlay = audio.play.bind(audio);
+            audio.play = async () => {
                 try {
                     if (ctx.state === 'suspended') {
-                        ctx.resume().catch((e: any) => {
+                        ctx.resume().catch((e) => {
                             console.warn('AudioContext resume 失败（可能被浏览器策略阻止）:', e);
                         });
                     }
                 } catch (e) {
                     console.warn('AudioContext resume 失败（可能被浏览器策略阻止）:', e);
                 }
-                return originalPlayRef.current!(...args);
+                return engine.originalPlay!();
             };
+            engine.playPatched = true;
         }
     }, []);
 
     // 同步音量
     useEffect(() => {
         if (!audioRef.current) return;
-        if (gainNodeRef.current) {
+        if (engineRef.current?.gainNode && !engineRef.current.webAudioDisabled) {
             audioRef.current.volume = volume;
             return;
         }
@@ -120,11 +151,13 @@ export const useAudioPlayer = (currentSong: Song | null, initialVolume?: number,
 
     // 应用音量补偿（dB）到 GainNode
     useEffect(() => {
-        if (!gainNodeRef.current) return;
+        const gainNode = engineRef.current?.gainNode;
+        if (!gainNode) return;
+        if (engineRef.current?.webAudioDisabled) return;
         const db = Number.isFinite(volumeCompensationDb) ? volumeCompensationDb : 0;
         const gain = Math.pow(10, db / 20);
         const clamped = Math.min(4, Math.max(0.25, gain));
-        gainNodeRef.current.gain.value = clamped;
+        gainNode.gain.value = clamped;
     }, [volumeCompensationDb]);
 
     const play = useCallback(async () => {
@@ -140,20 +173,7 @@ export const useAudioPlayer = (currentSong: Song | null, initialVolume?: number,
         }
     }, [ensureWebAudioReady]);
 
-    // 卸载时清理隐藏 audio
-    useEffect(() => {
-        return () => {
-            const audio = audioRef.current;
-            if (audioMountedRef.current && audio?.parentElement) {
-                try {
-                    audio.pause();
-                    audio.src = '';
-                    audio.load();
-                } catch { }
-                audio.parentElement.removeChild(audio);
-            }
-        };
-    }, []);
+    // 清理逻辑由 sharedAudioEngine 的 refCount 控制
 
     const pause = useCallback(() => {
         if (!audioRef.current) return;

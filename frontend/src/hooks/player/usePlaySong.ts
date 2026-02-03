@@ -79,7 +79,7 @@ export const usePlaySong = ({
                             // 本地文件不需要过期，给一个很远的未来时间
                             streamUrlExpiresAt: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
                             updatedAt: new Date().toISOString()
-                        } as any;
+                        } satisfies Song;
                         // 不保存到数据库，只是临时使用，避免保存过时的本地 URL 引用
                         setCurrentSong(toPlay);
                         setIsPlaying(true);

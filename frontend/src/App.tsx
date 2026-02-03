@@ -237,7 +237,7 @@ const App: React.FC = () => {
     const lyricManagement = useLyricManagement({ currentSong, lyric, setLyric });
     const { saveLyric, saveLyricOffset } = lyricManagement;
 
-    const playbackControls = usePlaybackControls({ audioRef, currentSong, currentIndex, queue, playMode, intervalStart, intervalEnd, setIsPlaying, setCurrentIndex, setCurrentSong, setVolume, playSong, playbackRetryRef, isHandlingErrorRef });
+    const playbackControls = usePlaybackControls({ audioRef, currentSong, currentIndex, queue, playMode, intervalStart, intervalEnd, setIsPlaying, setCurrentIndex, setCurrentSong, setVolume, playSong, playbackRetryRef, isHandlingErrorRef, onBeforePlay: audioPlayer.ensureWebAudioReady });
     const { playNext, playPrev, togglePlay, changeVolume } = playbackControls;
 
     const settingsPersistence = useSettingsPersistence({ setting, playMode, volume, currentThemeId: currentThemeId || "", themeColor, backgroundColor, backgroundOpacity, backgroundImageUrl, panelColor, panelOpacity, panelBlur, panelRadius, controlColor, controlOpacity, textColorPrimary, textColorSecondary, favoriteCardColor, componentRadius, modalRadius, notificationRadius, coverRadius, windowControlsPos, setSetting, skipPersistRef });
@@ -284,7 +284,27 @@ const App: React.FC = () => {
 
     useAppEffects({ intervalStart, intervalEnd, intervalLength, intervalRef, currentSong, songs, setIsDownloaded, downloadedSongIds, setDownloadedSongIds, audioRef, prevSongIdRef });
 
-    useAudioEvents({ audioRef, currentSong, queue, currentIndex, playMode, isPlaying, intervalRef: intervalRef as React.MutableRefObject<{ start: number; end: number; length: number }>, setIsPlaying, setProgress, setDuration, setCurrentIndex, setCurrentSong, setStatus, playbackRetryRef, isHandlingErrorRef, upsertSongs: async (arg1: any[]) => Services.UpsertSongs(arg1), playSong, playNext });
+    useAudioEvents({
+        audioRef,
+        currentSong,
+        queue,
+        currentIndex,
+        playMode,
+        isPlaying,
+        intervalRef: intervalRef as React.MutableRefObject<{ start: number; end: number; length: number }>,
+        setIsPlaying,
+        setProgress,
+        setDuration,
+        setCurrentIndex,
+        setCurrentSong,
+        setStatus,
+        playbackRetryRef,
+        isHandlingErrorRef,
+        upsertSongs: async (arg1: any[]) => Services.UpsertSongs(arg1),
+        playSong,
+        playNext,
+        onBeforePlay: audioPlayer.ensureWebAudioReady,
+    });
 
     // ========== Handlers ==========
     const myFavoriteImport = favoriteActions.myFavoriteImport;
