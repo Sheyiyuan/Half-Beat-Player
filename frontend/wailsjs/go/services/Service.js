@@ -110,6 +110,10 @@ export function GetPlaylist() {
   return window['go']['services']['Service']['GetPlaylist']();
 }
 
+export function GetProxyBaseURL() {
+  return window['go']['services']['Service']['GetProxyBaseURL']();
+}
+
 export function GetThemes() {
   return window['go']['services']['Service']['GetThemes']();
 }
@@ -204,6 +208,14 @@ export function SavePlayerSetting(arg1) {
 
 export function SavePlaylist(arg1, arg2) {
   return window['go']['services']['Service']['SavePlaylist'](arg1, arg2);
+}
+
+export function SaveThemeImageFromDataURL(arg1) {
+  return window['go']['services']['Service']['SaveThemeImageFromDataURL'](arg1);
+}
+
+export function SaveThemeImageFromURL(arg1) {
+  return window['go']['services']['Service']['SaveThemeImageFromURL'](arg1);
 }
 
 export function SearchBVID(arg1) {

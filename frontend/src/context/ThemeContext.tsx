@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, Rea
 import { MantineColorScheme, useComputedColorScheme } from '@mantine/core';
 import { Theme, convertTheme, convertThemes } from '../types';
 import { DEFAULT_THEMES } from '../utils/constants';
+import { normalizeThemeImageUrl } from '../utils/image';
 
 // ========== 类型定义 ==========
 export interface ThemeState {
@@ -170,7 +171,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setThemeColor(theme.themeColor || '#ffffff');
         setBackgroundColor(theme.backgroundColor || '#ffffff');
         setBackgroundOpacity(theme.backgroundOpacity ?? 1);
-        setBackgroundImageUrl(theme.backgroundImage || "");
+        setBackgroundImageUrl(normalizeThemeImageUrl(theme.backgroundImage || ""));
         setBackgroundBlur(theme.backgroundBlur ?? 0);
         setPanelColor(theme.panelColor || '#ffffff');
         setPanelOpacity(theme.panelOpacity ?? 0.92);
@@ -205,19 +206,9 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
      * 安全设置背景图片 URL
      */
     const setBackgroundImageUrlSafe = useCallback((url: string) => {
-        const trimmedUrl = url.trim();
-
-        // 验证 URL 格式：允许 http://, https://, 和 data: URLs
-        if (trimmedUrl &&
-            !trimmedUrl.startsWith('http://') &&
-            !trimmedUrl.startsWith('https://') &&
-            !trimmedUrl.startsWith('data:')) {
-            console.warn('Invalid background image URL:', trimmedUrl);
-            return;
-        }
-
-        setBackgroundImageUrl(trimmedUrl);
-        localStorage.setItem('half-beat.backgroundImageUrl', trimmedUrl);
+        const normalized = normalizeThemeImageUrl(url);
+        setBackgroundImageUrl(normalized);
+        localStorage.setItem('half-beat.backgroundImageUrl', normalized);
     }, []);
 
     // ========== Effect: 清理旧的 localStorage 字段 ==========

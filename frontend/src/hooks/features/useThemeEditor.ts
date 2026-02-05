@@ -140,6 +140,57 @@ export const useThemeEditor = ({
     closeModal,
 }: UseThemeEditorProps) => {
 
+    const resolveBackgroundImage = useCallback(async (editingTheme: Theme | undefined) => {
+        const trimmed = backgroundImageUrlDraft.trim();
+        if (!trimmed) {
+            return { backgroundImage: '', backgroundImageSourceUrl: '' };
+        }
+
+        if (trimmed.startsWith('data:')) {
+            const proxyUrl = await Services.SaveThemeImageFromDataURL(trimmed);
+            return { backgroundImage: proxyUrl, backgroundImageSourceUrl: '' };
+        }
+
+        if (isLocalProxyUrl(trimmed, '/theme-image')) {
+            return {
+                backgroundImage: trimmed,
+                backgroundImageSourceUrl: editingTheme?.backgroundImageSourceUrl || '',
+            };
+        }
+
+        if (isLocalProxyUrl(trimmed, '/image')) {
+            return {
+                backgroundImage: trimmed,
+                backgroundImageSourceUrl: editingTheme?.backgroundImageSourceUrl || '',
+            };
+        }
+
+        if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+            try {
+                const proxyUrl = await Services.SaveThemeImageFromURL(trimmed);
+                return { backgroundImage: proxyUrl, backgroundImageSourceUrl: trimmed };
+            } catch (err) {
+                if (editingTheme?.backgroundImage) {
+                    notifications.show({
+                        title: '背景图刷新失败',
+                        message: 'URL 无法访问，已保留旧的本地缓存。',
+                        color: 'yellow',
+                    });
+                    return {
+                        backgroundImage: editingTheme.backgroundImage || '',
+                        backgroundImageSourceUrl: editingTheme.backgroundImageSourceUrl || '',
+                    };
+                }
+                throw err;
+            }
+        }
+
+        return {
+            backgroundImage: trimmed,
+            backgroundImageSourceUrl: editingTheme?.backgroundImageSourceUrl || '',
+        };
+    }, [backgroundImageUrlDraft]);
+
     const selectTheme = useCallback((theme: Theme) => {
         applyThemeToUi(theme);
         Services.SetCurrentTheme(theme.id).catch(err => console.error("SetCurrentTheme failed", err));
@@ -151,7 +202,7 @@ export const useThemeEditor = ({
         setThemeColorDraft(theme.themeColor || '#1f77f0');
         setBackgroundColorDraft(theme.backgroundColor || '#0a0e27');
         setBackgroundOpacityDraft(theme.backgroundOpacity ?? 1);
-        setBackgroundImageUrlDraftSafe(theme.backgroundImage || '');
+        setBackgroundImageUrlDraftSafe(theme.backgroundImageSourceUrl || theme.backgroundImage || '');
         setBackgroundBlurDraft(theme.backgroundBlur || 0);
         setPanelColorDraft(theme.panelColor || '#1a1f3a');
         setPanelOpacityDraft(theme.panelOpacity ?? 0.6);
@@ -225,12 +276,16 @@ export const useThemeEditor = ({
             autoClose: false,
         });
         try {
+            const editingTheme = editingThemeId ? themes.find((t: Theme) => t.id === editingThemeId) : undefined;
+            const { backgroundImage, backgroundImageSourceUrl } = await resolveBackgroundImage(editingTheme);
+
             // 构建主题数据对象
             const themeData = {
                 themeColor: themeColorDraft,
                 backgroundColor: backgroundColorDraft,
                 backgroundOpacity: backgroundOpacityDraft,
-                ...(backgroundImageUrlDraft ? { backgroundImage: backgroundImageUrlDraft } : {}),
+                ...(backgroundImage ? { backgroundImage } : {}),
+                ...(backgroundImageSourceUrl ? { backgroundImageSourceUrl } : {}),
                 backgroundBlur: backgroundBlurDraft,
                 panelColor: panelColorDraft,
                 panelOpacity: panelOpacityDraft,
@@ -255,7 +310,6 @@ export const useThemeEditor = ({
             };
 
             if (editingThemeId) {
-                const editingTheme = themes.find((t: Theme) => t.id === editingThemeId);
                 const updatedTheme: Theme = {
                     id: editingThemeId,
                     name: newThemeName || "未命名主题",
@@ -334,7 +388,8 @@ export const useThemeEditor = ({
         panelColorDraft, panelOpacityDraft, panelBlurDraft, panelRadiusDraft,
         controlColorDraft, controlOpacityDraft, controlBlurDraft, textColorPrimaryDraft, textColorSecondaryDraft, favoriteCardColorDraft, cardOpacityDraft,
         componentRadiusDraft, coverRadiusDraft, windowControlsPosDraft, defaultThemes,
-        modalRadiusDraft, notificationRadiusDraft
+        modalRadiusDraft, notificationRadiusDraft, modalColorDraft, modalOpacityDraft, modalBlurDraft, colorSchemeDraft,
+        resolveBackgroundImage
     ]);
 
     const closeThemeEditor = useCallback(() => {
@@ -349,7 +404,7 @@ export const useThemeEditor = ({
         setThemeColorDraft(theme.themeColor || '#1f77f0');
         setBackgroundColorDraft(theme.backgroundColor || '#0a0e27');
         setBackgroundOpacityDraft(theme.backgroundOpacity ?? 1);
-        setBackgroundImageUrlDraftSafe(theme.backgroundImage || '');
+        setBackgroundImageUrlDraftSafe(theme.backgroundImageSourceUrl || theme.backgroundImage || '');
         setBackgroundBlurDraft(theme.backgroundBlur || 0);
         setPanelColorDraft(theme.panelColor || '#1a1f3a');
         setPanelOpacityDraft(theme.panelOpacity ?? 0.6);
@@ -383,4 +438,9 @@ export const useThemeEditor = ({
         submitTheme,
         closeThemeEditor,
     };
+};
+
+const isLocalProxyUrl = (value: string, path: string): boolean => {
+    if (!value.startsWith('http://127.0.0.1:')) return false;
+    return value.includes(path);
 };

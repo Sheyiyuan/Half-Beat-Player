@@ -108,7 +108,7 @@ export const useAudioEvents = ({
                 }
 
                 // 如果是本地文件 404，说明文件已被删除，应该清除本地 URL 并重新获取
-                const isLocalUrl = currentSong?.streamUrl?.includes('127.0.0.1:9999/local');
+                const isLocalUrl = isLocalProxyUrl(currentSong?.streamUrl || '', '/local');
                 if (isLocalUrl && currentSong?.bvid) {
                     const count = (playbackRetryRef.current.get(currentSong.id) ?? 0) + 1;
                     playbackRetryRef.current.set(currentSong.id, count);
@@ -177,7 +177,7 @@ export const useAudioEvents = ({
                     audio.pause();
                     audio.src = '';
 
-                    // Best-effort: ensure local proxy is running (fixes 127.0.0.1:9999 connection refused)
+                    // Best-effort: ensure local proxy is running (fixes 127.0.0.1:* connection refused)
                     if (typeof Services.EnsureAudioProxyRunning === 'function') {
                         void Services.EnsureAudioProxyRunning().catch((ensureErr) => {
                             console.warn('[错误恢复] EnsureAudioProxyRunning 失败（继续尝试刷新 URL）:', ensureErr);
@@ -209,123 +209,123 @@ export const useAudioEvents = ({
                 setIsPlaying(false);
             };
 
-        // 时间更新处理
-        const onTime = () => {
-            const t = audio.currentTime;
-            const { start, end } = intervalRef.current;
+            // 时间更新处理
+            const onTime = () => {
+                const t = audio.currentTime;
+                const { start, end } = intervalRef.current;
 
-            // 元数据尚未就绪或时长异常时，避免区间判断导致误暂停
-            if (!Number.isFinite(audio.duration) || audio.duration <= 0) {
+                // 元数据尚未就绪或时长异常时，避免区间判断导致误暂停
+                if (!Number.isFinite(audio.duration) || audio.duration <= 0) {
+                    setProgress(t);
+                    return;
+                }
+
+                if (t < start) {
+                    // 如果播放时间早于区间起点，调整回起点
+                    audio.currentTime = start;
+                    setProgress(start);
+                    return;
+                }
+
+                if (t > end) {
+                    // 播放到区间末尾：重置位置，暂停，并触发 ended 事件来处理播放模式
+                    // 但要保持用户设置的播放意图（通过 onEnded 中的 playMode 逻辑）
+                    audio.currentTime = start;
+                    setProgress(end);
+                    audio.pause();
+
+                    // 触发 ended 事件让 onEnded 处理器根据播放模式决定下一步动作
+                    // 这样可以正确处理单曲循环、列表循环、随机等模式
+                    audio.dispatchEvent(new Event('ended'));
+                    return;
+                }
+
                 setProgress(t);
-                return;
-            }
+            };
 
-            if (t < start) {
-                // 如果播放时间早于区间起点，调整回起点
-                audio.currentTime = start;
-                setProgress(start);
-                return;
-            }
-
-            if (t > end) {
-                // 播放到区间末尾：重置位置，暂停，并触发 ended 事件来处理播放模式
-                // 但要保持用户设置的播放意图（通过 onEnded 中的 playMode 逻辑）
-                audio.currentTime = start;
-                setProgress(end);
-                audio.pause();
-
-                // 触发 ended 事件让 onEnded 处理器根据播放模式决定下一步动作
-                // 这样可以正确处理单曲循环、列表循环、随机等模式
-                audio.dispatchEvent(new Event('ended'));
-                return;
-            }
-
-            setProgress(t);
-        };
-
-        // 元数据加载处理
+            // 元数据加载处理
             const onLoaded = () => {
                 const loadedDuration = audio.duration || 0;
 
-            // 时长异常（Infinity/NaN/<=0）时不更新区间与结束时间
-            if (!Number.isFinite(loadedDuration) || loadedDuration <= 0) {
-                setDuration(0);
-                return;
-            }
+                // 时长异常（Infinity/NaN/<=0）时不更新区间与结束时间
+                if (!Number.isFinite(loadedDuration) || loadedDuration <= 0) {
+                    setDuration(0);
+                    return;
+                }
 
-            setDuration(loadedDuration);
+                setDuration(loadedDuration);
 
                 // 元数据加载完成后，补触发自动播放
                 if (isPlayingRef.current && audio.paused) {
                     safePlay('loadedmetadata');
                 }
 
-            // 如果当前歌曲的 skipEndTime 为 0，自动设置为实际时长
-            if (currentSong && loadedDuration > 0 && currentSong.skipEndTime === 0) {
-                const updatedSong = {
-                    ...currentSong,
-                    skipEndTime: loadedDuration,
-                } satisfies Song;
-                setCurrentSong(updatedSong);
+                // 如果当前歌曲的 skipEndTime 为 0，自动设置为实际时长
+                if (currentSong && loadedDuration > 0 && currentSong.skipEndTime === 0) {
+                    const updatedSong = {
+                        ...currentSong,
+                        skipEndTime: loadedDuration,
+                    } satisfies Song;
+                    setCurrentSong(updatedSong);
 
-                // 自动保存到数据库
-                upsertSongs([updatedSong]).catch((err) => {
-                    console.warn('自动保存结束时间失败:', err);
-                });
-            }
-        };
+                    // 自动保存到数据库
+                    upsertSongs([updatedSong]).catch((err) => {
+                        console.warn('自动保存结束时间失败:', err);
+                    });
+                }
+            };
 
-        // 播放结束处理
+            // 播放结束处理
             const onEnded = () => {
                 const { start } = intervalRef.current;
 
-            console.log('[onEnded] 播放结束，当前模式:', playMode);
+                console.log('[onEnded] 播放结束，当前模式:', playMode);
 
-            // 根据播放模式处理播放结束
+                // 根据播放模式处理播放结束
                 if (playMode === 'single') {
-                // 单曲循环：重置到区间起点并播放
-                console.log('[onEnded] 单曲循环：重置播放');
+                    // 单曲循环：重置到区间起点并播放
+                    console.log('[onEnded] 单曲循环：重置播放');
                     audio.currentTime = start;
                     setProgress(start);
                     safePlay('ended');
                 } else {
-                // 列表循环/随机播放：播放下一首
-                console.log('[onEnded] 列表循环/随机：播放下一首');
-                if (queue.length > 0) {
-                    playNext();
+                    // 列表循环/随机播放：播放下一首
+                    console.log('[onEnded] 列表循环/随机：播放下一首');
+                    if (queue.length > 0) {
+                        playNext();
+                    }
                 }
-            }
-        };
+            };
 
-        // 音频可以播放处理 - 清理错误状态并根据 isPlaying 状态决定是否自动播放
+            // 音频可以播放处理 - 清理错误状态并根据 isPlaying 状态决定是否自动播放
             const onCanPlay = () => {
                 if (currentSong?.id) {
-                // 歌曲成功加载，清除错误处理标记
-                isHandlingErrorRef.current.delete(currentSong.id);
+                    // 歌曲成功加载，清除错误处理标记
+                    isHandlingErrorRef.current.delete(currentSong.id);
 
-                // 只在 isPlaying 为 true 时才自动播放（用户点击了播放按钮或切换歌曲）
+                    // 只在 isPlaying 为 true 时才自动播放（用户点击了播放按钮或切换歌曲）
                     if (isPlayingRef.current && audio.paused) {
-                    // 设置到区间起点
-                    const { start } = intervalRef.current;
-                    if (start > 0 && audio.currentTime < start) {
-                        audio.currentTime = start;
-                        setProgress(start);
-                    }
+                        // 设置到区间起点
+                        const { start } = intervalRef.current;
+                        if (start > 0 && audio.currentTime < start) {
+                            audio.currentTime = start;
+                            setProgress(start);
+                        }
 
                         safePlay('canplay');
                     }
                 }
             };
 
-        // 同步播放状态 - 当音频真正开始播放时
-        const onPlay = () => {
-            setIsPlaying(true);
-        };
+            // 同步播放状态 - 当音频真正开始播放时
+            const onPlay = () => {
+                setIsPlaying(true);
+            };
 
-        // 同步暂停状态 - 当音频暂停时
-        const onPause = () => {
-            setIsPlaying(false);
-        };
+            // 同步暂停状态 - 当音频暂停时
+            const onPause = () => {
+                setIsPlaying(false);
+            };
 
             audio.addEventListener('error', handleError);
             audio.addEventListener('timeupdate', onTime);
@@ -374,4 +374,9 @@ export const useAudioEvents = ({
         playNext,
         onBeforePlay,
     ]);
+};
+
+const isLocalProxyUrl = (value: string, path: string): boolean => {
+    if (!value) return false;
+    return value.startsWith('http://127.0.0.1:') && value.includes(path);
 };

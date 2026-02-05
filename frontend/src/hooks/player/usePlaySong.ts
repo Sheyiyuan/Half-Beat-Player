@@ -102,8 +102,8 @@ export const usePlaySong = ({
 
         const exp: any = (song as any).streamUrlExpiresAt;
         // 检查是否需要刷新URL：无URL、已过期、或不是代理URL（本地文件除外）
-        const isLocalUrl = song.streamUrl?.includes('127.0.0.1:9999/local');
-        const isProxyUrl = song.streamUrl?.includes('127.0.0.1:9999/audio');
+        const isLocalUrl = isLocalProxyUrl(song.streamUrl || '', '/local');
+        const isProxyUrl = isLocalProxyUrl(song.streamUrl || '', '/audio');
         const expired = !isLocalUrl && (!song.streamUrl || !isProxyUrl || (exp && new Date(exp).getTime() <= Date.now() + 60_000));
 
         if (expired && song.bvid) {
@@ -163,4 +163,9 @@ export const usePlaySong = ({
     }, [queue, selectedFavId, setQueue, setCurrentIndex, setCurrentSong, setIsPlaying, setStatus, setSongs, playbackRetryRef]);
 
     return { playSong };
+};
+
+const isLocalProxyUrl = (value: string, path: string): boolean => {
+    if (!value) return false;
+    return value.startsWith('http://127.0.0.1:') && value.includes(path);
 };

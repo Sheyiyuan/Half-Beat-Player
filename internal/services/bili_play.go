@@ -56,7 +56,7 @@ func (s *Service) GetPlayURL(bvid string, p int) (PlayInfo, error) {
 		return PlayInfo{}, err
 	}
 
-	proxyURL := fmt.Sprintf("http://127.0.0.1:9999/audio?u=%s", url.QueryEscape(audioURL))
+	proxyURL := s.getAudioProxyURL(audioURL)
 
 	return PlayInfo{
 		RawURL:    audioURL,
@@ -302,7 +302,7 @@ func formatSongName(videoTitle string, pageNumber int, pageTitle string, totalPa
 		// 单P视频直接使用主标题
 		return videoTitle
 	}
-	
+
 	// 多P视频使用格式: 主标题P序号 分P标题
 	if pageTitle == "" {
 		return fmt.Sprintf("%sP%d", videoTitle, pageNumber)
