@@ -234,6 +234,15 @@ jobs:
         with:
           path: artifacts
 
+      - name: Clean and compress release artifacts
+        run: |
+          # remove unwanted macOS build byproducts
+          find artifacts -type f -name "iconfile.icns" -delete
+          find artifacts -type f -name "Info.plist" -delete
+
+          # gzip standalone linux binary (avoid .app bundle contents)
+          find artifacts -type f -name "half-beat" ! -path "*/.app/*" -exec gzip -9 {} \;
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v1
         with:
